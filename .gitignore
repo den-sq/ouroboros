@@ -1,2 +1,9 @@
+# Generated files
 .venv
 __pycache__
+dist
+.DS_Store
+
+# Testing
+sample-data.json
+.pytest_cache

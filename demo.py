@@ -1,7 +1,7 @@
-from ouroboros import hello
+from ouroboros import spline_demo
 
 def main():
-    hello()
+    spline_demo()
 
 if __name__ == "__main__":
     main()

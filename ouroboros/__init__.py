@@ -1,1 +1,1 @@
-from .ouroboros import hello
+from .ouroboros import spline_demo
