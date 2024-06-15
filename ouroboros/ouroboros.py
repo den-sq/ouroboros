@@ -1,7 +1,7 @@
 import numpy as np
 
 from .parse import parse_neuroglancer_json, neuroglancer_config_to_annotation
-from .spline import fit_spline, evaluate_spline
+from .spline import Spline
 
 def spline_demo():
     try:
@@ -21,13 +21,14 @@ def spline_demo():
         print("No annotations found in the file.")
         return
         
-    tck = fit_spline(sample_points, degree=3)
+    # tck = fit_spline(sample_points, degree=3)
+    spline = Spline(sample_points, degree=3)
 
     # Generate a range of values to evaluate the spline at
     t_values = np.linspace(0, 1, 500)
 
     # Evaluate the spline over the given range
-    x_spline, y_spline, z_spline = evaluate_spline(tck, t_values).T
+    x_spline, y_spline, z_spline = spline(t_values).T
 
     # Plot the sample points and the spline
     import matplotlib.pyplot as plt
