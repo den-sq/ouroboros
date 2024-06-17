@@ -38,7 +38,7 @@ def spline_demo():
 
     x, y, z = sample_points.T
 
-    ax3d.plot(x, y, z, color='orange')
+    # ax3d.plot(x, y, z, color='orange') # render the original points
     ax3d.plot(x_spline, y_spline, z_spline, color='black')
 
     # Calculate the tangent, normal, and binormal vectors
@@ -54,12 +54,15 @@ def spline_demo():
         if i % 25 != 0:
             continue
         x, y, z = x_spline[i], y_spline[i], z_spline[i]
-        tangent = tangent_vectors[i] * 15
-        normal = normal_vectors[i] * 15
-        binormal = binormal_vectors[i] * 15
+
+        # TODO: identify why the vectors are not visually consistent
+        tangent = tangent_vectors[i] * 10
+        normal = normal_vectors[i] * 10
+        binormal = binormal_vectors[i] * 10
+
         ax3d.quiver(x, y, z, tangent[0], tangent[1], tangent[2], color='r')
         ax3d.quiver(x, y, z, normal[0], normal[1], normal[2], color='b')
-        # ax3d.quiver(x, y, z, binormal[0], binormal[1], binormal[2], color='g')
+        ax3d.quiver(x, y, z, binormal[0], binormal[1], binormal[2], color='g')
 
     fig.show()
     plt.show()
