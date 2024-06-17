@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.interpolate import splprep, splev, splder
+from scipy.interpolate import splprep, splev
 
 # https://github.com/scipy/scipy/issues/10389
 # https://docs.scipy.org/doc/scipy/reference/interpolate.html

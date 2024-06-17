@@ -155,17 +155,6 @@ unicode = ["unicodedata2 (>=15.1.0)"]
 woff = ["brotli (>=1.0.1)", "brotlicffi (>=0.8.0)", "zopfli (>=0.1.4)"]
 
 [[package]]
-name = "geomdl"
-version = "5.3.1"
-description = "Object-oriented B-Spline and NURBS evaluation library"
-optional = false
-python-versions = "*"
-files = [
-    {file = "geomdl-5.3.1-py2.py3-none-any.whl", hash = "sha256:0f36a4bacde5b218c73aadc69ff152e7f7fb3aa7260df0e6647a701a5351d76a"},
-    {file = "geomdl-5.3.1.tar.gz", hash = "sha256:e81a31b4d5f111267b16045ba1d9539235a98b2cff5e4bad18f7ddcd4cb804c8"},
-]
-
-[[package]]
 name = "iniconfig"
 version = "2.0.0"
 description = "brain-dead simple config-ini parsing"
@@ -602,4 +591,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "c69ec108a514b8b9139593b3cb43bec6a960ec267e7fe0718ff9fb1c074e0788"
+content-hash = "aee625dc2746b4ff4bb64dbe59b3cb628468f0321201e41129f389a7aaebcd7c"

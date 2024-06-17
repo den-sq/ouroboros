@@ -22,7 +22,7 @@ def parse_neuroglancer_json(json_string) -> ParseResult:
     except json.JSONDecodeError as e:
         return ({}, e)
 
-def neuroglancer_config_to_annotation(config):
+def neuroglancer_config_to_annotation(config, use_numpy=True):
     """
     Extract the first annotation from a neuroglancer state JSON dictionary as a numpy array.
     
@@ -43,6 +43,10 @@ def neuroglancer_config_to_annotation(config):
         if layer["type"] == "annotation":
             annotations = layer["annotations"]
 
-            return np.array([data["point"] for data in annotations if data["type"] == "point"])
+            result = [data["point"] for data in annotations if data["type"] == "point"]
+
+            if use_numpy:
+                return np.array(result)
+            return result
         
     return np.array()
