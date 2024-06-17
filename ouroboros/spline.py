@@ -1,12 +1,81 @@
 import numpy as np
-from scipy.interpolate import splprep, splev
+from scipy.interpolate import splprep, splev, splder
+
+# https://github.com/scipy/scipy/issues/10389
+# https://docs.scipy.org/doc/scipy/reference/interpolate.html
 
 class Spline:
     def __init__(self, sample_points: np.ndarray, degree = 3) -> None:
+        # Guarantee that the degree is at least 2
+        degree = max(degree, 2)
+
         self.tck = self.fit_spline(sample_points, degree=degree)
 
     def __call__(self, times: np.ndarray):
         return self.evaluate_spline(self.tck, times)
+    
+    def calculate_vectors(self, times: np.ndarray):
+        """
+        Calculate the tangent, normal, and binormal vectors of the spline at a set of time points.
+        
+        Parameters:
+        ----------
+            times (numpy.ndarray): The time points at which to calculate the vectors.
+
+        Returns:
+        -------
+            tuple: A tuple containing the tangent, normal, and binormal vectors at the given time points. Each has shape (3, n).
+        """
+
+        # Handle the case where times is empty
+        if len(times) == 0:
+            return np.array([]), np.array([]), np.array([])
+        
+        # Calculate the first derivative of the spline
+        tck1 = splder(self.tck, n=1)
+        tangent_vectors = self.evaluate_spline(tck1, times)
+        # first_derivatives = self.evaluate_spline(self.tck, times, derivative=1)
+
+        # Calculate the second derivative of the spline
+        tck2 = splder(self.tck, n=2)
+        tangent_derivatives = self.evaluate_spline(tck2, times)
+        normal_vectors = np.cross(tangent_vectors, tangent_derivatives, axis=0)
+        # second_derivatives = self.evaluate_spline(self.tck, times, derivative=2)
+
+        # Normalize vectors
+        tangent_vectors = tangent_vectors / np.linalg.norm(tangent_vectors, axis=0)
+        normal_vectors = normal_vectors / np.linalg.norm(normal_vectors, axis=0)
+        
+        # Calculate normal vectors
+        # https://tex.stackexchange.com/questions/643915/tangent-normal-and-binormal-vectors
+        # normals = np.cross(first_derivatives, np.cross(second_derivatives, first_derivatives, axis=0), axis=0)
+        # normal_vectors = normals / np.linalg.norm(normals, axis=0)
+        
+        # Calculate binormal vectors
+        binormal_vectors = np.cross(tangent_vectors, normal_vectors, axis=0)
+        # binormal_vectors = binormals / np.linalg.norm(binormals, axis=0)
+        
+        return tangent_vectors, normal_vectors, binormal_vectors
+            
+        # # Calculate the first derivative of the spline
+        # first_derivatives = self.evaluate_spline(self.tck, times, derivative=1)
+
+        # # Calculate the second derivative of the spline
+        # second_derivatives = self.evaluate_spline(self.tck, times, derivative=2)
+
+        # # Calculate tangent vectors
+        # tangent_vectors = first_derivatives / np.linalg.norm(first_derivatives, axis=0)
+        
+        # # Calculate normal vectors
+        # # https://tex.stackexchange.com/questions/643915/tangent-normal-and-binormal-vectors
+        # normals = np.cross(first_derivatives, np.cross(second_derivatives, first_derivatives, axis=0), axis=0)
+        # normal_vectors = normals / np.linalg.norm(normals, axis=0)
+        
+        # # Calculate binormal vectors
+        # binormal_vectors = np.cross(tangent_vectors, normal_vectors, axis=0)
+        # # binormal_vectors = binormals / np.linalg.norm(binormals, axis=0)
+        
+        # return tangent_vectors, normal_vectors, binormal_vectors
 
     @staticmethod
     def fit_spline(sample_points: np.ndarray, degree = 3):
@@ -32,7 +101,7 @@ class Spline:
         return tck
 
     @staticmethod
-    def evaluate_spline(tck, times: np.ndarray):
+    def evaluate_spline(tck, times: np.ndarray, derivative = 0):
         """
         Evaluate a B-spline at a set of time points.
         
@@ -40,13 +109,14 @@ class Spline:
         ----------
             tck (tuple): A tuple containing the knot vector and the coefficients of the B-spline.
             times (numpy.ndarray): The time points at which to evaluate the B-spline.
+            derivative (int): The order of the derivative to evaluate (default is 0).
         
         Returns:
         -------
-            numpy.ndarray: The points on the B-spline at the given time points (n, 3).
+            numpy.ndarray: The points on the B-spline at the given time points (3, n).
         """
 
-        return np.array(splev(times, tck)).T
+        return np.array(splev(times, tck, der = derivative))
 
     @staticmethod
     def generate_knot_vector(num_points: int, degree: int):

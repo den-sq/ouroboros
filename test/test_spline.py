@@ -74,4 +74,27 @@ def test_evaluate_spline():
     evaluated_points = Spline.evaluate_spline(tck, t_values)
 
     # Check if the evaluated points array has the correct shape
-    assert evaluated_points.shape == (100, 3), "The shape of evaluated points should match the number of t values and dimensions"
+    assert evaluated_points.shape == (3, 100), "The shape of evaluated points should match the number of t values and dimensions"
+
+
+def test_calculate_vectors_basic():
+    # Sample points arranged in a simple curve
+    sample_points = np.array([
+        [0, 0, 0],
+        [1, 1, 0],
+        [2, 0, 0]
+    ])
+    # Initialize Spline object
+    spline = Spline(sample_points, degree=2)
+    # Times at which to calculate vectors
+    times = np.linspace(0, 1, 5)
+    # Calculate vectors
+    tangent_vectors, normal_vectors, binormal_vectors = spline.calculate_vectors(times)
+    # Assert that the method returns three numpy arrays
+    assert isinstance(tangent_vectors, np.ndarray), "Tangent vectors should be a numpy array"
+    assert isinstance(normal_vectors, np.ndarray), "Normal vectors should be a numpy array"
+    assert isinstance(binormal_vectors, np.ndarray), "Binormal vectors should be a numpy array"
+    # Assert that the shapes of the vectors are correct
+    assert tangent_vectors.shape == (3, len(times)), "Tangent vectors shape should match (3, number of times)"
+    assert normal_vectors.shape == (3, len(times)), "Normal vectors shape should match (3, number of times)"
+    assert binormal_vectors.shape == (3, len(times)), "Binormal vectors shape should match (3, number of times)"

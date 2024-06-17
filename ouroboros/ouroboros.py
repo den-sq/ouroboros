@@ -28,7 +28,7 @@ def spline_demo():
     t_values = np.linspace(0, 1, 500)
 
     # Evaluate the spline over the given range
-    x_spline, y_spline, z_spline = spline(t_values).T
+    x_spline, y_spline, z_spline = spline(t_values)
 
     # Plot the sample points and the spline
     import matplotlib.pyplot as plt
@@ -38,7 +38,28 @@ def spline_demo():
 
     x, y, z = sample_points.T
 
-    ax3d.plot(x, y, z, 'b')
-    ax3d.plot(x_spline, y_spline, z_spline, 'g')
+    ax3d.plot(x, y, z, color='orange')
+    ax3d.plot(x_spline, y_spline, z_spline, color='black')
+
+    # Calculate the tangent, normal, and binormal vectors
+    tangent_vectors, normal_vectors, binormal_vectors = spline.calculate_vectors(t_values)
+
+    # Transpose the vectors for easier indexing (3, n) -> (n, 3)
+    tangent_vectors = tangent_vectors.T
+    normal_vectors = normal_vectors.T
+    binormal_vectors = binormal_vectors.T
+
+    # Plot the tangent, normal, and binormal vectors
+    for i in range(len(t_values)):
+        if i % 25 != 0:
+            continue
+        x, y, z = x_spline[i], y_spline[i], z_spline[i]
+        tangent = tangent_vectors[i] * 15
+        normal = normal_vectors[i] * 15
+        binormal = binormal_vectors[i] * 15
+        ax3d.quiver(x, y, z, tangent[0], tangent[1], tangent[2], color='r')
+        ax3d.quiver(x, y, z, normal[0], normal[1], normal[2], color='b')
+        # ax3d.quiver(x, y, z, binormal[0], binormal[1], binormal[2], color='g')
+
     fig.show()
     plt.show()
