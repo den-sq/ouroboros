@@ -1,7 +1,10 @@
 import numpy as np
 
 from .parse import parse_neuroglancer_json, neuroglancer_config_to_annotation
-from .spline import Spline, GeomdlSpline
+from .spline import Spline
+
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 def spline_demo():
     try:
@@ -31,8 +34,6 @@ def spline_demo():
     x_spline, y_spline, z_spline = spline(t_values)
 
     # Plot the sample points and the spline
-    import matplotlib.pyplot as plt
-
     fig = plt.figure(0)
     ax3d = fig.add_subplot(111, projection='3d')
 
@@ -60,7 +61,7 @@ def spline_demo():
 
     # Plot the tangent, normal, and binormal vectors
     for i in range(len(t_values)):
-        if i % 10 != 0:
+        if i % 25 != 0:
             continue
         x, y, z = x_spline[i], y_spline[i], z_spline[i]
 
@@ -74,15 +75,23 @@ def spline_demo():
         ax3d.quiver(x, y, z, binormal[0], binormal[1], binormal[2], length=20, color='g')
 
         # plot_plane(ax3d, np.array([x,y,z]),tangent)
+        plot_slice(ax3d, np.array([x,y,z]), normal, binormal, 50, 50)
 
     fig.show()
     plt.show()
 
-def plot_plane(axes, point, normal):
-    d = -point.dot(normal)
+def plot_slice(axes, point, localx, localy, width, height):
+    width_vec = localx * width
+    height_vec = localy * height
 
-    xx, yy = np.meshgrid(range(100), range(100))
+    top_left = point - width_vec + height_vec
+    top_right = point + width_vec + height_vec
+    bottom_right = point + width_vec - height_vec
+    bottom_left = point - width_vec - height_vec
 
-    z = (-normal[0] * xx - normal[1] ** yy - d) * (1./normal[2])
+    verts = np.array([[top_left, top_right, bottom_right, bottom_left]])
 
-    axes.plot_surface(xx,yy,z)
+    rect = Poly3DCollection(verts)
+    rect.set_alpha(0.5)
+
+    axes.add_collection(rect)
