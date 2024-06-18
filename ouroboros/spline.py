@@ -1,9 +1,6 @@
 import numpy as np
 from scipy.interpolate import splprep, splev
 
-# https://github.com/scipy/scipy/issues/10389
-# https://docs.scipy.org/doc/scipy/reference/interpolate.html
-
 class Spline:
     def __init__(self, sample_points: np.ndarray, degree = 3) -> None:
         # Guarantee that the degree is at least 2
@@ -123,42 +120,42 @@ class Spline:
         tangent_vectors = tangent_vectors.T
 
         # Calculate initial frame
-        T0 = tangent_vectors[0]
+        initial_tangent = tangent_vectors[0]
         
         # Choose an arbitrary vector that is not parallel to the tangent
-        if np.abs(T0[0]) < 1e-6 and np.abs(T0[1]) < 1e-6:
-            N0 = np.array([0, 1, 0])
+        if np.abs(initial_tangent[0]) < 1e-6 and np.abs(initial_tangent[1]) < 1e-6:
+            initial_normal = np.array([0, 1, 0])
         else:
-            N0 = np.array([-T0[1], T0[0], 0])
+            initial_normal = np.array([-initial_tangent[1], initial_tangent[0], 0])
         
         # Normalize the normal vector
-        N0 /= np.linalg.norm(N0)
+        initial_normal /= np.linalg.norm(initial_normal)
         
         # Compute the binormal vector as the cross product of T0 and N0
-        B0 = np.cross(T0, N0)
+        initial_binormal = np.cross(initial_tangent, initial_normal)
 
         # Recompute the normal vector as the cross product of B0 and T0
-        N0 = np.cross(B0, T0)
+        initial_normal = np.cross(initial_binormal, initial_tangent)
 
-        tangents = [T0]
-        normals = [N0]
-        binormals = [B0]
+        tangents = [initial_tangent]
+        normals = [initial_normal]
+        binormals = [initial_binormal]
 
         for i in range(1, len(times)):
-            prev_T, prev_N, prev_B = tangents[-1], normals[-1], binormals[-1]
-            cur_T = tangent_vectors[i]
+            previous_tangent, previous_normal, previous_binormal = tangents[-1], normals[-1], binormals[-1]
+            current_tangent = tangent_vectors[i]
 
             # Calculate the rotation axis
-            rotation_axis = np.cross(prev_T, cur_T)
+            rotation_axis = np.cross(previous_tangent, current_tangent)
             if np.linalg.norm(rotation_axis) < 1e-6:
                 # If the rotation axis is too small, keep the previous frame
-                return prev_N, prev_B
+                return previous_normal, previous_binormal
             
             # Normalize the rotation axis
             rotation_axis /= np.linalg.norm(rotation_axis)
             
             # Calculate the rotation angle
-            dot_product = np.dot(prev_T, cur_T)
+            dot_product = np.dot(previous_tangent, current_tangent)
             rotation_angle = np.arccos(np.clip(dot_product, -1.0, 1.0))
             
             # Create the rotation matrix using Rodrigues' rotation formula
@@ -174,12 +171,12 @@ class Spline:
             )
             
             # Update the normal and binormal vectors
-            cur_N = np.dot(rotation_matrix, prev_N)
-            cur_B = np.dot(rotation_matrix, prev_B)
+            current_normal = np.dot(rotation_matrix, previous_normal)
+            current_binormal = np.dot(rotation_matrix, previous_binormal)
 
-            tangents.append(cur_T)
-            normals.append(cur_N)
-            binormals.append(cur_B)
+            tangents.append(current_tangent)
+            normals.append(current_normal)
+            binormals.append(current_binormal)
 
         tangent_vectors = np.array(tangents).T
         normal_vectors = np.array(normals).T
