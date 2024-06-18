@@ -3,9 +3,9 @@ import numpy as np
 
 ParseResult = tuple[dict, None | json.JSONDecodeError]
 
-def parse_neuroglancer_json(json_string) -> ParseResult:
+def parse_neuroglancer_json(json_path) -> ParseResult:
     """
-    Parse a neuroglancer state JSON string and return a dictionary of the parsed data.
+    Open and parse a neuroglancer state JSON string and return a dictionary of the parsed data.
 
     Parameters
     ----------
@@ -18,9 +18,16 @@ def parse_neuroglancer_json(json_string) -> ParseResult:
         A tuple containing the parsed JSON dictionary and an error if one occurred.
     """
     try:
-        return (json.loads(json_string), None)
+        with open(json_path) as f:
+            json_string = f.read()
+
+            parsed_json = json.loads(json_string)
+
+            return (parsed_json, None)
     except json.JSONDecodeError as e:
-        return ({}, e)
+        return ({}, f"An error occurred while parsing the given JSON file: {str(e)}")
+    except Exception as e:
+        return ({}, f"An error occurred while opening the given JSON file: {str(e)}")
 
 def neuroglancer_config_to_annotation(config, use_numpy=True):
     """

@@ -8,15 +8,10 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 def spline_demo():
-    try:
-        with open("test/sample-data.json") as f:
-            ng_config, error = parse_neuroglancer_json(f.read())
+    ng_config, error = parse_neuroglancer_json("test/sample-data.json")
 
-            if error:
-                print("Error occurred while parsing the file:", str(error))
-                return
-    except Exception as e:
-        print("Error occurred while opening the file:", str(e))
+    if error:
+        print(error)
         return
     
     sample_points = neuroglancer_config_to_annotation(ng_config)
