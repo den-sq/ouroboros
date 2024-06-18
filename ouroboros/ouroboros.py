@@ -2,6 +2,7 @@ import numpy as np
 
 from .parse import parse_neuroglancer_json, neuroglancer_config_to_annotation
 from .spline import Spline
+from .slice import calculate_slice_rects
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -25,13 +26,13 @@ def spline_demo():
         return
         
     spline = Spline(sample_points, degree=3)
-    # spline = GeomdlSpline(sample_points)
 
     # Generate a range of values to evaluate the spline at
     t_values = np.linspace(0, 1, 500)
 
     # Evaluate the spline over the given range
-    x_spline, y_spline, z_spline = spline(t_values)
+    spline_values = spline(t_values)
+    x_spline, y_spline, z_spline = spline_values
 
     # Plot the sample points and the spline
     fig = plt.figure(0)
@@ -59,13 +60,15 @@ def spline_demo():
     normal_vectors = normal_vectors.T
     binormal_vectors = binormal_vectors.T
 
+    # Calculate the slice rects for each t value
+    rects = calculate_slice_rects(t_values, spline, 50, 50, spline_points=spline_values)
+
     # Plot the tangent, normal, and binormal vectors
     for i in range(len(t_values)):
         if i % 25 != 0:
             continue
         x, y, z = x_spline[i], y_spline[i], z_spline[i]
 
-        # TODO: identify why the vectors are not visually consistent
         tangent = tangent_vectors[i]
         normal = normal_vectors[i]
         binormal = binormal_vectors[i] 
@@ -74,24 +77,13 @@ def spline_demo():
         ax3d.quiver(x, y, z, normal[0], normal[1], normal[2], length=20, color='b')
         ax3d.quiver(x, y, z, binormal[0], binormal[1], binormal[2], length=20, color='g')
 
-        # plot_plane(ax3d, np.array([x,y,z]),tangent)
-        plot_slice(ax3d, np.array([x,y,z]), normal, binormal, 50, 50)
+        plot_slice(ax3d, np.array([x,y,z]), rects[i])
 
     fig.show()
     plt.show()
 
-def plot_slice(axes, point, localx, localy, width, height):
-    width_vec = localx * width
-    height_vec = localy * height
-
-    top_left = point - width_vec + height_vec
-    top_right = point + width_vec + height_vec
-    bottom_right = point + width_vec - height_vec
-    bottom_left = point - width_vec - height_vec
-
-    verts = np.array([[top_left, top_right, bottom_right, bottom_left]])
-
-    rect = Poly3DCollection(verts)
+def plot_slice(axes, rect):
+    rect = Poly3DCollection(rect)
     rect.set_alpha(0.5)
 
     axes.add_collection(rect)
