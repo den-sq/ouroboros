@@ -61,6 +61,12 @@ def spline_demo():
     normal_vectors = normal_vectors.T
     binormal_vectors = binormal_vectors.T
 
+    # Calculate the RMF frames
+    rmf_tangents, rmf_normals, rmf_binormals = spline.calculate_rotation_minimizing_vectors(equidistant_params)
+    rmf_tangents = rmf_tangents.T
+    rmf_normals = rmf_normals.T
+    rmf_binormals = rmf_binormals.T
+
     # Calculate the slice rects for each t value
     rects = calculate_slice_rects(equidistant_params, spline, 50, 50, spline_points=equidistant_points)
 
@@ -68,9 +74,13 @@ def spline_demo():
     for i in range(len(equidistant_params)):
         x, y, z = x_eq[i], y_eq[i], z_eq[i]
 
-        tangent = tangent_vectors[i]
-        normal = normal_vectors[i]
-        binormal = binormal_vectors[i] 
+        # tangent = tangent_vectors[i]
+        # normal = normal_vectors[i]
+        # binormal = binormal_vectors[i] 
+
+        tangent = rmf_tangents[i]
+        normal = rmf_normals[i]
+        binormal = rmf_binormals[i]
 
         ax3d.quiver(x, y, z, tangent[0], tangent[1], tangent[2], length=30, color='r')
         ax3d.quiver(x, y, z, normal[0], normal[1], normal[2], length=30, color='b')

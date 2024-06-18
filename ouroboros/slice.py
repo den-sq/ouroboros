@@ -4,7 +4,7 @@ from .spline import Spline
 
 def calculate_slice_rects(times: np.ndarray, spline: Spline, width, height, spline_points=None) -> np.ndarray:
     # Calculate the tangent, normal, and binormal vectors
-    tangent_vectors, normal_vectors, binormal_vectors = spline.calculate_vectors(times)
+    tangent_vectors, normal_vectors, binormal_vectors = spline.calculate_rotation_minimizing_vectors(times)
 
     # Transpose the vectors for vectpr-by-vector indexing (3, n) -> (n, 3)
     tangent_vectors = tangent_vectors.T
@@ -19,7 +19,7 @@ def calculate_slice_rects(times: np.ndarray, spline: Spline, width, height, spli
 
     rects = []
 
-    for i, time in enumerate(times):
+    for i in range(len(times)):
         point = spline_points[i]
 
         localx = normal_vectors[i]
