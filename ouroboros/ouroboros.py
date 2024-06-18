@@ -52,8 +52,14 @@ def spline_demo():
     ax3d.plot(x, y, z, color='orange') # render the original points
     ax3d.plot(x_spline, y_spline, z_spline, color='black')
 
+    # Plot equidistant points along the spline
+    equidistant_params = spline.calculate_equidistant_parameters(50)
+    equidistant_points = spline(equidistant_params)
+    x_eq, y_eq, z_eq = equidistant_points
+    ax3d.plot(x_eq, y_eq, z_eq, 'go')
+
     # Calculate the tangent, normal, and binormal vectors
-    tangent_vectors, normal_vectors, binormal_vectors = spline.calculate_vectors(t_values)
+    tangent_vectors, normal_vectors, binormal_vectors = spline.calculate_vectors(equidistant_params)
 
     # Transpose the vectors for easier indexing (3, n) -> (n, 3)
     tangent_vectors = tangent_vectors.T
@@ -61,35 +67,27 @@ def spline_demo():
     binormal_vectors = binormal_vectors.T
 
     # Calculate the slice rects for each t value
-    rects = calculate_slice_rects(t_values, spline, 50, 50, spline_points=spline_values)
+    rects = calculate_slice_rects(equidistant_params, spline, 50, 50, spline_points=equidistant_points)
 
     # Plot the tangent, normal, and binormal vectors
-    # for i in range(len(t_values)):
-    #     if i % 25 != 0:
-    #         continue
-    #     x, y, z = x_spline[i], y_spline[i], z_spline[i]
+    for i in range(len(equidistant_params)):
+        x, y, z = x_eq[i], y_eq[i], z_eq[i]
 
-    #     tangent = tangent_vectors[i]
-    #     normal = normal_vectors[i]
-    #     binormal = binormal_vectors[i] 
+        tangent = tangent_vectors[i]
+        normal = normal_vectors[i]
+        binormal = binormal_vectors[i] 
 
-    #     ax3d.quiver(x, y, z, tangent[0], tangent[1], tangent[2], length=20, color='r')
-    #     ax3d.quiver(x, y, z, normal[0], normal[1], normal[2], length=20, color='b')
-    #     ax3d.quiver(x, y, z, binormal[0], binormal[1], binormal[2], length=20, color='g')
+        ax3d.quiver(x, y, z, tangent[0], tangent[1], tangent[2], length=30, color='r')
+        ax3d.quiver(x, y, z, normal[0], normal[1], normal[2], length=30, color='b')
+        ax3d.quiver(x, y, z, binormal[0], binormal[1], binormal[2], length=30, color='g')
 
-    #     plot_slice(ax3d, np.array([x,y,z]), rects[i])
-
-    # Plot equidistant points along the spline
-    equidistant_params = spline.calculate_equidistant_parameters(30)
-    equidistant_points = spline(equidistant_params)
-    x_eq, y_eq, z_eq = equidistant_points
-    ax3d.plot(x_eq, y_eq, z_eq, 'go')
+    plot_slices(ax3d, rects)
 
     fig.show()
     plt.show()
 
-def plot_slice(axes, rect):
-    rect = Poly3DCollection(rect)
-    rect.set_alpha(0.5)
+def plot_slices(axes, rects):
+    rects = Poly3DCollection(rects)
+    rects.set_alpha(0.5)
 
-    axes.add_collection(rect)
+    axes.add_collection(rects)
