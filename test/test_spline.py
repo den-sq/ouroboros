@@ -2,32 +2,6 @@ import numpy as np
 import pytest
 from ouroboros.spline import Spline
 
-def test_generate_knot_vector_basic():
-    # Test with a small number of points and a low degree
-    num_points = 5
-    degree = 2
-    expected_knots = np.array([0, 0, 0, 1, 2, 3, 4, 4, 4])
-    assert np.array_equal(Spline.generate_knot_vector(num_points, degree), expected_knots)
-
-def test_generate_knot_vector_high_degree():
-    # Test with a high degree relative to points
-    num_points = 5
-    degree = 4
-    expected_knots = np.array([0, 0, 0, 0, 0, 1, 2, 3, 4, 4, 4, 4, 4])
-    assert np.array_equal(Spline.generate_knot_vector(num_points, degree), expected_knots)
-
-def test_generate_knot_vector_single_point():
-    # Test with a single point
-    num_points = 1
-    degree = 0
-    expected_knots = np.array([0])
-    assert np.array_equal(Spline.generate_knot_vector(num_points, degree), expected_knots)
-
-def test_generate_knot_vector_invalid_input():
-    # Test with invalid input (negative number of points)
-    with pytest.raises(ValueError):
-        Spline.generate_knot_vector(-1, 2)
-
 def test_fit_spline():
     import numpy as np
 
@@ -98,3 +72,61 @@ def test_calculate_vectors_basic():
     assert tangent_vectors.shape == (3, len(times)), "Tangent vectors shape should match (3, number of times)"
     assert normal_vectors.shape == (3, len(times)), "Normal vectors shape should match (3, number of times)"
     assert binormal_vectors.shape == (3, len(times)), "Binormal vectors shape should match (3, number of times)"
+
+def test_vectors_orthogonality():
+    # Define a simple curve as sample points
+    sample_points = np.array([
+        [1, 0, 0],
+        [1, 2, 1],
+        [2, 1, 2],
+        [3, -2, 4],
+        [4, 7, 4]
+    ])
+
+    # Initialize Spline object
+    spline = Spline(sample_points, degree=3)
+
+    times = np.linspace(0, 1, 5)
+
+    # Calculate vectors
+    tangent_vectors, normal_vectors, binormal_vectors = spline.calculate_vectors(times)
+
+    # Transpose the vectors for vector-by-vector indexing (3, n) -> (n, 3)
+    tangent_vectors = tangent_vectors.T
+    normal_vectors = normal_vectors.T
+    binormal_vectors = binormal_vectors.T
+    
+    # Check orthogonality between each pair of vectors
+    for i in range(tangent_vectors.shape[0]):
+        tangent_normal_dot = np.dot(tangent_vectors[i], normal_vectors[i])
+        tangent_binormal_dot = np.dot(tangent_vectors[i], binormal_vectors[i])
+        normal_binormal_dot = np.dot(normal_vectors[i], binormal_vectors[i])
+        
+        assert np.allclose(tangent_normal_dot, 0, atol=1e-6), "Tangent and normal vectors should be orthogonal"
+        assert np.allclose(tangent_binormal_dot, 0, atol=1e-6), "Tangent and binormal vectors should be orthogonal"
+        assert np.allclose(normal_binormal_dot, 0, atol=1e-6), "Normal and binormal vectors should be orthogonal"
+
+# def test_calculate_equidistant_parameters():
+#     # Define a simple curve as sample points
+#     sample_points = np.array([
+#         [0, 0, 0],
+#         [1, 2, 1],
+#         [2, 0, 2],
+#         [3, -2, 3],
+#         [4, 0, 4]
+#     ])
+#     # Initialize Spline object
+#     spline = Spline(sample_points, degree=3)
+#     # Specify the distance between points
+#     distance_between_points = 0.1
+#     # Calculate equidistant parameters
+#     equidistant_params = spline.calculate_equidistant_parameters(distance_between_points)
+#     # Evaluate the spline at these parameters
+#     evaluated_points = spline(equidistant_params)
+#     # Calculate distances between consecutive points
+#     distances = np.sqrt(np.sum(np.diff(evaluated_points, axis=1)**2, axis=0))
+
+#     print(distances, distance_between_points)
+
+#     # Assert that distances are close to the specified distance
+#     assert np.allclose(distances, distance_between_points, atol=0.1), "Distances between points should be close to the specified distance"

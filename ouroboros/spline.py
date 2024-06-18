@@ -9,7 +9,7 @@ class Spline:
         # Guarantee that the degree is at least 2
         degree = max(degree, 2)
 
-        self.tck = self.fit_spline(sample_points, degree=degree)
+        self.tck, self.u = self.fit_spline(sample_points, degree=degree)
 
     def __call__(self, times: np.ndarray):
         return self.evaluate_spline(self.tck, times)
@@ -50,6 +50,38 @@ class Spline:
         # binormal_vectors = binormals / np.linalg.norm(binormals, axis=0)
         
         return tangent_vectors, normal_vectors, binormal_vectors
+    
+    def calculate_equidistant_parameters(self, distance_between_points: float):
+        """
+        Calculate the parameter values that correspond to equidistant points along the spline.
+
+        Parameters:
+        ----------
+            distance_between_points (float): The distance between consecutive points.
+
+        Returns:
+        -------
+            numpy.ndarray: The parameter values that correspond to equidistant points along the spline.
+        """
+
+        # TODO: Add test
+            
+        # Evaluate the B-spline derivative
+        dx, dy, dz = splev(self.u, self.tck, der=1)
+
+        # Compute the cumulative arc length using the derivatives
+        dists = np.linalg.norm([dx, dy, dz], axis=0)
+        arc_length = np.cumsum(dists * np.diff(self.u, prepend=0))
+        total_length = arc_length[-1]
+
+        # Determine the number of points n based on the desired distance d
+        n = int(np.floor(total_length / distance_between_points)) + 1
+
+        # Interpolate distances to find equidistant parameters
+        desired_arc_lengths = np.linspace(0, arc_length[-1], n)
+        equidistant_params = np.interp(desired_arc_lengths, arc_length,self.u)
+
+        return equidistant_params
 
     @staticmethod
     def fit_spline(sample_points: np.ndarray, degree = 3):
@@ -70,9 +102,9 @@ class Spline:
 
         # Fit a B-spline to the sample points
         # t = knots, c = coefficients, k = degree
-        tck, _ = splprep([x, y, z], k=degree)
+        tck, u = splprep([x, y, z], k=degree)
 
-        return tck
+        return tck, u
 
     @staticmethod
     def evaluate_spline(tck, times: np.ndarray, derivative = 0):
@@ -91,37 +123,3 @@ class Spline:
         """
 
         return np.array(splev(times, tck, der = derivative))
-
-    @staticmethod
-    def generate_knot_vector(num_points: int, degree: int):
-        """
-        Generate a knot vector for a B-spline given the number of points and the degree.
-        
-        Parameters:
-        ----------
-            num_points (int): The number of points to fit the spline to.
-            degree (int): The degree of the B-spline.
-
-        Returns:
-        -------
-            numpy.ndarray: The knot vector for the B-spline.
-        """
-
-        # Throw error if number of points is negative
-        if num_points < 0:
-            raise ValueError("Number of points must be non-negative")
-        
-        if num_points == 1:
-            return np.array([0])
-
-        # Start with degree + 1 zeros
-        knots = [0] * (degree + 1)
-
-        # Internal knots
-        for i in range(1, num_points - 1):
-            knots.append(i)
-
-        # End with degree + 1 ones (scaled to the range of internal knots)
-        knots += [num_points - 1] * (degree + 1)
-        
-        return np.array(knots)

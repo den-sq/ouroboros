@@ -11,7 +11,7 @@ def calculate_slice_rects(times: np.ndarray, spline: Spline, width, height, spli
     normal_vectors = normal_vectors.T
     binormal_vectors = binormal_vectors.T
 
-    if not spline_points:
+    if spline_points is None:
         spline_points = spline(times)
 
     # (3, n) -> (n, 3)
