@@ -1,6 +1,6 @@
 import numpy as np
 
-DEFAULT_MIN_SLICES_PER_BOX = 4
+DEFAULT_MIN_SLICES_PER_BOX = 5
 DEFAULT_SPLIT_THRESHOLD = 0.9
 
 # TODO: Associate slices with boxes
@@ -228,6 +228,8 @@ def calculate_bounding_boxes_with_bsp(rects: np.ndarray, slice_volume, min_slice
         (list): A list of bounding boxes that closely fit the slices.
     """
 
+    # TODO: Consider adding a depth limit
+
     if len(rects) == 0:
         return []
     
@@ -270,3 +272,69 @@ def calculate_bounding_boxes_with_bsp(rects: np.ndarray, slice_volume, min_slice
 
     return bounding_boxes
     
+def calculate_bounding_boxes_bsp_link_rects(rects: np.ndarray, slice_volume, min_slices_per_box=DEFAULT_MIN_SLICES_PER_BOX, split_threshold=DEFAULT_SPLIT_THRESHOLD):
+    """
+    Use binary space partitioning to calculate the bounding boxes of the slices,
+    starting with a bounding box that bounds all of the rects.
+
+    Parameters:
+    ----------
+        rects (numpy.ndarray): A 3D array of shape (n, 4, 3) containing the slices to bound.
+
+    Returns:
+    -------
+        (list, list): A list of bounding boxes that closely fit the slices and a list 
+                      mapping each rect index to its bounding box.
+    """
+
+    if len(rects) == 0:
+        return [], []
+    
+    # Calculate the initial bounding box that encompasses all rects
+    initial_bounding_box = BoundingBox.from_rects(rects, split_threshold=split_threshold)
+
+    # Stack for iterative BSP: each item is a tuple (rect indices subset, bounding box, repeat entry)
+    indices = np.arange(len(rects))
+    stack = [(indices, initial_bounding_box, False)]
+    bounding_boxes = []
+    rect_to_box_map = [None] * len(rects)
+
+    while stack:
+        current_indices, current_bounding_box, repeat = stack.pop()
+        current_rects = rects[current_indices]
+
+        # Determine if further division is necessary or efficient
+        if len(current_rects) <= min_slices_per_box or \
+                not current_bounding_box.should_be_divided(slice_volume * len(current_rects)):
+            bounding_boxes.append(current_bounding_box)
+            for idx in current_indices:
+                rect_to_box_map[idx] = len(bounding_boxes) - 1
+            continue
+
+        # Determine the longest dimension to split along
+        longest_dim = current_bounding_box.longest_dimension()
+
+        # Split the current set of rects based on the median of the longest dimension
+        median = np.median(current_rects[:, :, longest_dim])
+        left_mask = current_rects[:, :, longest_dim].mean(axis=1) < median
+        right_mask = ~left_mask
+
+        left_partition_indices = current_indices[left_mask]
+        right_partition_indices = current_indices[right_mask]
+
+        # Handle any unsplittable boxes
+        if repeat and (len(left_partition_indices) == 0 or len(right_partition_indices) == 0):
+            bounding_boxes.append(current_bounding_box)
+            for idx in current_indices:
+                rect_to_box_map[idx] = len(bounding_boxes) - 1
+            continue
+
+        # Calculate bounding boxes for the partitions
+        if len(left_partition_indices) > 0:
+            left_bounding_box = BoundingBox.from_rects(rects[left_partition_indices], split_threshold=split_threshold)
+            stack.append((left_partition_indices, left_bounding_box, len(right_partition_indices) == 0))
+        if len(right_partition_indices) > 0:
+            right_bounding_box = BoundingBox.from_rects(rects[right_partition_indices], split_threshold=split_threshold)
+            stack.append((right_partition_indices, right_bounding_box, len(left_partition_indices) == 0))
+
+    return bounding_boxes, rect_to_box_map

@@ -3,7 +3,7 @@ import numpy as np
 from .parse import parse_neuroglancer_json, neuroglancer_config_to_annotation
 from .spline import Spline
 from .slice import calculate_slice_rects
-from .bounding_boxes import calculate_bounding_boxes_with_stretching, calculate_bounding_boxes_with_bsp, BoundingBox
+from .bounding_boxes import calculate_bounding_boxes_with_bsp, calculate_bounding_boxes_bsp_link_rects
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -69,7 +69,7 @@ def spline_demo():
 
     slice_volume = SLICE_WIDTH * SLICE_HEIGHT * DIST_BETWEEN_SLICES
 
-    bounding_boxes = calculate_bounding_boxes_with_bsp(rects, slice_volume)
+    bounding_boxes, link_rects = calculate_bounding_boxes_bsp_link_rects(rects, slice_volume)
 
     # Plot the tangent, normal, and binormal vectors
     for i in range(len(equidistant_params)):
@@ -83,7 +83,7 @@ def spline_demo():
         ax3d.quiver(x, y, z, normal[0], normal[1], normal[2], length=30, color='b')
         ax3d.quiver(x, y, z, binormal[0], binormal[1], binormal[2], length=30, color='g')
 
-    plot_slices(ax3d, rects)
+        plot_slices(ax3d, [rects[i]], color=choose_color_by_index(link_rects[i]))
 
     for box in bounding_boxes:
         prism = box.to_prism()
@@ -92,8 +92,8 @@ def spline_demo():
     fig.show()
     plt.show()
 
-def plot_slices(axes, rects):
-    rects = Poly3DCollection(rects)
+def plot_slices(axes, rects, color='blue'):
+    rects = Poly3DCollection(rects, facecolors=color)
     rects.set_alpha(0.3)
 
     axes.add_collection(rects)
@@ -102,3 +102,7 @@ def plot_prism(axes, prism):
     prism = Poly3DCollection(prism, alpha=0, linewidths=1, edgecolors='black')
 
     axes.add_collection(prism)
+
+def choose_color_by_index(index):
+    colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple']
+    return colors[index % len(colors)]
