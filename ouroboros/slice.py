@@ -35,6 +35,6 @@ def calculate_slice_rects(times: np.ndarray, spline: Spline, width, height, spli
 
         rects.append(np.array([top_left, top_right, bottom_right, bottom_left]))
 
-    # Output the rects in the form (n, 4)
+    # Output the rects in the form (n, 4, 3)
     return np.array(rects)
 
