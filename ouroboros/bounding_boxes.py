@@ -1,9 +1,9 @@
 import numpy as np
 
-DEFAULT_SPLIT_THRESHOLD = 0.8
+DEFAULT_MIN_SLICES_PER_BOX = 4
+DEFAULT_SPLIT_THRESHOLD = 0.9
 
-# TODO: Try binary space partitioning
-# TODO: Make multiple bounding box strategies
+# TODO: Associate slices with boxes
 
 class BoundingBox:
     def __init__(self, initial_rect, split_threshold=DEFAULT_SPLIT_THRESHOLD):
@@ -51,6 +51,21 @@ class BoundingBox:
 
         return BoundingBox.bounds_to_rect(x_min, x_max, y_min, y_max, z_min, z_max)
 
+    @staticmethod 
+    def from_rects(rects: np.ndarray, split_threshold=DEFAULT_SPLIT_THRESHOLD):
+        """
+        Create a bounding box from a set of slices.
+
+        Parameters:
+        ----------
+            rects (numpy.ndarray): A 3D array of shape (n, 4, 3) containing the slices to bound.
+
+        Returns:
+        -------
+            (BoundingBox): The bounding box object that contains the slices.
+        """
+
+        return BoundingBox(BoundingBox.bound_rects(rects), split_threshold=split_threshold)
 
     @staticmethod
     def bounds_to_rect(x_min, x_max, y_min, y_max, z_min, z_max):
@@ -75,7 +90,17 @@ class BoundingBox:
     
     def calculate_volume(self):
         return (self.x_max - self.x_min) * (self.y_max - self.y_min) * (self.z_max - self.z_min)
+    
+    def should_be_divided(self, utilized_volume):
+        return utilized_volume < (1 - self.split_threshold) * self.calculate_volume()
         
+    def longest_dimension(self):
+        x_range = self.x_max - self.x_min
+        y_range = self.y_max - self.y_min
+        z_range = self.z_max - self.z_min
+
+        return np.argmax([x_range, y_range, z_range])
+
     def stretch_to_slice(self, rect: np.ndarray, tangent: np.ndarray, slice_volume, dist_between_slices, split=True):
         """
         Stretch the bounding box to fit a new slice, potentially splitting 
@@ -158,7 +183,22 @@ class BoundingBox:
 
         return faces
     
-def calculate_bounding_boxes(rects: np.ndarray, tangent_vectors: np.ndarray, slice_volume, dist_between_slices):
+def calculate_bounding_boxes_with_stretching(rects: np.ndarray, tangent_vectors: np.ndarray, slice_volume, dist_between_slices):
+    """
+    Calculate the bounding boxes of the slices by stretching and splitting a single bounding box.
+
+    Parameters:
+    ----------
+        rects (numpy.ndarray): A 3D array of shape (n, 4, 3) containing the slices to bound.
+        tangent_vectors (numpy.ndarray): A 2D array of shape (n, 3) containing the tangent vectors of the slices.
+        slice_volume (float): The volume of a single slice.
+        dist_between_slices (float): The distance between slices.
+
+    Returns:
+    -------
+        (list): A list of bounding boxes that closely fit the slices.
+    """
+    
     bounding_box = BoundingBox(rects[0])
     bounding_boxes = [bounding_box]
 
@@ -173,3 +213,60 @@ def calculate_bounding_boxes(rects: np.ndarray, tangent_vectors: np.ndarray, sli
             bounding_box = next_bounding_box
     
     return bounding_boxes
+
+def calculate_bounding_boxes_with_bsp(rects: np.ndarray, slice_volume, min_slices_per_box=DEFAULT_MIN_SLICES_PER_BOX, split_threshold=DEFAULT_SPLIT_THRESHOLD):
+    """
+    Use binary space partitioning to calculate the bounding boxes of the slices,
+    starting with a bounding box that bounds all of the rects.
+
+    Parameters:
+    ----------
+        rects (numpy.ndarray): A 3D array of shape (n, 4, 3) containing the slices to bound.
+
+    Returns:
+    -------
+        (list): A list of bounding boxes that closely fit the slices.
+    """
+
+    if len(rects) == 0:
+        return []
+    
+    # Calculate the initial bounding box that encompasses all rects
+    initial_bounding_box = BoundingBox.from_rects(rects, split_threshold=split_threshold)
+
+    # Stack for iterative BSP: each item is a tuple (rects subset, bounding box, repeat entry)
+    stack = [(rects, initial_bounding_box, False)]
+    bounding_boxes = []
+
+    while stack:
+        current_rects, current_bounding_box, repeat = stack.pop()
+
+        # Determine if further division is necessary or efficient
+        if len(current_rects) <= min_slices_per_box or \
+                not current_bounding_box.should_be_divided(slice_volume * len(current_rects)):
+            bounding_boxes.append(current_bounding_box)
+            continue
+
+        # Determine the longest dimension to split along
+        longest_dim = current_bounding_box.longest_dimension()
+
+        # Split the current set of rects based on the median of the longest dimension
+        median = np.median(current_rects[:, :, longest_dim])
+        left_partition = current_rects[current_rects[:, :, longest_dim].mean(axis=1) < median]
+        right_partition = current_rects[current_rects[:, :, longest_dim].mean(axis=1) >= median] 
+
+        # Handle any unsplittable boxes
+        if repeat and (len(left_partition) == 0 or len(right_partition) == 0):
+            bounding_boxes.append(current_bounding_box)
+            continue
+
+        # Calculate bounding boxes for the partitions
+        if len(left_partition) > 0:
+            left_bounding_box = BoundingBox.from_rects(left_partition, split_threshold=split_threshold)
+            stack.append((left_partition, left_bounding_box, len(right_partition) == 0))
+        if len(right_partition) > 0:
+            right_bounding_box = BoundingBox.from_rects(right_partition, split_threshold=split_threshold)
+            stack.append((right_partition, right_bounding_box, len(left_partition) == 0))
+
+    return bounding_boxes
+    

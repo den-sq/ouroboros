@@ -3,7 +3,7 @@ import numpy as np
 from .parse import parse_neuroglancer_json, neuroglancer_config_to_annotation
 from .spline import Spline
 from .slice import calculate_slice_rects
-from .bounding_boxes import calculate_bounding_boxes, BoundingBox
+from .bounding_boxes import calculate_bounding_boxes_with_stretching, calculate_bounding_boxes_with_bsp, BoundingBox
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -69,7 +69,7 @@ def spline_demo():
 
     slice_volume = SLICE_WIDTH * SLICE_HEIGHT * DIST_BETWEEN_SLICES
 
-    # bounding_boxes = calculate_bounding_boxes(rects, rmf_tangents, slice_volume, DIST_BETWEEN_SLICES)
+    bounding_boxes = calculate_bounding_boxes_with_bsp(rects, slice_volume)
 
     # Plot the tangent, normal, and binormal vectors
     for i in range(len(equidistant_params)):
@@ -83,28 +83,11 @@ def spline_demo():
         ax3d.quiver(x, y, z, normal[0], normal[1], normal[2], length=30, color='b')
         ax3d.quiver(x, y, z, binormal[0], binormal[1], binormal[2], length=30, color='g')
 
-        # if i == 0:
-        #     # Create a bounding box around the slice
-        #     bounding_box = BoundingBox(rects[i], slice_volume, DIST_BETWEEN_SLICES)
-
-        #     for j in range(1,11):
-        #         box = bounding_box.stretch_to_slice(rects[i + j], rmf_tangents[i + j])
-
-        #         if box is not bounding_box:
-        #             print("new box")
-        #             plot_prism(ax3d, box.to_prism())
-        #             break
-
-        #     plot_prism(ax3d, bounding_box.to_prism())
-
     plot_slices(ax3d, rects)
 
-    rect = BoundingBox(BoundingBox.bound_rects(rects))
-    plot_prism(ax3d, rect.to_prism())
-
-    # for box in bounding_boxes:
-    #     prism = box.to_prism()
-    #     plot_prism(ax3d, prism)
+    for box in bounding_boxes:
+        prism = box.to_prism()
+        plot_prism(ax3d, prism)
 
     fig.show()
     plt.show()
