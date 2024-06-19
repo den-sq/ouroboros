@@ -69,7 +69,7 @@ def spline_demo():
 
     slice_volume = SLICE_WIDTH * SLICE_HEIGHT * DIST_BETWEEN_SLICES
 
-    bounding_boxes = calculate_bounding_boxes(rects, rmf_tangents, slice_volume, DIST_BETWEEN_SLICES)
+    # bounding_boxes = calculate_bounding_boxes(rects, rmf_tangents, slice_volume, DIST_BETWEEN_SLICES)
 
     # Plot the tangent, normal, and binormal vectors
     for i in range(len(equidistant_params)):
@@ -99,9 +99,12 @@ def spline_demo():
 
     plot_slices(ax3d, rects)
 
-    for box in bounding_boxes:
-        prism = box.to_prism()
-        plot_prism(ax3d, prism)
+    rect = BoundingBox(BoundingBox.bound_rects(rects))
+    plot_prism(ax3d, rect.to_prism())
+
+    # for box in bounding_boxes:
+    #     prism = box.to_prism()
+    #     plot_prism(ax3d, prism)
 
     fig.show()
     plt.show()
