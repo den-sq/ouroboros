@@ -31,3 +31,7 @@ poetry install  # will create a new environment using your updated configuration
 
 Instructions From: https://stackoverflow.com/questions/59882884/vscode-doesnt-show-poetry-virtualenvs-in-select-interpreter-option
 
+
+### Testing
+
+In VSCode, use the testing tab. Otherwise, use `pytest` or `pytest --benchmark-only`.

@@ -7,3 +7,4 @@ dist
 # Testing
 sample-data.json
 .pytest_cache
+data

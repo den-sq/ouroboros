@@ -13,7 +13,7 @@ SLICE_WIDTH = 50
 SLICE_HEIGHT = 50
 
 def spline_demo():
-    ng_config, error = parse_neuroglancer_json("test/sample-data.json")
+    ng_config, error = parse_neuroglancer_json("data/sample-data.json")
 
     if error:
         print(error)
