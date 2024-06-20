@@ -57,3 +57,23 @@ def neuroglancer_config_to_annotation(config, use_numpy=True):
             return result
         
     return np.array()
+
+def neuroglancer_config_to_source(config):
+    """
+    Extract the source URL from a neuroglancer state JSON dictionary.
+    
+    Parameters
+    ----------
+    config : dict
+        The neuroglancer state JSON dictionary.
+
+    Returns
+    -------
+    str
+        The source URL.
+    """
+    for layer in config["layers"]:
+        if layer["type"] == "image":
+            return layer["source"]
+        
+    return None

@@ -1,9 +1,10 @@
 import numpy as np
 
-from .parse import parse_neuroglancer_json, neuroglancer_config_to_annotation
+from .parse import parse_neuroglancer_json, neuroglancer_config_to_annotation, neuroglancer_config_to_source
 from .spline import Spline
 from .slice import calculate_slice_rects
 from .bounding_boxes import calculate_bounding_boxes_with_bsp, calculate_bounding_boxes_bsp_link_rects
+from .volume_cache import VolumeCache
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -91,6 +92,19 @@ def spline_demo():
 
     fig.show()
     plt.show()
+
+    source_url = neuroglancer_config_to_source(ng_config)
+
+    if source_url is None:
+        print("No source URL found in the file.")
+        return
+    
+    # volume_cache = VolumeCache(bounding_boxes, link_rects, source_url)
+
+    # volume, bounding_box = volume_cache.request_volume_for_slice(0)
+    # print(bounding_box.x_min, bounding_box.x_max, bounding_box.y_min, bounding_box.y_max, bounding_box.z_min, bounding_box.z_max)
+    # volume.viewer()
+
 
 def plot_slices(axes, rects, color='blue'):
     rects = Poly3DCollection(rects, facecolors=color)

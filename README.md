@@ -4,6 +4,8 @@ This python package organizes all of the core functionality of the Ouroboros seg
 
 ### Development
 
+_Note: As of 6/19/24, cloud-volume works best in python 3.10, so it is highly advised to use it. There are some aids in the pyproject.toml file._
+
 [Poetry](https://python-poetry.org/) is the virtual environment and dependency manager for this project.
 
 `poetry install` - install all dependencies of this project into a local virtual environment

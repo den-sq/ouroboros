@@ -1,5 +1,7 @@
 import numpy as np
 
+from cloudvolume import Bbox
+
 DEFAULT_MIN_SLICES_PER_BOX = 5
 DEFAULT_SPLIT_THRESHOLD = 0.9
 
@@ -87,6 +89,9 @@ class BoundingBox:
         z_max = max(z)
 
         return x_min, x_max, y_min, y_max, z_min, z_max
+    
+    def to_cloudvolume_bbox(self):
+        return Bbox((self.x_min, self.y_min, self.z_min), (self.x_max, self.y_max, self.z_max))
     
     def calculate_volume(self):
         return (self.x_max - self.x_min) * (self.y_max - self.y_min) * (self.z_max - self.z_min)
