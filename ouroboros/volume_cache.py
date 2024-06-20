@@ -70,7 +70,7 @@ class VolumeCache:
 
         self.last_requested_slice = vol_index
 
-        return self.volumes[slice_index], bounding_box
+        return self.volumes[vol_index], bounding_box
     
     def remove_volume(self, volume_index: int):
         # Avoid removing the volume if it is cached for later

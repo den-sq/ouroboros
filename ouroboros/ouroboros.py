@@ -99,9 +99,11 @@ def spline_demo():
         print("No source URL found in the file.")
         return
     
-    # volume_cache = VolumeCache(bounding_boxes, link_rects, source_url)
+    volume_cache = VolumeCache(bounding_boxes, link_rects, source_url)
 
-    # volume, bounding_box = volume_cache.request_volume_for_slice(0)
+    # Test downloading all bounding boxes
+    for i in range(len(equidistant_params)):
+        volume, bounding_box = volume_cache.request_volume_for_slice(i)
     # print(bounding_box.x_min, bounding_box.x_max, bounding_box.y_min, bounding_box.y_max, bounding_box.z_min, bounding_box.z_max)
     # volume.viewer()
 
