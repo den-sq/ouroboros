@@ -4,6 +4,8 @@ from cloudvolume import CloudVolume, VolumeCutout
 
 DEVELOPMENT_MODE = True
 
+# TODO: Progress hook of some kind
+
 class VolumeCache:
     def __init__(self, bounding_boxes: list[BoundingBox], link_rects: list[int], source_url: str, mip=None, dev_mode=DEVELOPMENT_MODE) -> None:
         self.bounding_boxes = bounding_boxes

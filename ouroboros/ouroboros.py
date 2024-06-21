@@ -2,14 +2,16 @@ import numpy as np
 
 from .parse import parse_neuroglancer_json, neuroglancer_config_to_annotation, neuroglancer_config_to_source
 from .spline import Spline
-from .slice import calculate_slice_rects, generate_coordinate_grid_for_rect
+from .slice import calculate_slice_rects, generate_coordinate_grid_for_rect, slice_volume_from_grid
 from .bounding_boxes import calculate_bounding_boxes_bsp_link_rects
 from .volume_cache import VolumeCache
+
+from tifffile import imwrite
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-DIST_BETWEEN_SLICES = 20
+DIST_BETWEEN_SLICES = 1
 SLICE_WIDTH = 50
 SLICE_HEIGHT = 50
 
@@ -25,14 +27,6 @@ def spline_demo():
     if len(sample_points) == 0:
         print("No annotations found in the file.")
         return
-    
-    ##### TESTING #####
-
-    grid = generate_coordinate_grid_for_rect(np.array([[1, 50, 50], [51, 50, 50], [51, 0, 0], [1, 0, 0]]), 50, 50)
-
-    print(grid[0][0], grid[0][49], grid[49][49], grid[49][0], grid[25][25])
-
-    ##################
         
     spline = Spline(sample_points, degree=3)
 
@@ -101,6 +95,42 @@ def spline_demo():
     fig.show()
     plt.show()
 
+def slice_demo():
+    ng_config, error = parse_neuroglancer_json("data/sample-data.json")
+
+    if error:
+        print(error)
+        return
+    
+    sample_points = neuroglancer_config_to_annotation(ng_config)
+
+    if len(sample_points) == 0:
+        print("No annotations found in the file.")
+        return
+        
+    spline = Spline(sample_points, degree=3)
+
+    # Plot equidistant points along the spline
+    equidistant_params = spline.calculate_equidistant_parameters(DIST_BETWEEN_SLICES)
+    equidistant_points = spline(equidistant_params)
+
+    # Calculate the RMF frames
+    rmf_tangents, rmf_normals, rmf_binormals = spline.calculate_rotation_minimizing_vectors(equidistant_params)
+    rmf_tangents = rmf_tangents.T
+    rmf_normals = rmf_normals.T
+    rmf_binormals = rmf_binormals.T
+
+    print(f"Generating {len(equidistant_params)} slices...")
+
+    # Calculate the slice rects for each t value
+    rects = calculate_slice_rects(equidistant_params, spline, SLICE_WIDTH, SLICE_HEIGHT, spline_points=equidistant_points)
+
+    slice_volume = SLICE_WIDTH * SLICE_HEIGHT * DIST_BETWEEN_SLICES
+
+    bounding_boxes, link_rects = calculate_bounding_boxes_bsp_link_rects(rects, slice_volume)
+
+    print(f"{len(equidistant_params)} slices generated")
+
     source_url = neuroglancer_config_to_source(ng_config)
 
     if source_url is None:
@@ -113,7 +143,34 @@ def spline_demo():
     # for i in range(len(equidistant_params)):
     #     volume, bounding_box = volume_cache.request_volume_for_slice(i)
     # print(bounding_box.x_min, bounding_box.x_max, bounding_box.y_min, bounding_box.y_max, bounding_box.z_min, bounding_box.z_max)
-    # volume.viewer()
+
+    slices = []
+
+    for i in range(len(equidistant_params)):
+        if i % 10 == 0:
+            print(f"Generating slice {i}...")
+
+        grid = generate_coordinate_grid_for_rect(rects[i], SLICE_WIDTH, SLICE_HEIGHT)
+
+        volume, bounding_box = volume_cache.request_volume_for_slice(i)
+
+        slice_i = slice_volume_from_grid(volume, bounding_box, grid, SLICE_WIDTH, SLICE_HEIGHT)
+
+        slices.append(slice_i)
+
+    result = np.stack(slices, axis=0)
+
+    print("Writing to file...")
+
+    imwrite(f'./data/sample.tif', result, photometric='minisblack')
+
+    # grid = generate_coordinate_grid_for_rect(rects[t], SLICE_WIDTH, SLICE_HEIGHT)
+
+    # volume, bounding_box = volume_cache.request_volume_for_slice(t)
+
+    # slice_t = slice_volume_from_grid(volume, bounding_box, grid, SLICE_WIDTH, SLICE_HEIGHT)
+
+    # imwrite('./data/slice_t.tif', slice_t, photometric='minisblack')
 
 
 def plot_slices(axes, rects, color='blue'):
