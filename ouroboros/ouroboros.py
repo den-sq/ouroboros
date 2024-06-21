@@ -2,8 +2,8 @@ import numpy as np
 
 from .parse import parse_neuroglancer_json, neuroglancer_config_to_annotation, neuroglancer_config_to_source
 from .spline import Spline
-from .slice import calculate_slice_rects
-from .bounding_boxes import calculate_bounding_boxes_with_bsp, calculate_bounding_boxes_bsp_link_rects
+from .slice import calculate_slice_rects, generate_coordinate_grid_for_rect
+from .bounding_boxes import calculate_bounding_boxes_bsp_link_rects
 from .volume_cache import VolumeCache
 
 import matplotlib.pyplot as plt
@@ -25,6 +25,14 @@ def spline_demo():
     if len(sample_points) == 0:
         print("No annotations found in the file.")
         return
+    
+    ##### TESTING #####
+
+    grid = generate_coordinate_grid_for_rect(np.array([[1, 50, 50], [51, 50, 50], [51, 0, 0], [1, 0, 0]]), 50, 50)
+
+    print(grid[0][0], grid[0][49], grid[49][49], grid[49][0], grid[25][25])
+
+    ##################
         
     spline = Spline(sample_points, degree=3)
 
@@ -102,8 +110,8 @@ def spline_demo():
     volume_cache = VolumeCache(bounding_boxes, link_rects, source_url)
 
     # Test downloading all bounding boxes
-    for i in range(len(equidistant_params)):
-        volume, bounding_box = volume_cache.request_volume_for_slice(i)
+    # for i in range(len(equidistant_params)):
+    #     volume, bounding_box = volume_cache.request_volume_for_slice(i)
     # print(bounding_box.x_min, bounding_box.x_max, bounding_box.y_min, bounding_box.y_max, bounding_box.z_min, bounding_box.z_max)
     # volume.viewer()
 
