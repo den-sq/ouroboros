@@ -1,7 +1,9 @@
 import json
 import numpy as np
 
-ParseResult = tuple[dict, None | json.JSONDecodeError]
+Result = tuple[any, None] | tuple[None, str]
+
+ParseResult = tuple[dict, None | str]
 
 def parse_neuroglancer_json(json_path) -> ParseResult:
     """
@@ -29,7 +31,7 @@ def parse_neuroglancer_json(json_path) -> ParseResult:
     except Exception as e:
         return ({}, f"An error occurred while opening the given JSON file: {str(e)}")
 
-def neuroglancer_config_to_annotation(config, use_numpy=True):
+def neuroglancer_config_to_annotation(config) -> Result:
     """
     Extract the first annotation from a neuroglancer state JSON dictionary as a numpy array.
     
@@ -40,25 +42,24 @@ def neuroglancer_config_to_annotation(config, use_numpy=True):
 
     Returns
     -------
-    numpy.ndarray
-        The annotation as a numpy array.
+    Result
+        A tuple containing the annotation points and an error if one occurred.
     """
-    # TODO: add try except here in case the json is invalid
-    # or use pydantic to validate
 
-    for layer in config["layers"]:
-        if layer["type"] == "annotation":
-            annotations = layer["annotations"]
+    try: 
+        for layer in config["layers"]:
+            if layer["type"] == "annotation":
+                annotations = layer["annotations"]
 
-            result = [data["point"] for data in annotations if data["type"] == "point"]
+                result = [data["point"] for data in annotations if data["type"] == "point"]
 
-            if use_numpy:
                 return np.array(result)
-            return result
+    except Exception as e:
+        return None, f"An error occurred while extracting the annotations: {str(e)}"
         
-    return np.array()
+    return None, "No annotations found in the file."
 
-def neuroglancer_config_to_source(config):
+def neuroglancer_config_to_source(config) -> Result:
     """
     Extract the source URL from a neuroglancer state JSON dictionary.
     
@@ -69,11 +70,14 @@ def neuroglancer_config_to_source(config):
 
     Returns
     -------
-    str
-        The source URL.
+    Result
+        A tuple containing the source URL and an error if one occurred.
     """
-    for layer in config["layers"]:
-        if layer["type"] == "image":
-            return layer["source"]
+    try:
+        for layer in config["layers"]:
+            if layer["type"] == "image":
+                return layer["source"]
+    except Exception as e:
+        return None, f"An error occurred while extracting the source URL: {str(e)}"
         
-    return None
+    return None, "No source URL found in the file."
