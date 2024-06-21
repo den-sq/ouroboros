@@ -82,6 +82,7 @@ def generate_coordinate_grid_for_rect(rect: np.ndarray, width, height) -> np.nda
     u, v = np.meshgrid(u, v) # TODO: need 'ij'?
 
     # Interpolate the 3D coordinates
+    # TODO: There must be a way to do this faster
     points = (1 - u)[:, :, np.newaxis] * (1 - v)[:, :, np.newaxis] * top_left + \
             u[:, :, np.newaxis] * (1 - v)[:, :, np.newaxis] * top_right + \
             (1 - u)[:, :, np.newaxis] * v[:, :, np.newaxis] * bottom_left + \

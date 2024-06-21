@@ -6,7 +6,7 @@ from .slice import calculate_slice_rects, generate_coordinate_grid_for_rect, sli
 from .bounding_boxes import calculate_bounding_boxes_bsp_link_rects
 from .volume_cache import VolumeCache
 
-from tifffile import imwrite
+from tifffile import imwrite, TiffWriter
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -120,7 +120,7 @@ def slice_demo():
     rmf_normals = rmf_normals.T
     rmf_binormals = rmf_binormals.T
 
-    print(f"Generating {len(equidistant_params)} slices...")
+    print(f"Calculating {len(equidistant_params)} slices...")
 
     # Calculate the slice rects for each t value
     rects = calculate_slice_rects(equidistant_params, spline, SLICE_WIDTH, SLICE_HEIGHT, spline_points=equidistant_points)
@@ -129,7 +129,7 @@ def slice_demo():
 
     bounding_boxes, link_rects = calculate_bounding_boxes_bsp_link_rects(rects, slice_volume)
 
-    print(f"{len(equidistant_params)} slices generated")
+    print(f"{len(equidistant_params)} slices calculated")
 
     source_url = neuroglancer_config_to_source(ng_config)
 
@@ -144,34 +144,41 @@ def slice_demo():
     #     volume, bounding_box = volume_cache.request_volume_for_slice(i)
     # print(bounding_box.x_min, bounding_box.x_max, bounding_box.y_min, bounding_box.y_max, bounding_box.z_min, bounding_box.z_max)
 
-    slices = []
+    # Write the slices to a TIFF file in memory
 
-    for i in range(len(equidistant_params)):
-        if i % 10 == 0:
-            print(f"Generating slice {i}...")
+    # slices = []
 
-        grid = generate_coordinate_grid_for_rect(rects[i], SLICE_WIDTH, SLICE_HEIGHT)
+    # for i in range(len(equidistant_params)):
+    #     if i % 10 == 0:
+    #         print(f"Generating slice {i}...")
 
-        volume, bounding_box = volume_cache.request_volume_for_slice(i)
+    #     grid = generate_coordinate_grid_for_rect(rects[i], SLICE_WIDTH, SLICE_HEIGHT)
 
-        slice_i = slice_volume_from_grid(volume, bounding_box, grid, SLICE_WIDTH, SLICE_HEIGHT)
+    #     volume, bounding_box = volume_cache.request_volume_for_slice(i)
 
-        slices.append(slice_i)
+    #     slice_i = slice_volume_from_grid(volume, bounding_box, grid, SLICE_WIDTH, SLICE_HEIGHT)
 
-    result = np.stack(slices, axis=0)
+    #     slices.append(slice_i)
 
-    print("Writing to file...")
+    # result = np.stack(slices, axis=0)
 
-    imwrite(f'./data/sample.tif', result, photometric='minisblack')
+    # print("Writing to file...")
 
-    # grid = generate_coordinate_grid_for_rect(rects[t], SLICE_WIDTH, SLICE_HEIGHT)
+    # imwrite(f'./data/sample.tif', result, photometric='minisblack')
 
-    # volume, bounding_box = volume_cache.request_volume_for_slice(t)
+    # Write the slices to a TIFF file one slice at a time
+    with TiffWriter('./data/sample.tif') as tif:
+        for i in range(len(equidistant_params)):
+            if i % 10 == 0:
+                print(f"Generating slice {i}...")
 
-    # slice_t = slice_volume_from_grid(volume, bounding_box, grid, SLICE_WIDTH, SLICE_HEIGHT)
+            grid = generate_coordinate_grid_for_rect(rects[i], SLICE_WIDTH, SLICE_HEIGHT)
 
-    # imwrite('./data/slice_t.tif', slice_t, photometric='minisblack')
+            volume, bounding_box = volume_cache.request_volume_for_slice(i)
 
+            slice_i = slice_volume_from_grid(volume, bounding_box, grid, SLICE_WIDTH, SLICE_HEIGHT)
+
+            tif.write(slice_i, contiguous=True)
 
 def plot_slices(axes, rects, color='blue'):
     rects = Poly3DCollection(rects, facecolors=color)
