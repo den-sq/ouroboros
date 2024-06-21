@@ -10,11 +10,11 @@ class SlicesGeometryPipelineStep(PipelineStep):
 
         # Verify that a config object is provided
         if not isinstance(config, Config):
-            return (None, "Input data must contain a Config object.")
+            return None, "Input data must contain a Config object."
 
         # Verify that sample points is given
         if not isinstance(sample_points, np.ndarray):
-            return (None, "Input data must contain an array of sample points.")
+            return None, "Input data must contain an array of sample points."
         
         spline = Spline(sample_points, degree=3)
 

@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 class Pipeline:
     def __init__(self, steps: list["PipelineStep"]) -> None:
         self.steps = steps
-        self.current_step = 0
 
     def process(self, input_data: any) -> tuple[any, None] | tuple[None, any]:
         data = input_data
@@ -30,12 +29,14 @@ class PipelineStep(ABC):
     def process(self, input_data: any) -> tuple[any, None] | tuple[None, any]:
         start = time.perf_counter()
 
-        self._process(input_data)
+        result = self._process(input_data)
 
         # Record the duration of the run
         end = time.perf_counter()
         duration_seconds = end - start
         self.run_durations.append(duration_seconds)
+
+        return result
 
     @abstractmethod
     def _process(self, input_data: any) -> tuple[any, None] | tuple[None, any]:

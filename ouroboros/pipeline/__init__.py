@@ -1,2 +1,6 @@
 from .pipeline import Pipeline
-from .parse_pipeline import ParseJSONPipelineStep, ParsePipelineStep
+from .parse_pipeline import ParseJSONPipelineStep
+from .render_slices_pipeline import RenderSlicesPipelineStep
+from .slices_geom_pipeline import SlicesGeometryPipelineStep
+from .volume_cache_pipeline import VolumeCachePipelineStep
+from .save_tiff_pipeline import SaveTiffPipelineStep

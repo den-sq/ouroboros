@@ -10,11 +10,11 @@ class VolumeCachePipelineStep(PipelineStep):
 
         # Verify that a config object is provided
         if not isinstance(config, Config):
-            return (None, "Input data must contain a Config object.")
+            return None, "Input data must contain a Config object."
 
         # Verify that slice rects is given
         if not isinstance(slice_rects, np.ndarray):
-            return (None, "Input data must contain an array of slice rects.")
+            return None, "Input data must contain an array of slice rects."
         
         slice_volume = config.slice_width * config.slice_height * config.dist_between_slices
 

@@ -9,26 +9,26 @@ class ParseJSONPipelineStep(PipelineStep):
 
         # Verify that a config object is provided
         if not isinstance(config, Config):
-            return (None, "Input data must contain a Config object.")
+            return None, "Input data must contain a Config object."
 
         # Verify that input_data is a string containing a path to a JSON file
         if not isinstance(json_path, str):
-            return (None, "Input data must contain a string containing a path to a JSON file.")
+            return None, "Input data must contain a string containing a path to a JSON file."
 
         ng_config, error = parse_neuroglancer_json(json_path)
 
         if error:
-            return (None, error)
+            return None, error
         
         sample_points, error = neuroglancer_config_to_annotation(ng_config)
 
         if error:
-            return (None, error)
+            return None, error
         
         source_url, error = neuroglancer_config_to_source(ng_config)
 
         if error:
-            return (None, error)
+            return None, error
         
         # Store the source url in config for later use
         config.source_url = source_url

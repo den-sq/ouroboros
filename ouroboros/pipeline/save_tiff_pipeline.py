@@ -12,15 +12,15 @@ class SaveTiffPipelineStep(PipelineStep):
 
         # Verify that a config object is provided
         if not isinstance(config, Config):
-            return (None, "Input data must contain a Config object.")
+            return None, "Input data must contain a Config object."
         
         # Verify that a volume cache is given
         if not isinstance(volume_cache, VolumeCache):
-            return (None, "Input data must contain a VolumeCache object.")
+            return None, "Input data must contain a VolumeCache object."
 
         # Verify that slice rects is given
         if not isinstance(slice_rects, np.ndarray):
-            return (None, "Input data must contain an array of slice rects.")
+            return None, "Input data must contain an array of slice rects."
         
         # Write the slices to a TIFF file one slice at a time
         with TiffWriter(config.output_file_path) as tif:
@@ -35,3 +35,5 @@ class SaveTiffPipelineStep(PipelineStep):
                 slice_i = slice_volume_from_grid(volume, bounding_box, grid, config.slice_width, config.slice_height)
 
                 tif.write(slice_i, contiguous=True)
+
+        return config.output_file_path, None

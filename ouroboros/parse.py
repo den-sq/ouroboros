@@ -25,11 +25,11 @@ def parse_neuroglancer_json(json_path) -> ParseResult:
 
             parsed_json = json.loads(json_string)
 
-            return (parsed_json, None)
+            return parsed_json, None
     except json.JSONDecodeError as e:
-        return ({}, f"An error occurred while parsing the given JSON file: {str(e)}")
+        return {}, f"An error occurred while parsing the given JSON file: {str(e)}"
     except Exception as e:
-        return ({}, f"An error occurred while opening the given JSON file: {str(e)}")
+        return {}, f"An error occurred while opening the given JSON file: {str(e)}"
 
 def neuroglancer_config_to_annotation(config) -> Result:
     """
@@ -53,7 +53,7 @@ def neuroglancer_config_to_annotation(config) -> Result:
 
                 result = [data["point"] for data in annotations if data["type"] == "point"]
 
-                return np.array(result)
+                return np.array(result), None
     except Exception as e:
         return None, f"An error occurred while extracting the annotations: {str(e)}"
         
@@ -76,7 +76,7 @@ def neuroglancer_config_to_source(config) -> Result:
     try:
         for layer in config["layers"]:
             if layer["type"] == "image":
-                return layer["source"]
+                return layer["source"], None
     except Exception as e:
         return None, f"An error occurred while extracting the source URL: {str(e)}"
         
