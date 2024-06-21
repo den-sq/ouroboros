@@ -1,4 +1,4 @@
-from ouroboros import slice_demo
+from ouroboros import slice_demo, spline_demo
 
 def main():
     slice_demo()

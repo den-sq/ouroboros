@@ -6,7 +6,7 @@ from .slice import calculate_slice_rects, generate_coordinate_grid_for_rect, sli
 from .bounding_boxes import calculate_bounding_boxes_bsp_link_rects
 from .volume_cache import VolumeCache
 
-from tifffile import imwrite, TiffWriter
+from tifffile import TiffWriter
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -144,27 +144,13 @@ def slice_demo():
     #     volume, bounding_box = volume_cache.request_volume_for_slice(i)
     # print(bounding_box.x_min, bounding_box.x_max, bounding_box.y_min, bounding_box.y_max, bounding_box.z_min, bounding_box.z_max)
 
-    # Write the slices to a TIFF file in memory
 
-    # slices = []
+    # grid = generate_coordinate_grid_for_rect(rects[0], SLICE_WIDTH, SLICE_HEIGHT)
 
-    # for i in range(len(equidistant_params)):
-    #     if i % 10 == 0:
-    #         print(f"Generating slice {i}...")
+    # volume, bounding_box = volume_cache.request_volume_for_slice(0)
 
-    #     grid = generate_coordinate_grid_for_rect(rects[i], SLICE_WIDTH, SLICE_HEIGHT)
+    # slice_i = slice_volume_from_grid(volume, bounding_box, grid, SLICE_WIDTH, SLICE_HEIGHT)
 
-    #     volume, bounding_box = volume_cache.request_volume_for_slice(i)
-
-    #     slice_i = slice_volume_from_grid(volume, bounding_box, grid, SLICE_WIDTH, SLICE_HEIGHT)
-
-    #     slices.append(slice_i)
-
-    # result = np.stack(slices, axis=0)
-
-    # print("Writing to file...")
-
-    # imwrite(f'./data/sample.tif', result, photometric='minisblack')
 
     # Write the slices to a TIFF file one slice at a time
     with TiffWriter('./data/sample.tif') as tif:
