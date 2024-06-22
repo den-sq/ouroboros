@@ -2,17 +2,17 @@ from .bounding_boxes import BoundingBox
 
 from cloudvolume import CloudVolume, VolumeCutout
 
-DEVELOPMENT_MODE = True
+FLUSH_CACHE = False
 
 # TODO: Progress hook of some kind
 
 class VolumeCache:
-    def __init__(self, bounding_boxes: list[BoundingBox], link_rects: list[int], source_url: str, mip=None, dev_mode=DEVELOPMENT_MODE) -> None:
+    def __init__(self, bounding_boxes: list[BoundingBox], link_rects: list[int], source_url: str, mip=None, flush_cache=FLUSH_CACHE) -> None:
         self.bounding_boxes = bounding_boxes
         self.link_rects = link_rects
         self.source_url = source_url
         self.mip = mip
-        self.dev_mode = dev_mode
+        self.flush_cache = flush_cache
 
         self.last_requested_slice = None
 
@@ -81,10 +81,6 @@ class VolumeCache:
 
         bounding_box = self.bounding_boxes[volume_index]
 
-        # Remove bounding box from cache
-        if not self.dev_mode:
-            self.cv.cache.flush_region(region=bounding_box.to_cloudvolume_bbox(), mips=[self.mip])
-
         self.volumes[volume_index] = None
 
     def download_volume(self, volume_index: int, bounding_box: BoundingBox) -> VolumeCutout:
@@ -97,3 +93,7 @@ class VolumeCache:
 
         # Store the volume in the cache
         self.volumes[volume_index] = volume
+
+    def __del__(self):
+        if self.flush_cache:
+            self.cv.cache.flush()
