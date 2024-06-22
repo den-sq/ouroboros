@@ -47,6 +47,8 @@ class VolumeCache:
         """
         Get the volume data for a slice index.
 
+        Suitable for use in a loop that processes slices sequentially (not parallel).
+
         Download the volume if it is not already cached and remove the last requested volume if it is not to be cached.
 
         Parameters:
@@ -79,8 +81,6 @@ class VolumeCache:
         if self.cache_volume[volume_index]:
             return
 
-        bounding_box = self.bounding_boxes[volume_index]
-
         self.volumes[volume_index] = None
 
     def download_volume(self, volume_index: int, bounding_box: BoundingBox) -> VolumeCutout:
@@ -93,6 +93,36 @@ class VolumeCache:
 
         # Store the volume in the cache
         self.volumes[volume_index] = volume
+
+    def create_processing_data(self, volume_index: int):
+        """
+        Generate a data packet for processing a volume.
+
+        Suitable for parallel processing.
+
+        Parameters:
+        ----------
+            volume_index (int): The index of the volume to process.
+
+        Returns:
+        -------
+            tuple: A tuple containing the volume data, the bounding box of the volume, 
+                    the slice indices associated with the volume, and a function to remove the volume from the cache.
+        """
+
+        bounding_box = self.bounding_boxes[volume_index]
+
+        # Download the volume if it is not already cached
+        if self.volumes[volume_index] is None:
+            self.download_volume(volume_index, bounding_box)
+
+        # Get all slice indices associated with this volume
+        slice_indices = [i for i, v in enumerate(self.link_rects) if v == volume_index]
+
+        def remove_volume():
+            self.remove_volume(volume_index)
+
+        return self.volumes[volume_index], bounding_box, slice_indices, remove_volume
 
     def __del__(self):
         if self.flush_cache:

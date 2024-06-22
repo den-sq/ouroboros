@@ -1,5 +1,5 @@
 from .config import Config
-from .pipeline import Pipeline, ParseJSONPipelineStep, RenderSlicesPipelineStep, SlicesGeometryPipelineStep, VolumeCachePipelineStep, SaveTiffPipelineStep
+from .pipeline import Pipeline, ParseJSONPipelineStep, RenderSlicesPipelineStep, SlicesGeometryPipelineStep, VolumeCachePipelineStep, SaveTiffPipelineStep, SaveParallelPipelineStep
 
 from .bounding_boxes import BoundingBoxParams
 
@@ -27,8 +27,14 @@ def slice_demo():
         ParseJSONPipelineStep(),
         SlicesGeometryPipelineStep(),
         VolumeCachePipelineStep(),
-        SaveTiffPipelineStep()
+        SaveParallelPipelineStep()
     ])
+    # pipeline = Pipeline([
+    #     ParseJSONPipelineStep(),
+    #     SlicesGeometryPipelineStep(),
+    #     VolumeCachePipelineStep(),
+    #     SaveTiffPipelineStep()
+    # ])
 
     input_data = (config, "./data/sample-data.json")
 

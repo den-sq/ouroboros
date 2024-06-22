@@ -4,3 +4,4 @@ from .render_slices_pipeline import RenderSlicesPipelineStep
 from .slices_geom_pipeline import SlicesGeometryPipelineStep
 from .volume_cache_pipeline import VolumeCachePipelineStep
 from .save_tiff_pipeline import SaveTiffPipelineStep
+from .save_parallel_pipeline import SaveParallelPipelineStep
