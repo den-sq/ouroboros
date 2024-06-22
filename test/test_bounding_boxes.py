@@ -3,7 +3,7 @@
 from ouroboros.parse import parse_neuroglancer_json, neuroglancer_config_to_annotation
 from ouroboros.spline import Spline
 from ouroboros.slice import calculate_slice_rects
-from ouroboros.bounding_boxes import calculate_bounding_boxes_with_bsp, calculate_bounding_boxes_bsp_link_rects
+from ouroboros.bounding_boxes import calculate_bounding_boxes_bsp_link_rects
 
 DIST_BETWEEN_SLICES = 1
 SLICE_WIDTH = 50
@@ -37,16 +37,9 @@ def setup_calculate_bounding_boxes_with_bsp_demo():
     # Calculate the slice rects for each t value
     rects = calculate_slice_rects(equidistant_params, spline, SLICE_WIDTH, SLICE_HEIGHT, spline_points=equidistant_points)
 
-    slice_volume = SLICE_WIDTH * SLICE_HEIGHT * DIST_BETWEEN_SLICES
-
-    return rects, slice_volume
-
-def test_calculate_bounding_boxes_with_bsp_demo(benchmark):
-    rects, slice_volume = setup_calculate_bounding_boxes_with_bsp_demo()
-
-    benchmark(lambda: calculate_bounding_boxes_with_bsp(rects, slice_volume))
+    return rects
 
 def test_calculate_bounding_boxes_bsp_link_rects_demo(benchmark):
-    rects, slice_volume = setup_calculate_bounding_boxes_with_bsp_demo()
+    rects = setup_calculate_bounding_boxes_with_bsp_demo()
 
-    benchmark(lambda: calculate_bounding_boxes_bsp_link_rects(rects, slice_volume))
+    benchmark(lambda: calculate_bounding_boxes_bsp_link_rects(rects))

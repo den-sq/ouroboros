@@ -40,19 +40,30 @@ def calculate_slice_rects(times: np.ndarray, spline: Spline, width, height, spli
 
     rects = []
 
+    _width, w_remainder = divmod(width, 2)
+    _height, h_remainder = divmod(height, 2)
+
+    width_left = _width
+    width_right = _width + w_remainder
+
+    height_top = _height
+    height_bottom = _height + h_remainder
+
     for i in range(len(times)):
         point = spline_points[i]
 
         localx = normal_vectors[i]
         localy = binormal_vectors[i]
 
-        width_vec = localx * width
-        height_vec = localy * height
+        width_left_vec = localx * width_left
+        width_right_vec = localx * width_right
+        height_top_vec = localy * height_top
+        height_bottom_vec = localy * height_bottom
 
-        top_left = point - width_vec + height_vec
-        top_right = point + width_vec + height_vec
-        bottom_right = point + width_vec - height_vec
-        bottom_left = point - width_vec - height_vec
+        top_left = point - width_left_vec + height_top_vec
+        top_right = point + width_right_vec + height_top_vec
+        bottom_right = point + width_right_vec - height_bottom_vec
+        bottom_left = point - width_left_vec - height_bottom_vec
 
         rects.append(np.array([top_left, top_right, bottom_right, bottom_left]))
 

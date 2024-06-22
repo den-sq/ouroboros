@@ -8,6 +8,11 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 class RenderSlicesPipelineStep(PipelineStep):
+    def __init__(self, render_vectors_and_points=False) -> None:
+        super().__init__()
+
+        self.render_vectors_and_points = render_vectors_and_points
+
     def _process(self, input_data: any) -> tuple[any, None] | tuple[None, any]:
         config, sample_points = input_data
 
@@ -43,14 +48,16 @@ class RenderSlicesPipelineStep(PipelineStep):
         ax3d.set_ylim(min_dim, max_dim)
         ax3d.set_zlim(min_dim, max_dim)
         
-        ax3d.plot(x, y, z, color='orange') # render the original points
+        if self.render_vectors_and_points:
+            ax3d.plot(x, y, z, color='orange') # render the original points
         ax3d.plot(x_spline, y_spline, z_spline, color='black')
 
         # Plot equidistant points along the spline
         equidistant_params = spline.calculate_equidistant_parameters(config.dist_between_slices)
         equidistant_points = spline(equidistant_params)
         x_eq, y_eq, z_eq = equidistant_points
-        ax3d.plot(x_eq, y_eq, z_eq, 'go')
+        if self.render_vectors_and_points:
+            ax3d.plot(x_eq, y_eq, z_eq, 'go')
 
         # Calculate the RMF frames
         rmf_tangents, rmf_normals, rmf_binormals = spline.calculate_rotation_minimizing_vectors(equidistant_params)
@@ -61,9 +68,7 @@ class RenderSlicesPipelineStep(PipelineStep):
         # Calculate the slice rects for each t value
         rects = calculate_slice_rects(equidistant_params, spline, config.slice_width, config.slice_height, spline_points=equidistant_points)
 
-        slice_volume = config.slice_width * config.slice_height * config.dist_between_slices
-
-        bounding_boxes, link_rects = calculate_bounding_boxes_bsp_link_rects(rects, slice_volume)
+        bounding_boxes, link_rects = calculate_bounding_boxes_bsp_link_rects(rects)
 
         # Plot the tangent, normal, and binormal vectors
         for i in range(len(equidistant_params)):
@@ -73,9 +78,10 @@ class RenderSlicesPipelineStep(PipelineStep):
             normal = rmf_normals[i]
             binormal = rmf_binormals[i]
 
-            ax3d.quiver(x, y, z, tangent[0], tangent[1], tangent[2], length=30, color='r')
-            ax3d.quiver(x, y, z, normal[0], normal[1], normal[2], length=30, color='b')
-            ax3d.quiver(x, y, z, binormal[0], binormal[1], binormal[2], length=30, color='g')
+            if self.render_vectors_and_points:
+                ax3d.quiver(x, y, z, tangent[0], tangent[1], tangent[2], length=30, color='r')
+                ax3d.quiver(x, y, z, normal[0], normal[1], normal[2], length=30, color='b')
+                ax3d.quiver(x, y, z, binormal[0], binormal[1], binormal[2], length=30, color='g')
 
             plot_slices(ax3d, [rects[i]], color=choose_color_by_index(link_rects[i]))
 

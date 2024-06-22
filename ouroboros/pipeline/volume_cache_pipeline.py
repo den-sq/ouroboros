@@ -16,9 +16,9 @@ class VolumeCachePipelineStep(PipelineStep):
         if not isinstance(slice_rects, np.ndarray):
             return None, "Input data must contain an array of slice rects."
         
-        slice_volume = config.slice_width * config.slice_height * config.dist_between_slices
-
-        bounding_boxes, link_rects = calculate_bounding_boxes_bsp_link_rects(slice_rects, slice_volume)
+        bounding_boxes, link_rects = calculate_bounding_boxes_bsp_link_rects(slice_rects, 
+                                                                             min_slices_per_box=config.bouding_box_params.min_slices_per_box,
+                                                                             max_depth=config.bouding_box_params.max_depth)
         
         volume_cache = VolumeCache(bounding_boxes, link_rects, config.source_url)
 
