@@ -8,6 +8,7 @@ import concurrent.futures
 from tifffile import imwrite, imread, TiffWriter
 import os
 import multiprocessing
+from threading import Lock
 
 # TODO: Return errors correctly
 # TODO: Add lock to make saving is thread safe
@@ -38,40 +39,45 @@ class SaveParallelPipelineStep(PipelineStep):
         folder_name = config.output_file_path + "-slices"
         os.makedirs(folder_name, exist_ok=True)
 
-        # Queue to hold downloaded data for processing
+        # Create a queue to hold downloaded data for processing
         data_queue = multiprocessing.Queue()
-        download_done_event = multiprocessing.Event()
+        downloads_completed = 0
+        downloads_completed_lock = Lock()
+
+        def increment_downloads_completed(future):
+            nonlocal downloads_completed
+            with downloads_completed_lock:
+                downloads_completed += 1
 
         # Start the download volumes process
-        download_volumes(volume_cache, data_queue, download_done_event, self.num_threads)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.num_threads) as download_executor:
+            download_futures = []
 
-        # Process pool executor to process the data
+            for i in range(len(volume_cache.volumes)):
+                download_future = download_executor.submit(thread_worker, volume_cache, i, data_queue)
+                download_future.add_done_callback(increment_downloads_completed)
+                download_futures.append(download_future)
+            
+        # Process downloaded volumes as they become available in the queue
         with concurrent.futures.ProcessPoolExecutor(max_workers=self.num_processes) as process_executor:
-            futures = []
+            processing_futures = []
 
             print("Starting processing")
             
             while True:
                 try:
                     data = data_queue.get(timeout=1)
-                    futures.append(process_executor.submit(process_worker, config, data, slice_rects, self.num_threads))
+                    processing_futures.append(process_executor.submit(process_worker, config, data, slice_rects, self.num_threads))
                 except multiprocessing.queues.Empty:
-                    if download_done_event.is_set() and data_queue.empty():
+                    if downloads_completed == len(volume_cache.volumes) and data_queue.empty():
                         print("done downloading")
                         break
-            
-            for future in concurrent.futures.as_completed(futures):
-                try:
-                    vol_index = future.result()
-                except Exception as e:
-                    print("Error processing data!!!")
-                    return None, f"An error occurred while processing data: {e}"
-                else:
-                    # Delete the volume used in the child process
-                    volume_cache.remove_volume(vol_index)
-                    print(f"Remove volume {vol_index}")
 
             print ("Done processing")
+
+        # Wait for all processing to complete
+        concurrent.futures.wait(processing_futures)
+        print("Actually done processing")
 
         # Load the saved tifs in numerical order
         tif_files = get_sorted_tif_files(folder_name)
@@ -87,31 +93,18 @@ class SaveParallelPipelineStep(PipelineStep):
 
         return config.output_file_path, None
 
+def thread_worker(volume_cache, i, data_queue):
+    try:
+        print(f"Downloading volume {i}")
+        # Create a packet of data to process
+        data = volume_cache.create_processing_data(i)
+        data_queue.put(data)
 
-def thread_worker(volume_cache, i, data_queue, download_done_event):
-        try:
-            print(f"Downloading volume {i}")
-            data = volume_cache.create_processing_data(i)
-            data_queue.put(data)
-        except Exception as e:
-            print(f"Error downloading volume {i}: {e}")
-        finally:
-            if i == (len(volume_cache.volumes) - 1):
-                download_done_event.set()
-
-def download_volumes(volume_cache, data_queue, download_done_event, num_threads):
-    with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as download_executor:
-        download_futures = []
-
-        for i in range(len(volume_cache.volumes)):
-            download_future = download_executor.submit(thread_worker, volume_cache, i, data_queue, download_done_event)
-            download_futures.append(download_future)
-        
-        for download_future in concurrent.futures.as_completed(download_futures):
-            download_future.result()
-        
-        # Ensure the event is set even if all volumes are downloaded
-        download_done_event.set()
+        # Remove the volume from the cache after the packet is created
+        # TODO: Change this if the data the data is shared not copied
+        volume_cache.remove_volume(i)
+    except Exception as e:
+        print(f"Error downloading volume {i}: {e}")
 
 def process_worker(config, processing_data, slice_rects, num_threads):
     volume, bounding_box, slice_indices, volume_index = processing_data
