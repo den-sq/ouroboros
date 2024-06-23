@@ -7,6 +7,10 @@ import shutil
 import concurrent.futures
 from tifffile import imwrite, imread, TiffWriter
 import os
+import multiprocessing
+
+# TODO: Return errors correctly
+# TODO: Add lock to make saving is thread safe
 
 class SaveParallelPipelineStep(PipelineStep):
     def __init__(self, threads=None, processes=None) -> None:
@@ -33,23 +37,55 @@ class SaveParallelPipelineStep(PipelineStep):
         # Create a folder with the same name as the output file
         folder_name = config.output_file_path + "-slices"
         os.makedirs(folder_name, exist_ok=True)
-        
-        # Create a process pool executor to parallelize generating and writing slices to disk, 
-        # and a thread pool executor to parallelize downloading bounding box volumes.
-        with concurrent.futures.ProcessPoolExecutor(max_workers=self.num_processes) as process_executor:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=self.num_threads) as thread_executor:
-                futures = [thread_executor.submit(thread_worker, volume_cache, i) for i in range(len(volume_cache.volumes))]
+
+        # Queue to hold downloaded data for processing
+        data_queue = multiprocessing.Queue()
+        download_done_event = multiprocessing.Event()
+
+        # Thread pool executor to download the data
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.num_threads) as download_executor:
+            download_futures = []
+
+            for i in range(len(volume_cache.volumes)):
+                download_future = download_executor.submit(thread_worker, volume_cache, i, data_queue, download_done_event)
+                download_futures.append(download_future)
             
+            # Process pool executor to process the data
+            with concurrent.futures.ProcessPoolExecutor(max_workers=self.num_processes) as process_executor:
+                futures = []
+                
+                while True:
+                    try:
+                        print("Starting process")
+                        data = data_queue.get(timeout=1)
+                        futures.append(process_executor.submit(process_worker, config, data, slice_rects, self.num_threads))
+                    except multiprocessing.queues.Empty:
+                        if download_done_event.is_set() and data_queue.empty():
+                            print("done")
+                            break
+                
                 for future in concurrent.futures.as_completed(futures):
                     try:
-                        data = future.result()
+                        vol_index = future.result()
                     except Exception as e:
-                        return None, f"An error occurred while downloading data: {e}"
+                        print("Error processing data!!!")
+                        return None, f"An error occurred while processing data: {e}"
                     else:
-                        process_executor.submit(process_worker, config, data, slice_rects, thread_executor)
+                        # Delete the volume used in the child process
+                        volume_cache.remove_volume(vol_index)
+                        print(f"Remove volume {vol_index}")
+
+                print ("Done processing")
+
+            for download_future in concurrent.futures.as_completed(download_futures):
+                download_future.result()
+            print("Done 2")
+
+        print("Done 3")
 
         # Load the saved tifs in numerical order
         tif_files = get_sorted_tif_files(folder_name)
+        print(tif_files)
 
         # Save tifs to a new resulting tif 
         with TiffWriter(config.output_file_path) as tif:
@@ -61,28 +97,37 @@ class SaveParallelPipelineStep(PipelineStep):
         # shutil.rmtree(folder_name)
 
         return config.output_file_path, None
-    
-def thread_worker(volume_cache, i):
-    print(f"Downloading volume {i}")
-    return volume_cache.create_processing_data(i) 
 
-def process_worker(config, processing_data, slice_rects, thread_executor):
-        volume, bounding_box, slice_indices, remove_volume = processing_data
-        # print(f"Processing slices {slice_indices}", flush=True)
+def thread_worker(volume_cache, i, data_queue, download_done_event):
+    try:
+        print(f"Downloading volume {i}")
+        data = volume_cache.create_processing_data(i)
+        data_queue.put(data)
+    except Exception as e:
+        print(f"Error downloading volume {i}: {e}")
+    finally:
+        if i == (len(volume_cache.volumes) - 1):
+            download_done_event.set()
 
+def process_worker(config, processing_data, slice_rects, num_threads):
+    volume, bounding_box, slice_indices, volume_index = processing_data
+
+    # Using a ThreadPoolExecutor within the process for saving slices
+    with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as thread_executor:
+        futures = []
         for i in slice_indices:
             grid = generate_coordinate_grid_for_rect(slice_rects[i], config.slice_width, config.slice_height)
             slice_i = slice_volume_from_grid(volume, bounding_box, grid, config.slice_width, config.slice_height)
             filename = f"{config.output_file_path}-slices/{i}.tif"
+            futures.append(thread_executor.submit(save_thread, filename, slice_i))
 
-            thread_executor.submit(save_thread, filename, slice_i)
+        for future in concurrent.futures.as_completed(futures):
+            future.result()
 
-            # imwrite(f"{config.output_file_path}-slices/{i}.tif", slice_i)
-
-        remove_volume()
+    return volume_index
 
 def save_thread(filename, data):
-    print("saving")
+    # print("saving", filename)
     imwrite(filename, data)
 
 def get_sorted_tif_files(directory):

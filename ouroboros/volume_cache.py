@@ -119,10 +119,7 @@ class VolumeCache:
         # Get all slice indices associated with this volume
         slice_indices = [i for i, v in enumerate(self.link_rects) if v == volume_index]
 
-        def remove_volume():
-            self.remove_volume(volume_index)
-
-        return self.volumes[volume_index], bounding_box, slice_indices, remove_volume
+        return self.volumes[volume_index], bounding_box, slice_indices, volume_index
 
     def __del__(self):
         if self.flush_cache:
