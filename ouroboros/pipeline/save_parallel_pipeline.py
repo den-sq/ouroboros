@@ -12,6 +12,17 @@ from threading import Lock
 
 # TODO: Return errors correctly
 # TODO: Add lock to make saving is thread safe
+# TODO: Count the number of slices to be processed and display a progress bar
+# TODO: Figure out why it seems to freeze (folder exists, files exist, output file exits, memory usage of terminal (memory leak?))
+
+# TODO: Potential algorithmic improvement:
+# Store the slice data in a shared memory object and pass the shared memory object to the processing worker
+# This way, the data is shared between processes and does not need to be copied
+# https://docs.python.org/3/library/multiprocessing.shared_memory.html
+
+# Store slices in a large np array and save in one operation at the end of the processing
+# Then recombine the individual tiffs into a single tiff later
+# Use tiff writer to do everything so you don't need a large np array
 
 class SaveParallelPipelineStep(PipelineStep):
     def __init__(self, threads=None, processes=None) -> None:
