@@ -89,7 +89,7 @@ class VolumeCache:
         bbox = bounding_box.to_cloudvolume_bbox()
 
         # Download the bounding box volume
-        volume = self.cv.download(bbox, mip=self.mip)
+        volume = self.cv.download(bbox, mip=self.mip, parallel=False)
 
         # Store the volume in the cache
         self.volumes[volume_index] = volume
