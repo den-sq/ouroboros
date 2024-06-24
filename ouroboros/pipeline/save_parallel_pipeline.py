@@ -25,7 +25,7 @@ from threading import Lock
 # Use tiff writer to do everything so you don't need a large np array
 
 class SaveParallelPipelineStep(PipelineStep):
-    def __init__(self, threads=None, processes=None) -> None:
+    def __init__(self, threads=4, processes=None) -> None:
         super().__init__()
 
         self.num_threads = threads
@@ -52,13 +52,14 @@ class SaveParallelPipelineStep(PipelineStep):
 
         # Create a queue to hold downloaded data for processing
         data_queue = multiprocessing.Queue()
-        downloads_completed = 0
-        downloads_completed_lock = Lock()
 
-        def increment_downloads_completed(future):
-            nonlocal downloads_completed
-            with downloads_completed_lock:
-                downloads_completed += 1
+        # Create a list to store slice_indices that have been processed
+        slice_indices_map = [None] * len(volume_cache.volumes)
+        slice_indices_map_lock = Lock()
+
+        def add_slice_indices(volume_index, slice_indices):
+            with slice_indices_map_lock:
+                slice_indices_map[volume_index] = slice_indices
 
         # Start the download volumes process and process downloaded volumes as they become available in the queue
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.num_threads) as download_executor, \
@@ -67,13 +68,14 @@ class SaveParallelPipelineStep(PipelineStep):
 
             # Download all volumes in parallel
             for i in range(len(volume_cache.volumes)):
-                download_future = download_executor.submit(thread_worker, volume_cache, i, data_queue)
-                download_future.add_done_callback(increment_downloads_completed)
+                download_future = download_executor.submit(thread_worker, volume_cache, i, data_queue, add_slice_indices)
                 download_futures.append(download_future)
             
             processing_futures = []
 
-            print("Starting processing")
+            # Check if all downloads are done
+            def downloads_done():
+                return all([future.done() for future in download_futures])
             
             # Process downloaded data as it becomes available
             while True:
@@ -81,8 +83,7 @@ class SaveParallelPipelineStep(PipelineStep):
                     data = data_queue.get(timeout=1)
                     processing_futures.append(process_executor.submit(process_worker, config, data, slice_rects, self.num_threads))
                 except multiprocessing.queues.Empty:
-                    if downloads_completed == len(volume_cache.volumes) and data_queue.empty():
-                        print("done downloading")
+                    if downloads_done() and data_queue.empty():
                         break
 
             print ("Done processing")
@@ -105,12 +106,15 @@ class SaveParallelPipelineStep(PipelineStep):
 
         return config.output_file_path, None
 
-def thread_worker(volume_cache, i, data_queue):
+def thread_worker(volume_cache, i, data_queue, add_slice_indices):
     try:
         print(f"Downloading volume {i}")
         # Create a packet of data to process
         data = volume_cache.create_processing_data(i)
         data_queue.put(data)
+
+        slice_indices = data[2]
+        add_slice_indices(i, slice_indices)
 
         # Remove the volume from the cache after the packet is created
         # TODO: Change this if the data the data is shared not copied
