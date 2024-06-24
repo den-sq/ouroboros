@@ -60,21 +60,22 @@ class SaveParallelPipelineStep(PipelineStep):
             with downloads_completed_lock:
                 downloads_completed += 1
 
-        # Start the download volumes process
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self.num_threads) as download_executor:
+        # Start the download volumes process and process downloaded volumes as they become available in the queue
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.num_threads) as download_executor, \
+             concurrent.futures.ProcessPoolExecutor(max_workers=self.num_processes) as process_executor:
             download_futures = []
 
+            # Download all volumes in parallel
             for i in range(len(volume_cache.volumes)):
                 download_future = download_executor.submit(thread_worker, volume_cache, i, data_queue)
                 download_future.add_done_callback(increment_downloads_completed)
                 download_futures.append(download_future)
             
-        # Process downloaded volumes as they become available in the queue
-        with concurrent.futures.ProcessPoolExecutor(max_workers=self.num_processes) as process_executor:
             processing_futures = []
 
             print("Starting processing")
             
+            # Process downloaded data as it becomes available
             while True:
                 try:
                     data = data_queue.get(timeout=1)
