@@ -8,7 +8,7 @@ readme = "README.md"
 # Use python 3.10
 # https://stackoverflow.com/questions/60580113/change-python-version-to-3-x and run poetry install, poetry lock
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "3.10.5"
 numpy = "^1.26.4"
 scipy = "^1.13.1"
 matplotlib = "^3.9.0"
