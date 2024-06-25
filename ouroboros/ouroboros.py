@@ -32,7 +32,14 @@ def slice_demo():
 
     input_data = (config, "./data/sample-data.json")
 
-    pipeline.process(input_data)
+    result, error = pipeline.process(input_data)
+
+    if error:
+        print(error)
+    
+    print(f"Output file: {result}")
+
+    print("Pipeline statistics:")
 
     for stat in pipeline.get_step_statistics():
         print(stat)

@@ -9,6 +9,18 @@ class Pipeline:
         self.steps = steps
 
     def process(self, input_data: any) -> tuple[any, None] | tuple[None, any]:
+        """
+        Run the pipeline on the input data.
+
+        Parameters
+        ----------
+            input_data (any): The data to process.
+
+        Returns
+        -------
+            tuple: A tuple containing the processed data and any errors that occurred during processing.
+        """
+
         data = input_data
 
         for step in self.steps:

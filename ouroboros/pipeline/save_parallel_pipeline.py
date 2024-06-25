@@ -11,11 +11,12 @@ import multiprocessing
 import time
 
 class SaveParallelPipelineStep(PipelineStep):
-    def __init__(self, threads=1, processes=None) -> None:
+    def __init__(self, threads=1, processes=None, delete_intermediate=False) -> None:
         super().__init__()
 
         self.num_threads = threads
         self.num_processes = processes
+        self.delete_intermediate = delete_intermediate
 
     def _process(self, input_data: any) -> tuple[any, None] | tuple[None, any]:
         config, volume_cache, slice_rects = input_data
@@ -88,7 +89,7 @@ class SaveParallelPipelineStep(PipelineStep):
                 self.add_timing_list(key, value)
 
         try:
-            load_and_save_tiff_from_slices(folder_name, config, delete_intermediate=False)
+            load_and_save_tiff_from_slices(folder_name, config, delete_intermediate=self.delete_intermediate)
         except Exception as e:
             return None, f"Error creating single tif file: {e}"
 
