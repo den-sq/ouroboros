@@ -1,10 +1,10 @@
 from .config import Config
-from .pipeline import Pipeline, ParseJSONPipelineStep, RenderSlicesPipelineStep, SlicesGeometryPipelineStep, VolumeCachePipelineStep, SaveTiffPipelineStep, SaveParallelPipelineStep
+from .pipeline import Pipeline, ParseJSONPipelineStep, RenderSlicesPipelineStep, SlicesGeometryPipelineStep, VolumeCachePipelineStep, SaveParallelAltPipelineStep, SaveParallelPipelineStep
 
 from .bounding_boxes import BoundingBoxParams
 
-SLICE_WIDTH = 50
-SLICE_HEIGHT = 50
+SLICE_WIDTH = 120
+SLICE_HEIGHT = 120
 
 def spline_demo():
     bounding_box_params = BoundingBoxParams(min_slices_per_box=30, max_depth=4)
@@ -27,7 +27,8 @@ def slice_demo():
         ParseJSONPipelineStep(),
         SlicesGeometryPipelineStep(),
         VolumeCachePipelineStep(),
-        SaveParallelPipelineStep()
+        # SaveParallelPipelineStep()
+        SaveParallelAltPipelineStep()
     ])
     # pipeline = Pipeline([
     #     ParseJSONPipelineStep(),
@@ -40,4 +41,5 @@ def slice_demo():
 
     pipeline.process(input_data)
 
-    print(pipeline.get_step_statistics())
+    for stat in pipeline.get_step_statistics():
+        print(stat)

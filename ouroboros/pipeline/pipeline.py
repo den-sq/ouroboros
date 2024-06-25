@@ -24,7 +24,7 @@ class Pipeline:
 
 class PipelineStep(ABC):
     def __init__(self) -> None:
-        self.run_durations = []
+        self.timing = {"pipeline": type(self).__name__, "custom_times": {}}
 
     def process(self, input_data: any) -> tuple[any, None] | tuple[None, any]:
         start = time.perf_counter()
@@ -34,7 +34,7 @@ class PipelineStep(ABC):
         # Record the duration of the run
         end = time.perf_counter()
         duration_seconds = end - start
-        self.run_durations.append(duration_seconds)
+        self.timing["duration_seconds"] = duration_seconds
 
         return result
 
@@ -43,9 +43,21 @@ class PipelineStep(ABC):
         pass
 
     def get_time_statistics(self):
-        return {
-            "average": np.mean(self.run_durations),
-            "median": np.median(self.run_durations),
-            "min": np.min(self.run_durations),
-            "max": np.max(self.run_durations)
-        }
+        # Replace custom timings with statistics about the custom timings
+        custom_times = self.timing["custom_times"]
+        custom_times_statistics = {key: {"mean": np.mean(value), "std": np.std(value), "min": np.min(value), "max": np.max(value)} for key, value in custom_times.items()}
+        self.timing["custom_times"] = custom_times_statistics
+
+        return self.timing
+
+    def add_timing(self, key: str, value: float):
+        if key in self.timing:
+            self.timing["custom_times"][key].append(value)
+        else:
+            self.timing["custom_times"][key] = [value]
+
+    def add_timing_list(self, key: str, values: list[float]):
+        if key in self.timing:
+            self.timing["custom_times"][key].extend(values)
+        else:
+            self.timing["custom_times"][key] = values
