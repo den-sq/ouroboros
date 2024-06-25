@@ -83,18 +83,18 @@ class VolumeCache:
 
         self.volumes[volume_index] = None
 
-    def download_volume(self, volume_index: int, bounding_box: BoundingBox) -> VolumeCutout:
+    def download_volume(self, volume_index: int, bounding_box: BoundingBox, parallel=False) -> VolumeCutout:
         # TODO: Handle errors that occur here
 
         bbox = bounding_box.to_cloudvolume_bbox()
 
         # Download the bounding box volume
-        volume = self.cv.download(bbox, mip=self.mip, parallel=False)
+        volume = self.cv.download(bbox, mip=self.mip, parallel=parallel)
 
         # Store the volume in the cache
         self.volumes[volume_index] = volume
 
-    def create_processing_data(self, volume_index: int):
+    def create_processing_data(self, volume_index: int, parallel=False):
         """
         Generate a data packet for processing a volume.
 
@@ -103,6 +103,7 @@ class VolumeCache:
         Parameters:
         ----------
             volume_index (int): The index of the volume to process.
+            parallel (bool): Whether to download the volume in parallel (only do parallel if downloading in one thread).
 
         Returns:
         -------
@@ -114,7 +115,7 @@ class VolumeCache:
 
         # Download the volume if it is not already cached
         if self.volumes[volume_index] is None:
-            self.download_volume(volume_index, bounding_box)
+            self.download_volume(volume_index, bounding_box, parallel=parallel)
 
         # Get all slice indices associated with this volume
         slice_indices = [i for i, v in enumerate(self.link_rects) if v == volume_index]

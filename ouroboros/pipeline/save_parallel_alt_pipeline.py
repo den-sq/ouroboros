@@ -11,7 +11,7 @@ import multiprocessing
 import time
 
 class SaveParallelAltPipelineStep(PipelineStep):
-    def __init__(self, threads=16, processes=None) -> None:
+    def __init__(self, threads=1, processes=None) -> None:
         super().__init__()
 
         self.num_threads = threads
@@ -47,10 +47,11 @@ class SaveParallelAltPipelineStep(PipelineStep):
              concurrent.futures.ProcessPoolExecutor(max_workers=self.num_processes) as process_executor:
             download_futures = []
 
+            ranges = np.array_split(np.arange(len(volume_cache.volumes)), self.num_threads)
+
             # Download all volumes in parallel
-            for i in range(len(volume_cache.volumes)):
-                download_future = download_executor.submit(thread_worker, volume_cache, i, data_queue)
-                download_futures.append(download_future)
+            for volumes_range in ranges:
+                download_futures.append(download_executor.submit(thread_worker_iterative, volume_cache, volumes_range, data_queue, self.num_threads == 1))
             
             processing_futures = []
 
@@ -62,8 +63,8 @@ class SaveParallelAltPipelineStep(PipelineStep):
             while True:
                 try:
                     data = data_queue.get(timeout=1)
+                    print(f"Processing volume {data[3]}")
                     processing_futures.append(process_executor.submit(process_worker_save_parallel, config, data, slice_rects, self.num_threads, num_digits))
-                    print([future.done() for future in download_futures])
                 except multiprocessing.queues.Empty:
                     if downloads_done() and data_queue.empty():
                         break
@@ -78,27 +79,25 @@ class SaveParallelAltPipelineStep(PipelineStep):
 
         # Log the processing durations
         for future in processing_futures:
-            volume_index, durations = future.result()
+            _, durations = future.result()
             for key, value in durations.items():
                 self.add_timing_list(key, value)
 
-        load_and_save_tiff_from_slices(folder_name, config)
-
-        # Delete slices folder
-        shutil.rmtree(folder_name)
+        load_and_save_tiff_from_slices(folder_name, config, delete_intermediate=False)
 
         return config.output_file_path, None
 
-def thread_worker(volume_cache, i, data_queue):
+def thread_worker_iterative(volume_cache, volumes_range, data_queue, single_thread=False):
     try:
-        print(f"Downloading volume {i}")
-        # Create a packet of data to process
-        data = volume_cache.create_processing_data(i)
-        data_queue.put(data)
+        for i in volumes_range:
+            print(f"Downloading volume {i}")
+            # Create a packet of data to process
+            data = volume_cache.create_processing_data(i, parallel=single_thread)            
+            data_queue.put(data)
 
-        # Remove the volume from the cache after the packet is created
-        # TODO: Change this if the data the data is shared not copied
-        volume_cache.remove_volume(i)
+            # Remove the volume from the cache after the packet is created
+            # TODO: Change this if the data the data is shared not copied
+            volume_cache.remove_volume(i)
     except Exception as e:
         print(f"Error downloading volume {i}: {e}")
 
@@ -139,7 +138,7 @@ def process_worker_save_parallel(config, processing_data, slice_rects, num_threa
 def save_thread(filename, data):
     imwrite(filename, data)
 
-def load_and_save_tiff_from_slices(folder_name, config):
+def load_and_save_tiff_from_slices(folder_name, config, delete_intermediate=True):
     # Load the saved tifs in numerical order
     tif_files = get_sorted_tif_files(folder_name)
 
@@ -148,6 +147,10 @@ def load_and_save_tiff_from_slices(folder_name, config):
         for filename in tif_files:
             tif_file = imread(f"{config.output_file_path}-slices/{filename}")
             tif.write(tif_file, contiguous=True)
+
+    # Delete slices folder
+    if delete_intermediate:
+        shutil.rmtree(folder_name)
 
 def get_sorted_tif_files(directory):
     # Get all files in the directory
