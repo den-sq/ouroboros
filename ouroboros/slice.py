@@ -139,4 +139,40 @@ def slice_volume_from_grid(volume: VolumeCutout, bounding_box: BoundingBox, grid
     slice_points = map_coordinates(squeezed_volume, normalized_grid, mode='nearest')
 
     return slice_points.reshape(height, width)
+
+def slice_volume_from_grids(volume: VolumeCutout, bounding_box: BoundingBox, grids: np.ndarray, width, height) -> np.ndarray:
+    """
+    Slice a volume based on a grid of coordinates.
+
+    Parameters:
+    ----------
+        volume (VolumeCutout): The volume of shape (x, y, z, 1) to slice.
+        bounding_box (BoundingBox): The bounding box of the volume.
+        grids (numpy.ndarray): The grids of coordinates to slice the volume (n, width, height, 3).
+        width (int): The width of the grid.
+        height (int): The height of the grid.
+
+    Returns:
+    -------
+        numpy.ndarray: The slice of the volume as a 2D array.
+    """
+
+    # Remove the last dimension from the volume
+    # TODO: Figure out how to modify this to support multiple channels (maybe add an axis to points?)
+    # Include support for choosing tiff color mode based on this
+    squeezed_volume = np.squeeze(volume, axis=-1)
+
+    # Normalize grid coordinates based on bounding box (since volume coordinates are truncated)
+    bounding_box_min = np.array([bounding_box.x_min, bounding_box.y_min, bounding_box.z_min])
+
+    # Subtract the bounding box min from the grids (n, width, height, 3)
+    normalized_grid = grids - bounding_box_min
+
+    # Reshape the grids to be (3, n * width * height)
+    normalized_grid = normalized_grid.reshape(-1, 3).T
+
+    # Map the grid coordinates to the volume
+    slice_points = map_coordinates(squeezed_volume, normalized_grid, mode='nearest')
+
+    return slice_points.reshape(len(grids), height, width)
     

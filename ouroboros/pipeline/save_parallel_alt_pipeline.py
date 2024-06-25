@@ -1,4 +1,4 @@
-from ouroboros.slice import generate_coordinate_grid_for_rect, slice_volume_from_grid
+from ouroboros.slice import generate_coordinate_grid_for_rect, slice_volume_from_grids
 from ouroboros.volume_cache import VolumeCache
 from .pipeline import PipelineStep
 from ouroboros.config import Config
@@ -11,7 +11,7 @@ import multiprocessing
 import time
 
 class SaveParallelAltPipelineStep(PipelineStep):
-    def __init__(self, threads=8, processes=None) -> None:
+    def __init__(self, threads=16, processes=None) -> None:
         super().__init__()
 
         self.num_threads = threads
@@ -67,6 +67,8 @@ class SaveParallelAltPipelineStep(PipelineStep):
                 except multiprocessing.queues.Empty:
                     if downloads_done() and data_queue.empty():
                         break
+                except Exception as e:
+                    print(f"Error processing data: {e}")
 
             print ("Done downloading volumes")
 
@@ -107,18 +109,21 @@ def process_worker_save_parallel(config, processing_data, slice_rects, num_threa
 
     start_total = time.perf_counter()
 
+    # Generate a grid for each slice and stack them along the first axis
+    start = time.perf_counter()
+    grids = np.array([generate_coordinate_grid_for_rect(slice_rects[i], config.slice_width, config.slice_height) for i in slice_indices])
+    durations["generate_grid"].append(time.perf_counter() - start)
+
+    # Slice the volume using the grids
+    start = time.perf_counter()
+    slices = slice_volume_from_grids(volume, bounding_box, grids, config.slice_width, config.slice_height)
+    durations["slice_volume"].append(time.perf_counter() - start)
+
     # Using a ThreadPoolExecutor within the process for saving slices
     with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as thread_executor:
         futures = []
-        for i in slice_indices:
-            start = time.perf_counter()
-            grid = generate_coordinate_grid_for_rect(slice_rects[i], config.slice_width, config.slice_height)
-            durations["generate_grid"].append(time.perf_counter() - start)
 
-            start = time.perf_counter()
-            slice_i = slice_volume_from_grid(volume, bounding_box, grid, config.slice_width, config.slice_height)
-            durations["slice_volume"].append(time.perf_counter() - start)
-
+        for i, slice_i in zip(slice_indices, slices):
             start = time.perf_counter()
             filename = f"{config.output_file_path}-slices/{str(i).zfill(num_digits)}.tif"
             futures.append(thread_executor.submit(save_thread, filename, slice_i))
