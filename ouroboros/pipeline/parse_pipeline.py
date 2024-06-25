@@ -17,6 +17,8 @@ class ParseJSONPipelineStep(PipelineStep):
 
         ng_config, error = parse_neuroglancer_json(json_path)
 
+        self.update_progress(0.5)
+
         if error:
             return None, error
         

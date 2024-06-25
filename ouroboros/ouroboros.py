@@ -27,14 +27,8 @@ def slice_demo():
         ParseJSONPipelineStep(),
         SlicesGeometryPipelineStep(),
         VolumeCachePipelineStep(),
-        SaveParallelPipelineStep()
+        SaveParallelPipelineStep().with_progress_bar()
     ])
-    # pipeline = Pipeline([
-    #     ParseJSONPipelineStep(),
-    #     SlicesGeometryPipelineStep(),
-    #     VolumeCachePipelineStep(),
-    #     SaveTiffPipelineStep()
-    # ])
 
     input_data = (config, "./data/sample-data.json")
 

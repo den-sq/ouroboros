@@ -20,6 +20,8 @@ class VolumeCachePipelineStep(PipelineStep):
                                                                              min_slices_per_box=config.bouding_box_params.min_slices_per_box,
                                                                              max_depth=config.bouding_box_params.max_depth)
         
+        self.update_progress(0.5)
+        
         volume_cache = VolumeCache(bounding_boxes, link_rects, config.source_url, flush_cache=config.flush_cache)
 
         return (config, volume_cache, slice_rects), None

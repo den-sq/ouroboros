@@ -63,19 +63,18 @@ class SaveParallelPipelineStep(PipelineStep):
             while True:
                 try:
                     data = data_queue.get(timeout=1)
-                    print(f"Processing volume {data[3]}")
                     processing_futures.append(process_executor.submit(process_worker_save_parallel, config, data, slice_rects, self.num_threads, num_digits))
+
+                    # Update progress
+                    self.update_progress(len([future for future in processing_futures if future.done()]) / len(volume_cache.volumes))
                 except multiprocessing.queues.Empty:
                     if downloads_done() and data_queue.empty():
                         break
                 except Exception as e:
                     print(f"Error processing data: {e}")
 
-            print ("Done downloading volumes")
-
         # Wait for all processing to complete
         concurrent.futures.wait(processing_futures)
-        print("Done processing")
 
         # Log the processing durations
         for future in processing_futures:
@@ -90,7 +89,6 @@ class SaveParallelPipelineStep(PipelineStep):
 def thread_worker_iterative(volume_cache, volumes_range, data_queue, single_thread=False):
     try:
         for i in volumes_range:
-            print(f"Downloading volume {i}")
             # Create a packet of data to process
             data = volume_cache.create_processing_data(i, parallel=single_thread)            
             data_queue.put(data)

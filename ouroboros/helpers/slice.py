@@ -103,6 +103,7 @@ def generate_coordinate_grid_for_rect(rect: np.ndarray, width, height) -> np.nda
 
 # TODO: When slicing volume, need to know offset of slice in volume
 # TODO: Consider if i and j need to be swapped because of map_coordinates behavior
+# TODO: Combine this method with the one below
 
 def slice_volume_from_grid(volume: VolumeCutout, bounding_box: BoundingBox, grid: np.ndarray, width, height) -> np.ndarray:
     """

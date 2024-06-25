@@ -22,6 +22,8 @@ class SlicesGeometryPipelineStep(PipelineStep):
         equidistant_params = spline.calculate_equidistant_parameters(config.dist_between_slices)
         equidistant_points = spline(equidistant_params)
 
+        self.update_progress(0.5)
+
         # Calculate the slice rects for each t value
         slice_rects = calculate_slice_rects(equidistant_params, spline, config.slice_width, config.slice_height, spline_points=equidistant_points)
 
