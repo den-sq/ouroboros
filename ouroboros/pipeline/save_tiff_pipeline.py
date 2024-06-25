@@ -1,5 +1,5 @@
-from ouroboros.slice import generate_coordinate_grid_for_rect, slice_volume_from_grid
-from ouroboros.volume_cache import VolumeCache
+from ouroboros.helpers.slice import generate_coordinate_grid_for_rect, slice_volume_from_grid
+from ouroboros.helpers.volume_cache import VolumeCache
 from .pipeline import PipelineStep
 from ouroboros.config import Config
 import numpy as np

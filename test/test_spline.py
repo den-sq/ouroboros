@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from ouroboros.spline import Spline
+from ouroboros.helpers.spline import Spline
 
 def test_fit_spline():
     import numpy as np

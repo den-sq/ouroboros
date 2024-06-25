@@ -1,4 +1,4 @@
-from ouroboros.parse import parse_neuroglancer_json, neuroglancer_config_to_annotation, neuroglancer_config_to_source
+from ouroboros.helpers.parse import parse_neuroglancer_json, neuroglancer_config_to_annotation, neuroglancer_config_to_source
 from .pipeline import PipelineStep
 from ouroboros.config import Config
 

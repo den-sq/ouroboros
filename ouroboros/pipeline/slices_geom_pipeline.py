@@ -1,5 +1,5 @@
-from ouroboros.slice import calculate_slice_rects
-from ouroboros.spline import Spline
+from ouroboros.helpers.slice import calculate_slice_rects
+from ouroboros.helpers.spline import Spline
 from .pipeline import PipelineStep
 from ouroboros.config import Config
 import numpy as np

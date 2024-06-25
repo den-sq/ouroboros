@@ -1,9 +1,9 @@
 # BENCHMARK
 
-from ouroboros.parse import parse_neuroglancer_json, neuroglancer_config_to_annotation
-from ouroboros.spline import Spline
-from ouroboros.slice import calculate_slice_rects
-from ouroboros.bounding_boxes import calculate_bounding_boxes_bsp_link_rects
+from ouroboros.helpers.parse import parse_neuroglancer_json, neuroglancer_config_to_annotation
+from ouroboros.helpers.spline import Spline
+from ouroboros.helpers.slice import calculate_slice_rects
+from ouroboros.helpers.bounding_boxes import calculate_bounding_boxes_bsp_link_rects
 
 DIST_BETWEEN_SLICES = 1
 SLICE_WIDTH = 50

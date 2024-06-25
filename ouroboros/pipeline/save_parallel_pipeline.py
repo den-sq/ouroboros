@@ -1,5 +1,5 @@
-from ouroboros.slice import generate_coordinate_grid_for_rect, slice_volume_from_grid
-from ouroboros.volume_cache import VolumeCache
+from ouroboros.helpers.slice import generate_coordinate_grid_for_rect, slice_volume_from_grids
+from ouroboros.helpers.volume_cache import VolumeCache
 from .pipeline import PipelineStep
 from ouroboros.config import Config
 import numpy as np
@@ -8,23 +8,10 @@ import concurrent.futures
 from tifffile import imwrite, imread, TiffWriter
 import os
 import multiprocessing
-
-# TODO: Return errors correctly
-# TODO: Add lock to make saving is thread safe
-# TODO: Count the number of slices to be processed and display a progress bar
-# TODO: Figure out why it seems to freeze (folder exists, files exist, output file exits, memory usage of terminal (memory leak?))
-
-# TODO: Potential algorithmic improvement:
-# Store the slice data in a shared memory object and pass the shared memory object to the processing worker
-# This way, the data is shared between processes and does not need to be copied
-# https://docs.python.org/3/library/multiprocessing.shared_memory.html
-
-# Store slices in a large np array and save in one operation at the end of the processing
-# Then recombine the individual tiffs into a single tiff later
-# Use tiff writer to do everything so you don't need a large np array
+import time
 
 class SaveParallelPipelineStep(PipelineStep):
-    def __init__(self, threads=8, processes=None) -> None:
+    def __init__(self, threads=1, processes=None) -> None:
         super().__init__()
 
         self.num_threads = threads
@@ -49,6 +36,9 @@ class SaveParallelPipelineStep(PipelineStep):
         folder_name = config.output_file_path + "-slices"
         os.makedirs(folder_name, exist_ok=True)
 
+        # Calculate the number of digits needed to store the number of slices
+        num_digits = len(str(len(slice_rects) - 1))
+
         # Create a queue to hold downloaded data for processing
         data_queue = multiprocessing.Queue()
 
@@ -57,10 +47,11 @@ class SaveParallelPipelineStep(PipelineStep):
              concurrent.futures.ProcessPoolExecutor(max_workers=self.num_processes) as process_executor:
             download_futures = []
 
+            ranges = np.array_split(np.arange(len(volume_cache.volumes)), self.num_threads)
+
             # Download all volumes in parallel
-            for i in range(len(volume_cache.volumes)):
-                download_future = download_executor.submit(thread_worker, volume_cache, i, data_queue)
-                download_futures.append(download_future)
+            for volumes_range in ranges:
+                download_futures.append(download_executor.submit(thread_worker_iterative, volume_cache, volumes_range, data_queue, self.num_threads == 1))
             
             processing_futures = []
 
@@ -72,10 +63,13 @@ class SaveParallelPipelineStep(PipelineStep):
             while True:
                 try:
                     data = data_queue.get(timeout=1)
-                    processing_futures.append(process_executor.submit(process_worker_save_parallel, config, data, slice_rects, self.num_threads))
+                    print(f"Processing volume {data[3]}")
+                    processing_futures.append(process_executor.submit(process_worker_save_parallel, config, data, slice_rects, self.num_threads, num_digits))
                 except multiprocessing.queues.Empty:
                     if downloads_done() and data_queue.empty():
                         break
+                except Exception as e:
+                    print(f"Error processing data: {e}")
 
             print ("Done downloading volumes")
 
@@ -83,27 +77,68 @@ class SaveParallelPipelineStep(PipelineStep):
         concurrent.futures.wait(processing_futures)
         print("Done processing")
 
-        load_and_save_tiff_from_slices(folder_name, config)
+        # Log the processing durations
+        for future in processing_futures:
+            _, durations = future.result()
+            for key, value in durations.items():
+                self.add_timing_list(key, value)
 
-        # Delete slices folder
-        shutil.rmtree(folder_name)
+        load_and_save_tiff_from_slices(folder_name, config, delete_intermediate=False)
 
         return config.output_file_path, None
 
-def thread_worker(volume_cache, i, data_queue):
+def thread_worker_iterative(volume_cache, volumes_range, data_queue, single_thread=False):
     try:
-        print(f"Downloading volume {i}")
-        # Create a packet of data to process
-        data = volume_cache.create_processing_data(i)
-        data_queue.put(data)
+        for i in volumes_range:
+            print(f"Downloading volume {i}")
+            # Create a packet of data to process
+            data = volume_cache.create_processing_data(i, parallel=single_thread)            
+            data_queue.put(data)
 
-        # Remove the volume from the cache after the packet is created
-        # TODO: Change this if the data the data is shared not copied
-        volume_cache.remove_volume(i)
+            # Remove the volume from the cache after the packet is created
+            # TODO: Change this if the data the data is shared not copied
+            volume_cache.remove_volume(i)
     except Exception as e:
         print(f"Error downloading volume {i}: {e}")
 
-def load_and_save_tiff_from_slices(folder_name, config):
+def process_worker_save_parallel(config, processing_data, slice_rects, num_threads, num_digits):
+    volume, bounding_box, slice_indices, volume_index = processing_data
+
+    durations = {"generate_grid": [], "slice_volume": [], "save": [], "total_process": []}
+
+    start_total = time.perf_counter()
+
+    # Generate a grid for each slice and stack them along the first axis
+    start = time.perf_counter()
+    grids = np.array([generate_coordinate_grid_for_rect(slice_rects[i], config.slice_width, config.slice_height) for i in slice_indices])
+    durations["generate_grid"].append(time.perf_counter() - start)
+
+    # Slice the volume using the grids
+    start = time.perf_counter()
+    slices = slice_volume_from_grids(volume, bounding_box, grids, config.slice_width, config.slice_height)
+    durations["slice_volume"].append(time.perf_counter() - start)
+
+    # Using a ThreadPoolExecutor within the process for saving slices
+    with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as thread_executor:
+        futures = []
+
+        for i, slice_i in zip(slice_indices, slices):
+            start = time.perf_counter()
+            filename = f"{config.output_file_path}-slices/{str(i).zfill(num_digits)}.tif"
+            futures.append(thread_executor.submit(save_thread, filename, slice_i))
+            durations["save"].append(time.perf_counter() - start)
+
+        for future in concurrent.futures.as_completed(futures):
+            future.result()
+
+    durations["total_process"].append(time.perf_counter() - start_total)
+
+    return volume_index, durations
+
+def save_thread(filename, data):
+    imwrite(filename, data)
+
+def load_and_save_tiff_from_slices(folder_name, config, delete_intermediate=True):
     # Load the saved tifs in numerical order
     tif_files = get_sorted_tif_files(folder_name)
 
@@ -113,25 +148,9 @@ def load_and_save_tiff_from_slices(folder_name, config):
             tif_file = imread(f"{config.output_file_path}-slices/{filename}")
             tif.write(tif_file, contiguous=True)
 
-def process_worker_save_parallel(config, processing_data, slice_rects, num_threads):
-    volume, bounding_box, slice_indices, volume_index = processing_data
-
-    # Using a ThreadPoolExecutor within the process for saving slices
-    with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as thread_executor:
-        futures = []
-        for i in slice_indices:
-            grid = generate_coordinate_grid_for_rect(slice_rects[i], config.slice_width, config.slice_height)
-            slice_i = slice_volume_from_grid(volume, bounding_box, grid, config.slice_width, config.slice_height)
-            filename = f"{config.output_file_path}-slices/{i}.tif"
-            futures.append(thread_executor.submit(save_thread, filename, slice_i))
-
-        for future in concurrent.futures.as_completed(futures):
-            future.result()
-
-    return volume_index
-
-def save_thread(filename, data):
-    imwrite(filename, data)
+    # Delete slices folder
+    if delete_intermediate:
+        shutil.rmtree(folder_name)
 
 def get_sorted_tif_files(directory):
     # Get all files in the directory

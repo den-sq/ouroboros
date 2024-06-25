@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from ouroboros.bounding_boxes import BoundingBoxParams
+from ouroboros.helpers.bounding_boxes import BoundingBoxParams
 
 @dataclass
 class Config:

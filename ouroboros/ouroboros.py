@@ -1,7 +1,7 @@
 from .config import Config
-from .pipeline import Pipeline, ParseJSONPipelineStep, RenderSlicesPipelineStep, SlicesGeometryPipelineStep, VolumeCachePipelineStep, SaveParallelAltPipelineStep, SaveParallelPipelineStep
+from .pipeline import Pipeline, ParseJSONPipelineStep, RenderSlicesPipelineStep, SlicesGeometryPipelineStep, VolumeCachePipelineStep, SaveParallelPipelineStep
 
-from .bounding_boxes import BoundingBoxParams
+from .helpers.bounding_boxes import BoundingBoxParams
 
 SLICE_WIDTH = 120
 SLICE_HEIGHT = 120
@@ -27,8 +27,7 @@ def slice_demo():
         ParseJSONPipelineStep(),
         SlicesGeometryPipelineStep(),
         VolumeCachePipelineStep(),
-        # SaveParallelPipelineStep()
-        SaveParallelAltPipelineStep()
+        SaveParallelPipelineStep()
     ])
     # pipeline = Pipeline([
     #     ParseJSONPipelineStep(),
