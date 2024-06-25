@@ -43,35 +43,40 @@ class SaveParallelPipelineStep(PipelineStep):
         data_queue = multiprocessing.Queue()
 
         # Start the download volumes process and process downloaded volumes as they become available in the queue
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self.num_threads) as download_executor, \
-             concurrent.futures.ProcessPoolExecutor(max_workers=self.num_processes) as process_executor:
-            download_futures = []
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self.num_threads) as download_executor, \
+                concurrent.futures.ProcessPoolExecutor(max_workers=self.num_processes) as process_executor:
+                download_futures = []
 
-            ranges = np.array_split(np.arange(len(volume_cache.volumes)), self.num_threads)
+                ranges = np.array_split(np.arange(len(volume_cache.volumes)), self.num_threads)
 
-            # Download all volumes in parallel
-            for volumes_range in ranges:
-                download_futures.append(download_executor.submit(thread_worker_iterative, volume_cache, volumes_range, data_queue, self.num_threads == 1))
-            
-            processing_futures = []
+                # Download all volumes in parallel
+                for volumes_range in ranges:
+                    download_futures.append(download_executor.submit(thread_worker_iterative, volume_cache, volumes_range, data_queue, self.num_threads == 1))
+                
+                processing_futures = []
 
-            # Check if all downloads are done
-            def downloads_done():
-                return all([future.done() for future in download_futures])
-            
-            # Process downloaded data as it becomes available
-            while True:
-                try:
-                    data = data_queue.get(timeout=1)
-                    processing_futures.append(process_executor.submit(process_worker_save_parallel, config, data, slice_rects, self.num_threads, num_digits))
+                # Check if all downloads are done
+                def downloads_done():
+                    return all([future.done() for future in download_futures])
+                
+                # Process downloaded data as it becomes available
+                while True:
+                    try:
+                        data = data_queue.get(timeout=1)
+                        processing_futures.append(process_executor.submit(process_worker_save_parallel, config, data, slice_rects, self.num_threads, num_digits))
 
-                    # Update progress
-                    self.update_progress(len([future for future in processing_futures if future.done()]) / len(volume_cache.volumes))
-                except multiprocessing.queues.Empty:
-                    if downloads_done() and data_queue.empty():
-                        break
-                except Exception as e:
-                    print(f"Error processing data: {e}")
+                        # Update progress
+                        self.update_progress(len([future for future in processing_futures if future.done()]) / len(volume_cache.volumes))
+                    except multiprocessing.queues.Empty:
+                        if downloads_done() and data_queue.empty():
+                            break
+                    except Exception as e:
+                        download_executor.shutdown(wait=False, cancel_futures=True)
+                        process_executor.shutdown(wait=False, cancel_futures=True)
+                        return None, f"Error processing data: {e}"
+        except Exception as e:
+            return None, f"Error downloading data: {e}"
 
         # Wait for all processing to complete
         concurrent.futures.wait(processing_futures)
@@ -82,22 +87,22 @@ class SaveParallelPipelineStep(PipelineStep):
             for key, value in durations.items():
                 self.add_timing_list(key, value)
 
-        load_and_save_tiff_from_slices(folder_name, config, delete_intermediate=False)
+        try:
+            load_and_save_tiff_from_slices(folder_name, config, delete_intermediate=False)
+        except Exception as e:
+            return None, f"Error creating single tif file: {e}"
 
         return config.output_file_path, None
 
 def thread_worker_iterative(volume_cache, volumes_range, data_queue, single_thread=False):
-    try:
-        for i in volumes_range:
-            # Create a packet of data to process
-            data = volume_cache.create_processing_data(i, parallel=single_thread)            
-            data_queue.put(data)
+    for i in volumes_range:
+        # Create a packet of data to process
+        data = volume_cache.create_processing_data(i, parallel=single_thread)            
+        data_queue.put(data)
 
-            # Remove the volume from the cache after the packet is created
-            # TODO: Change this if the data the data is shared not copied
-            volume_cache.remove_volume(i)
-    except Exception as e:
-        print(f"Error downloading volume {i}: {e}")
+        # Remove the volume from the cache after the packet is created
+        # TODO: Change this if the data the data is shared not copied
+        volume_cache.remove_volume(i)
 
 def process_worker_save_parallel(config, processing_data, slice_rects, num_threads, num_digits):
     volume, bounding_box, slice_indices, volume_index = processing_data
