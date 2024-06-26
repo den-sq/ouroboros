@@ -5,3 +5,4 @@ from .slices_geom_pipeline import SlicesGeometryPipelineStep
 from .volume_cache_pipeline import VolumeCachePipelineStep
 from .save_tiff_pipeline import SaveTiffPipelineStep
 from .save_parallel_pipeline import SaveParallelPipelineStep
+from .backproject_pipeline import BackprojectPipelineStep

@@ -98,6 +98,21 @@ class BoundingBox:
     def to_cloudvolume_bbox(self):
         return Bbox((self.x_min, self.y_min, self.z_min), (self.x_max, self.y_max, self.z_max))
     
+    def approx_bounds(self):
+        x_min = int(np.floor(self.x_min))
+        x_max = int(np.ceil(self.x_max))
+        y_min = int(np.floor(self.y_min))
+        y_max = int(np.ceil(self.y_max))
+        z_min = int(np.floor(self.z_min))
+        z_max = int(np.ceil(self.z_max))
+
+        return x_min, x_max, y_min, y_max, z_min, z_max
+    
+    def to_empty_volume(self):
+        x_min, x_max, y_min, y_max, z_min, z_max = self.approx_bounds()
+
+        return np.zeros((x_max - x_min, y_max - y_min, z_max - z_min))
+    
     def calculate_volume(self):
         return (self.x_max - self.x_min) * (self.y_max - self.y_min) * (self.z_max - self.z_min)
     

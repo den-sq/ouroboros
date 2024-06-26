@@ -1,4 +1,5 @@
 from .bounding_boxes import BoundingBox
+from .memory_usage import calculate_gigabytes_from_dimensions
 
 from cloudvolume import CloudVolume, VolumeCutout
 
@@ -32,6 +33,16 @@ class VolumeCache:
 
         if self.mip is None:
             self.mip = min(available_mips)
+
+    def get_volume_gigabytes(self):
+        return calculate_gigabytes_from_dimensions(self.get_volume_shape(), self.get_volume_dtype())
+    
+    def get_volume_shape(self):
+        # TODO: Use channel data too
+        return self.cv.volume_size
+    
+    def get_volume_dtype(self):
+        return self.cv.dtype
 
     @staticmethod
     def should_cache_last_volume(link_rects: list[int]):
@@ -118,9 +129,12 @@ class VolumeCache:
             self.download_volume(volume_index, bounding_box, parallel=parallel)
 
         # Get all slice indices associated with this volume
-        slice_indices = [i for i, v in enumerate(self.link_rects) if v == volume_index]
+        slice_indices = self.get_slice_indices(volume_index)
 
         return self.volumes[volume_index], bounding_box, slice_indices, volume_index
+    
+    def get_slice_indices(self, volume_index: int):
+        return [i for i, v in enumerate(self.link_rects) if v == volume_index]
 
     def __del__(self):
         if self.flush_cache:

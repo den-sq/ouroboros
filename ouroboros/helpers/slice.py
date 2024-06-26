@@ -1,11 +1,14 @@
 import numpy as np
 
 from scipy.ndimage import map_coordinates
+from scipy.interpolate import interpn
 
 from cloudvolume import VolumeCutout
 from .bounding_boxes import BoundingBox
 
 from .spline import Spline
+
+INDEXING = 'xy'
 
 def calculate_slice_rects(times: np.ndarray, spline: Spline, width, height, spline_points=None) -> np.ndarray:
     """
@@ -90,7 +93,7 @@ def generate_coordinate_grid_for_rect(rect: np.ndarray, width, height) -> np.nda
     # Generate a grid of (u, v) coordinates
     u = np.linspace(0, 1, width)
     v = np.linspace(0, 1, height)
-    u, v = np.meshgrid(u, v) # TODO: need 'ij'?
+    u, v = np.meshgrid(u, v, indexing=INDEXING) # TODO: need 'ij'?
 
     # Interpolate the 3D coordinates
     # TODO: There must be a way to do this faster
@@ -177,3 +180,64 @@ def slice_volume_from_grids(volume: VolumeCutout, bounding_box: BoundingBox, gri
 
     return slice_points.reshape(len(grids), height, width)
     
+def write_slices_to_volume(volume: np.ndarray, bounding_box: BoundingBox, grids: np.ndarray, slices: np.ndarray):
+    """
+    Write a slice to volume based on a grid of coordinates.
+
+    Parameters:
+    ----------
+        volume (numpy.ndarray): A volume of shape (x, y, z), which should match the dimensions of the given bounding box.
+        bounding_box (BoundingBox): The bounding box of the volume.
+        grids (numpy.ndarray): The grids of coordinates to slice the volume (n, width, height, 3).
+        slices (numpy.ndarray): The slice data to write to the volume (n, width, height).
+
+    Returns:
+    -------
+        None
+    """
+
+    # Calculate approximate bounding box bounds
+    x_min, x_max, y_min, y_max, z_min, z_max = bounding_box.approx_bounds()
+
+    # Normalize grid coordinates based on bounding box (since volume coordinates are truncated)
+    bounding_box_min = np.array([x_min, y_min, z_min])
+
+    for grid, slice_data in zip(grids, slices):
+        # Subtract the bounding box min from the grid (width, height, 3)
+        normalized_grid = grid - bounding_box_min
+
+        grid_flat = normalized_grid.reshape(-1, 3)
+
+        # Isolate the x, y, and z coordinates of the points in the grid
+        grid_x = grid_flat[:, 0]
+        grid_y = grid_flat[:, 1]
+        grid_z = grid_flat[:, 2]
+
+        slice_data_flat = slice_data.flatten()
+        
+        # Define interpolation bounds based on the slice dimensions
+        x = np.arange(int(np.floor(grid_x.min())),int(np.ceil(grid_x.max())) + 1)
+        y = np.arange(int(np.floor(grid_y.min())),int(np.ceil(grid_y.max())) + 1)
+        z = np.arange(int(np.floor(grid_z.min())),int(np.ceil(grid_z.max())) + 1)
+
+        region_x, region_y, region_z = np.meshgrid(x, y, z, indexing=INDEXING)
+
+        # print("STUFFF")
+        # print(grid_x.shape)
+        # print(np.array([region_x.flatten(), region_y.flatten(), region_z.flatten()]).T.shape)
+        # print(slice_data_flat.shape)
+        # print(region_x.shape)
+
+        points = np.array([region_x.flatten(), region_y.flatten(), region_z.flatten()]).T
+        # points = (x, y, z)
+
+        # Use interpn to interpolate the values from the original grid to the integer grid
+        # TODO: Wrong number of dimensions between point arrays and values (seems like they should be the same)
+        region_values = interpn((grid_x, grid_y, grid_z), slice_data_flat, points,
+                            method='nearest', bounds_error=False, fill_value=0)
+
+        # Reshape the interpolated values to the shape of the integer grid
+        region_values = region_values.reshape(region_x.shape)
+
+        # Write the interpolated values to the volume
+        volume[x, y, z] = region_values

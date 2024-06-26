@@ -1,5 +1,6 @@
 from ouroboros.helpers.slice import generate_coordinate_grid_for_rect, slice_volume_from_grids
 from ouroboros.helpers.volume_cache import VolumeCache
+from ouroboros.helpers.memory_usage import calculate_gigabytes_from_dimensions
 from .pipeline import PipelineStep
 from ouroboros.config import Config
 import numpy as np
@@ -11,7 +12,7 @@ import multiprocessing
 import time
 
 class SaveParallelPipelineStep(PipelineStep):
-    def __init__(self, threads=1, processes=None, delete_intermediate=False) -> None:
+    def __init__(self, threads=1, processes=multiprocessing.cpu_count(), delete_intermediate=False) -> None:
         super().__init__()
 
         self.num_threads = threads
@@ -32,10 +33,11 @@ class SaveParallelPipelineStep(PipelineStep):
         # Verify that slice rects is given
         if not isinstance(slice_rects, np.ndarray):
             return None, "Input data must contain an array of slice rects."
-        
+                
         # Create a folder with the same name as the output file
-        folder_name = config.output_file_path + "-slices"
+        folder_name = os.path.join(config.output_file_folder, f"{config.output_file_name}-slices")
         os.makedirs(folder_name, exist_ok=True)
+        output_file_path = config.output_file_path
 
         # Calculate the number of digits needed to store the number of slices
         num_digits = len(str(len(slice_rects) - 1))
@@ -65,7 +67,13 @@ class SaveParallelPipelineStep(PipelineStep):
                 while True:
                     try:
                         data = data_queue.get(timeout=1)
-                        processing_futures.append(process_executor.submit(process_worker_save_parallel, config, data, slice_rects, self.num_threads, num_digits))
+
+                        # Process the data in a separate process
+                        # Note: If the maximum number of processes is reached, this will enqueue the arguments
+                        # and wait for a process to become available
+                        # TODO: Avoid passing in all of slice rects, rather pass in either a smaller version
+                        # or use shared memory
+                        processing_futures.append(process_executor.submit(process_worker_save_parallel, config, folder_name, data, slice_rects, self.num_threads, num_digits))
 
                         # Update progress
                         self.update_progress(len([future for future in processing_futures if future.done()]) / len(volume_cache.volumes))
@@ -89,11 +97,11 @@ class SaveParallelPipelineStep(PipelineStep):
                 self.add_timing_list(key, value)
 
         try:
-            load_and_save_tiff_from_slices(folder_name, config, delete_intermediate=self.delete_intermediate)
+            load_and_save_tiff_from_slices(folder_name, output_file_path, delete_intermediate=self.delete_intermediate)
         except Exception as e:
             return None, f"Error creating single tif file: {e}"
 
-        return config.output_file_path, None
+        return (config, output_file_path, volume_cache, slice_rects), None
 
 def thread_worker_iterative(volume_cache, volumes_range, data_queue, single_thread=False):
     for i in volumes_range:
@@ -105,7 +113,7 @@ def thread_worker_iterative(volume_cache, volumes_range, data_queue, single_thre
         # TODO: Change this if the data the data is shared not copied
         volume_cache.remove_volume(i)
 
-def process_worker_save_parallel(config, processing_data, slice_rects, num_threads, num_digits):
+def process_worker_save_parallel(config, folder_name, processing_data, slice_rects, num_threads, num_digits):
     volume, bounding_box, slice_indices, volume_index = processing_data
 
     durations = {"generate_grid": [], "slice_volume": [], "save": [], "total_process": []}
@@ -128,7 +136,7 @@ def process_worker_save_parallel(config, processing_data, slice_rects, num_threa
 
         for i, slice_i in zip(slice_indices, slices):
             start = time.perf_counter()
-            filename = f"{config.output_file_path}-slices/{str(i).zfill(num_digits)}.tif"
+            filename = f"{folder_name}/{str(i).zfill(num_digits)}.tif"
             futures.append(thread_executor.submit(save_thread, filename, slice_i))
             durations["save"].append(time.perf_counter() - start)
 
@@ -142,14 +150,20 @@ def process_worker_save_parallel(config, processing_data, slice_rects, num_threa
 def save_thread(filename, data):
     imwrite(filename, data)
 
-def load_and_save_tiff_from_slices(folder_name, config, delete_intermediate=True):
+def load_and_save_tiff_from_slices(folder_name: str, output_file_path: str, delete_intermediate=True):
     # Load the saved tifs in numerical order
     tif_files = get_sorted_tif_files(folder_name)
 
+    # Read in the first tif file to determine if the resulting tif should be a bigtiff
+    first_tif = imread(f"{folder_name}/{tif_files[0]}")
+    shape = (len(tif_files), *first_tif.shape)
+
+    bigtiff = calculate_gigabytes_from_dimensions(shape, first_tif.dtype) > 4
+
     # Save tifs to a new resulting tif 
-    with TiffWriter(config.output_file_path) as tif:
+    with TiffWriter(output_file_path, bigtiff=bigtiff) as tif:
         for filename in tif_files:
-            tif_file = imread(f"{config.output_file_path}-slices/{filename}")
+            tif_file = imread(f"{folder_name}/{filename}")
             tif.write(tif_file, contiguous=True)
 
     # Delete slices folder

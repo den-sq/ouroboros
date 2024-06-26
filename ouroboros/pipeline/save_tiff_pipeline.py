@@ -4,6 +4,7 @@ from .pipeline import PipelineStep
 from ouroboros.config import Config
 import numpy as np
 
+import os
 from tifffile import TiffWriter
 
 class SaveTiffPipelineStep(PipelineStep):
@@ -22,8 +23,10 @@ class SaveTiffPipelineStep(PipelineStep):
         if not isinstance(slice_rects, np.ndarray):
             return None, "Input data must contain an array of slice rects."
         
+        file_name = os.path.join(config.output_file_folder, config.output_file_name) + ".tif"
+        
         # Write the slices to a TIFF file one slice at a time
-        with TiffWriter(config.output_file_path) as tif:
+        with TiffWriter(file_name) as tif:
             for i in range(len(slice_rects)):
                 if i % 10 == 0:
                     print(f"Generating slice {i}...")
@@ -36,4 +39,4 @@ class SaveTiffPipelineStep(PipelineStep):
 
                 tif.write(slice_i, contiguous=True)
 
-        return config.output_file_path, None
+        return (config, file_name, volume_cache, slice_rects), None

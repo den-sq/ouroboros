@@ -37,12 +37,12 @@ class Pipeline:
 # TODO: Consider adding standard pydantic validation interface
 
 class PipelineStep(ABC):
-    def __init__(self, progress_bar=False) -> None:
+    def __init__(self) -> None:
         self.step_name = type(self).__name__
         self.timing = {"pipeline": self.step_name, "custom_times": {}}
         self.progress = 0
         self.progress_listener_callables = []
-        self.show_progress_bar = progress_bar
+        self.show_progress_bar = False
         self.progress_bar = None
 
     def process(self, input_data: any) -> tuple[any, None] | tuple[None, any]:
