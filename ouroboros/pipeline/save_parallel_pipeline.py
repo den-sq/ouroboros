@@ -1,6 +1,6 @@
 from ouroboros.helpers.slice import generate_coordinate_grid_for_rect, slice_volume_from_grids
 from ouroboros.helpers.volume_cache import VolumeCache
-from ouroboros.helpers.memory_usage import calculate_gigabytes_from_dimensions
+from ouroboros.helpers.files import load_and_save_tiff_from_slices
 from .pipeline import PipelineStep
 from ouroboros.config import Config
 import numpy as np
@@ -149,35 +149,3 @@ def process_worker_save_parallel(config, folder_name, processing_data, slice_rec
 
 def save_thread(filename, data):
     imwrite(filename, data)
-
-def load_and_save_tiff_from_slices(folder_name: str, output_file_path: str, delete_intermediate=True):
-    # Load the saved tifs in numerical order
-    tif_files = get_sorted_tif_files(folder_name)
-
-    # Read in the first tif file to determine if the resulting tif should be a bigtiff
-    first_tif = imread(f"{folder_name}/{tif_files[0]}")
-    shape = (len(tif_files), *first_tif.shape)
-
-    bigtiff = calculate_gigabytes_from_dimensions(shape, first_tif.dtype) > 4
-
-    # Save tifs to a new resulting tif 
-    with TiffWriter(output_file_path, bigtiff=bigtiff) as tif:
-        for filename in tif_files:
-            tif_file = imread(f"{folder_name}/{filename}")
-            tif.write(tif_file, contiguous=True)
-
-    # Delete slices folder
-    if delete_intermediate:
-        shutil.rmtree(folder_name)
-
-def get_sorted_tif_files(directory):
-    # Get all files in the directory
-    files = os.listdir(directory)
-    
-    # Filter to include only .tif files and sort them numerically
-    tif_files = sorted(
-        (file for file in files if file.endswith('.tif')),
-        key=lambda x: int(os.path.splitext(x)[0])
-    )
-    
-    return tif_files

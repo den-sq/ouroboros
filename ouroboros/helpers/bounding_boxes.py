@@ -112,7 +112,26 @@ class BoundingBox:
         self.approx_bounds_memo = (x_min, x_max, y_min, y_max, z_min, z_max)
 
         return self.approx_bounds_memo
+
+    def intersects(self, other):
+        x_min, x_max, y_min, y_max, z_min, z_max = self.approx_bounds()
+        other_x_min, other_x_max, other_y_min, other_y_max, other_z_min, other_z_max = other.approx_bounds()
+
+        return (x_min <= other_x_max and x_max >= other_x_min) and (y_min <= other_y_max and y_max >= other_y_min) and (z_min <= other_z_max and z_max >= other_z_min)
     
+    def intersection(self, other):
+        x_min, x_max, y_min, y_max, z_min, z_max = self.approx_bounds()
+        other_x_min, other_x_max, other_y_min, other_y_max, other_z_min, other_z_max = other.approx_bounds()
+
+        x_min = max(x_min, other_x_min)
+        x_max = min(x_max, other_x_max)
+        y_min = max(y_min, other_y_min)
+        y_max = min(y_max, other_y_max)
+        z_min = max(z_min, other_z_min)
+        z_max = min(z_max, other_z_max)
+
+        return BoundingBox(BoundingBox.bounds_to_rect(x_min, x_max, y_min, y_max, z_min, z_max))
+
     def to_empty_volume(self, dtype=np.float32):
         x_min, x_max, y_min, y_max, z_min, z_max = self.approx_bounds()
 
