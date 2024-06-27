@@ -1,7 +1,7 @@
 import numpy as np
 
 from scipy.ndimage import map_coordinates
-from scipy.interpolate import interpn
+from scipy.interpolate import griddata
 
 from cloudvolume import VolumeCutout
 from .bounding_boxes import BoundingBox
@@ -179,14 +179,14 @@ def slice_volume_from_grids(volume: VolumeCutout, bounding_box: BoundingBox, gri
     slice_points = map_coordinates(squeezed_volume, normalized_grid, mode='nearest')
 
     return slice_points.reshape(len(grids), height, width)
-    
+
 def write_slices_to_volume(volume: np.ndarray, bounding_box: BoundingBox, grids: np.ndarray, slices: np.ndarray):
     """
     Write a slice to volume based on a grid of coordinates.
 
     Parameters:
     ----------
-        volume (numpy.ndarray): A volume of shape (x, y, z), which should match the dimensions of the given bounding box.
+        volume (numpy.ndarray, dtype=float32): A volume of shape (x, y, z), which should match the dimensions of the given bounding box.
         bounding_box (BoundingBox): The bounding box of the volume.
         grids (numpy.ndarray): The grids of coordinates to slice the volume (n, width, height, 3).
         slices (numpy.ndarray): The slice data to write to the volume (n, width, height).
@@ -196,48 +196,76 @@ def write_slices_to_volume(volume: np.ndarray, bounding_box: BoundingBox, grids:
         None
     """
 
-    # Calculate approximate bounding box bounds
-    x_min, x_max, y_min, y_max, z_min, z_max = bounding_box.approx_bounds()
+    # Create a list of slice values and coordinates
+    slice_values = slices.flatten()
+    slice_coords = grids.reshape(-1, 3).T
 
     # Normalize grid coordinates based on bounding box (since volume coordinates are truncated)
+    x_min, _, y_min, _, z_min, _ = bounding_box.approx_bounds()
     bounding_box_min = np.array([x_min, y_min, z_min])
+    slice_coords -= bounding_box_min[:, np.newaxis]
 
-    for grid, slice_data in zip(grids, slices):
-        # Subtract the bounding box min from the grid (width, height, 3)
-        normalized_grid = grid - bounding_box_min
+    # Get the integer and fractional parts of the coordinates
+    coords_floor = np.floor(slice_coords).astype(int)
+    coords_ceil = np.ceil(slice_coords).astype(int)
+    weights = slice_coords - coords_floor
 
-        grid_flat = normalized_grid.reshape(-1, 3)
+    # Initialize the accumulation arrays
+    accumulated_volume = volume
+    weight_volume = np.zeros_like(volume)
 
-        # Isolate the x, y, and z coordinates of the points in the grid
-        grid_x = grid_flat[:, 0]
-        grid_y = grid_flat[:, 1]
-        grid_z = grid_flat[:, 2]
+    # Prepare the indices for the 8 corners surrounding each coordinate
+    x0, y0, z0 = coords_floor
+    x1, y1, z1 = coords_ceil
 
-        slice_data_flat = slice_data.flatten()
-        
-        # Define interpolation bounds based on the slice dimensions
-        x = np.arange(int(np.floor(grid_x.min())),int(np.ceil(grid_x.max())) + 1)
-        y = np.arange(int(np.floor(grid_y.min())),int(np.ceil(grid_y.max())) + 1)
-        z = np.arange(int(np.floor(grid_z.min())),int(np.ceil(grid_z.max())) + 1)
+    # Calculate the weights for each corner
+    wx0, wy0, wz0 = 1 - weights[0], 1 - weights[1], 1 - weights[2]
+    wx1, wy1, wz1 = weights[0], weights[1], weights[2]
 
-        region_x, region_y, region_z = np.meshgrid(x, y, z, indexing=INDEXING)
+    c000 = wx0 * wy0 * wz0
+    c001 = wx0 * wy0 * wz1
+    c010 = wx0 * wy1 * wz0
+    c011 = wx0 * wy1 * wz1
+    c100 = wx1 * wy0 * wz0
+    c101 = wx1 * wy0 * wz1
+    c110 = wx1 * wy1 * wz0
+    c111 = wx1 * wy1 * wz1
 
-        # print("STUFFF")
-        # print(grid_x.shape)
-        # print(np.array([region_x.flatten(), region_y.flatten(), region_z.flatten()]).T.shape)
-        # print(slice_data_flat.shape)
-        # print(region_x.shape)
+    # Use numpy.add.at to accumulate the values at the correct positions
+    np.add.at(accumulated_volume, (x0, y0, z0), slice_values * c000)
+    np.add.at(accumulated_volume, (x0, y0, z1), slice_values * c001)
+    np.add.at(accumulated_volume, (x0, y1, z0), slice_values * c010)
+    np.add.at(accumulated_volume, (x0, y1, z1), slice_values * c011)
+    np.add.at(accumulated_volume, (x1, y0, z0), slice_values * c100)
+    np.add.at(accumulated_volume, (x1, y0, z1), slice_values * c101)
+    np.add.at(accumulated_volume, (x1, y1, z0), slice_values * c110)
+    np.add.at(accumulated_volume, (x1, y1, z1), slice_values * c111)
 
-        points = np.array([region_x.flatten(), region_y.flatten(), region_z.flatten()]).T
-        # points = (x, y, z)
+    # Accumulate the weights similarly
+    np.add.at(weight_volume, (x0, y0, z0), c000)
+    np.add.at(weight_volume, (x0, y0, z1), c001)
+    np.add.at(weight_volume, (x0, y1, z0), c010)
+    np.add.at(weight_volume, (x0, y1, z1), c011)
+    np.add.at(weight_volume, (x1, y0, z0), c100)
+    np.add.at(weight_volume, (x1, y0, z1), c101)
+    np.add.at(weight_volume, (x1, y1, z0), c110)
+    np.add.at(weight_volume, (x1, y1, z1), c111)
 
-        # Use interpn to interpolate the values from the original grid to the integer grid
-        # TODO: Wrong number of dimensions between point arrays and values (seems like they should be the same)
-        region_values = interpn((grid_x, grid_y, grid_z), slice_data_flat, points,
-                            method='nearest', bounds_error=False, fill_value=0)
+    # Normalize the accumulated volume by the weights
+    nonzero_weights = weight_volume != 0
+    accumulated_volume[nonzero_weights] /= weight_volume[nonzero_weights]
 
-        # Reshape the interpolated values to the shape of the integer grid
-        region_values = region_values.reshape(region_x.shape)
+def make_volume_binary(volume: np.ndarray, dtype=np.uint8) -> np.ndarray:
+    """
+    Convert a volume to binary format.
 
-        # Write the interpolated values to the volume
-        volume[x, y, z] = region_values
+    Parameters:
+    ----------
+        volume (numpy.ndarray): The volume to convert to binary format.
+
+    Returns:
+    -------
+        numpy.ndarray: The binary volume.
+    """
+
+    return (volume > 0).astype(dtype)

@@ -77,6 +77,11 @@ class PipelineStep(ABC):
     def get_time_statistics(self):
         # Replace custom timings with statistics about the custom timings
         custom_times = self.timing["custom_times"]
+        
+        # Remove any empty custom times
+        custom_times = {key: value for key, value in custom_times.items() if len(value) > 0}
+
+        # Calculate statistics for each custom time
         custom_times_statistics = {key: {"mean": np.mean(value), "std": np.std(value), "min": np.min(value), "max": np.max(value)} for key, value in custom_times.items()}
         self.timing["custom_times"] = custom_times_statistics
 

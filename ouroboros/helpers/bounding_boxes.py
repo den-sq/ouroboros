@@ -24,10 +24,10 @@ class BoundingBox:
         self.z_max = z_max
 
         self.split_threshold = split_threshold # The threshold of wasted space for splitting the bounding box
-
         self.utilized_volume = None
-
         self.prev_tangent = None
+
+        self.approx_bounds_memo = None
 
     @staticmethod 
     def bound_rects(rects: np.ndarray):
@@ -99,6 +99,9 @@ class BoundingBox:
         return Bbox((self.x_min, self.y_min, self.z_min), (self.x_max, self.y_max, self.z_max))
     
     def approx_bounds(self):
+        if self.approx_bounds_memo is not None:
+            return self.approx_bounds_memo
+
         x_min = int(np.floor(self.x_min))
         x_max = int(np.ceil(self.x_max))
         y_min = int(np.floor(self.y_min))
@@ -106,12 +109,14 @@ class BoundingBox:
         z_min = int(np.floor(self.z_min))
         z_max = int(np.ceil(self.z_max))
 
-        return x_min, x_max, y_min, y_max, z_min, z_max
+        self.approx_bounds_memo = (x_min, x_max, y_min, y_max, z_min, z_max)
+
+        return self.approx_bounds_memo
     
-    def to_empty_volume(self):
+    def to_empty_volume(self, dtype=np.float32):
         x_min, x_max, y_min, y_max, z_min, z_max = self.approx_bounds()
 
-        return np.zeros((x_max - x_min, y_max - y_min, z_max - z_min))
+        return np.zeros((x_max - x_min + 1, y_max - y_min + 1, z_max - z_min + 1), dtype=dtype)
     
     def calculate_volume(self):
         return (self.x_max - self.x_min) * (self.y_max - self.y_min) * (self.z_max - self.z_min)
