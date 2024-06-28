@@ -1,4 +1,6 @@
+from ouroboros.pipeline.load_config_pipeline import LoadConfigPipelineStep
 from ouroboros.pipeline.pipeline_input import PipelineInput
+from ouroboros.pipeline.save_config_pipeline import SaveConfigPipelineStep
 from .config import Config
 from .pipeline import (
     Pipeline,
@@ -38,15 +40,14 @@ def slice_demo():
         SlicesGeometryPipelineStep(),
         VolumeCachePipelineStep(),
         SaveParallelPipelineStep().with_progress_bar(),
-        BackprojectPipelineStep().with_progress_bar()
+        # BackprojectPipelineStep().with_progress_bar(),
+        SaveConfigPipelineStep()
     ])
 
     input_data = PipelineInput(config=config, json_path="./data/sample-data.json")
 
     output, error = pipeline.process(input_data)
-
-    if output:
-        output.save_to_json("./data/sample-output-information.json")
+    config_file_path = output.config_file_path
 
     if error:
         print(error)
@@ -57,3 +58,17 @@ def slice_demo():
 
     for stat in pipeline.get_step_statistics():
         print(stat)
+
+    # Create a second pipeline to load in the configuration and backproject
+    pipeline = Pipeline([
+        LoadConfigPipelineStep(),
+        BackprojectPipelineStep().with_progress_bar(),
+    ])
+
+    output, error = pipeline.process(PipelineInput(config_file_path=config_file_path))
+
+    print("Pipeline statistics:")
+
+    for stat in pipeline.get_step_statistics():
+        print(stat)
+

@@ -16,6 +16,7 @@ class PipelineInput:
     volume_cache: VolumeCache = None
     output_file_path: str = None
     backprojected_folder_path: str = None
+    config_file_path: str = None
 
     def __iter__(self):
         return iter(astuple(self))
@@ -34,7 +35,8 @@ class PipelineInput:
             "slice_rects": self.slice_rects.tolist(),
             "volume_cache": self.volume_cache.to_dict(),
             "output_file_path": self.output_file_path,
-            "backprojected_folder_path": self.backprojected_folder_path
+            "backprojected_folder_path": self.backprojected_folder_path,
+            "config_file_path": self.config_file_path
         }
     
     @staticmethod
@@ -49,8 +51,22 @@ class PipelineInput:
         volume_cache = VolumeCache.from_dict(data["volume_cache"])
         output_file_path = data["output_file_path"]
         backprojected_folder_path = data["backprojected_folder_path"]
+        config_file_path = data["config_file_path"]
         
-        return PipelineInput(json_path, config, sample_points, slice_rects, volume_cache, output_file_path, backprojected_folder_path)
+        return PipelineInput(json_path, config, sample_points, slice_rects, volume_cache, output_file_path, backprojected_folder_path, config_file_path)
+    
+    def copy_values_from_input(self, pipeline_input):
+        """
+        Copy the values from another pipeline input.
+        """
+        self.json_path = pipeline_input.json_path
+        self.config = pipeline_input.config
+        self.sample_points = pipeline_input.sample_points
+        self.slice_rects = pipeline_input.slice_rects
+        self.volume_cache = pipeline_input.volume_cache
+        self.output_file_path = pipeline_input.output_file_path
+        self.backprojected_folder_path = pipeline_input.backprojected_folder_path
+        self.config_file_path = pipeline_input.config_file_path
     
     def to_json(self):
         """
