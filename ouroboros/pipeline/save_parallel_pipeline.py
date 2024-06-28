@@ -4,35 +4,34 @@ from ouroboros.helpers.files import load_and_save_tiff_from_slices
 from .pipeline import PipelineStep
 from ouroboros.config import Config
 import numpy as np
-import shutil
 import concurrent.futures
-from tifffile import imwrite, imread, TiffWriter
+from tifffile import imwrite
 import os
 import multiprocessing
 import time
 
 class SaveParallelPipelineStep(PipelineStep):
     def __init__(self, threads=1, processes=multiprocessing.cpu_count(), delete_intermediate=False) -> None:
-        super().__init__()
+        super().__init__(inputs=("config", "volume_cache", "slice_rects"))
 
         self.num_threads = threads
         self.num_processes = processes
         self.delete_intermediate = delete_intermediate
 
-    def _process(self, input_data: any) -> tuple[any, None] | tuple[None, any]:
-        config, volume_cache, slice_rects = input_data
+    def _process(self, input_data: tuple[any]) -> None | str:
+        config, volume_cache, slice_rects, pipeline_input = input_data
 
         # Verify that a config object is provided
         if not isinstance(config, Config):
-            return None, "Input data must contain a Config object."
+            return "Input data must contain a Config object."
         
         # Verify that a volume cache is given
         if not isinstance(volume_cache, VolumeCache):
-            return None, "Input data must contain a VolumeCache object."
+            return "Input data must contain a VolumeCache object."
 
         # Verify that slice rects is given
         if not isinstance(slice_rects, np.ndarray):
-            return None, "Input data must contain an array of slice rects."
+            return "Input data must contain an array of slice rects."
                 
         # Create a folder with the same name as the output file
         folder_name = os.path.join(config.output_file_folder, f"{config.output_file_name}-slices")
@@ -83,9 +82,9 @@ class SaveParallelPipelineStep(PipelineStep):
                     except Exception as e:
                         download_executor.shutdown(wait=False, cancel_futures=True)
                         process_executor.shutdown(wait=False, cancel_futures=True)
-                        return None, f"Error processing data: {e}"
+                        return f"Error processing data: {e}"
         except Exception as e:
-            return None, f"Error downloading data: {e}"
+            return f"Error downloading data: {e}"
 
         # Wait for all processing to complete
         concurrent.futures.wait(processing_futures)
@@ -99,9 +98,12 @@ class SaveParallelPipelineStep(PipelineStep):
         try:
             load_and_save_tiff_from_slices(folder_name, output_file_path, delete_intermediate=self.delete_intermediate)
         except Exception as e:
-            return None, f"Error creating single tif file: {e}"
+            return f"Error creating single tif file: {e}"
+        
+        # Update the pipeline input with the output file path
+        pipeline_input.output_file_path = output_file_path
 
-        return (config, output_file_path, volume_cache, slice_rects), None
+        return None
 
 def thread_worker_iterative(volume_cache, volumes_range, data_queue, single_thread=False):
     for i in volumes_range:

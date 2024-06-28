@@ -26,6 +26,25 @@ class VolumeCache:
 
         self.init_cloudvolume()
 
+    def to_dict(self):
+        return {
+            "bounding_boxes": [bb.to_dict() for bb in self.bounding_boxes],
+            "link_rects": self.link_rects,
+            "source_url": self.source_url,
+            "mip": self.mip,
+            "flush_cache": self.flush_cache
+        }
+    
+    @staticmethod
+    def from_dict(data: dict):
+        bounding_boxes = [BoundingBox.from_dict(bb) for bb in data["bounding_boxes"]]
+        link_rects = data["link_rects"]
+        source_url = data["source_url"]
+        mip = data["mip"]
+        flush_cache = data["flush_cache"]
+
+        return VolumeCache(bounding_boxes, link_rects, source_url, mip, flush_cache)
+
     def init_cloudvolume(self):
         self.cv = CloudVolume(self.source_url, parallel=True, cache=True)
 

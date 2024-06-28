@@ -1,3 +1,4 @@
+from ouroboros.pipeline.pipeline_input import PipelineInput
 from .config import Config
 from .pipeline import (
     Pipeline,
@@ -25,7 +26,7 @@ def spline_demo():
         RenderSlicesPipelineStep()
     ])
 
-    input_data = (config, "./data/sample-data.json")
+    input_data = PipelineInput(config=config, json_path="./data/sample-data.json")
 
     pipeline.process(input_data)
 
@@ -40,9 +41,12 @@ def slice_demo():
         BackprojectPipelineStep().with_progress_bar()
     ])
 
-    input_data = (config, "./data/sample-data.json")
+    input_data = PipelineInput(config=config, json_path="./data/sample-data.json")
 
-    backprojected_file_path, error = pipeline.process(input_data)
+    output, error = pipeline.process(input_data)
+
+    if output:
+        output.save_to_json("./data/sample-output-information.json")
 
     if error:
         print(error)

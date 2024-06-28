@@ -12,8 +12,21 @@ class BoundingBoxParams:
     max_depth: int = DEFAULT_MAX_DEPTH
     min_slices_per_box: int = DEFAULT_MIN_SLICES_PER_BOX
 
+    def to_dict(self):
+        return {
+            "max_depth": self.max_depth,
+            "min_slices_per_box": self.min_slices_per_box
+        }
+    
+    @staticmethod
+    def from_dict(data: dict):
+        max_depth = data.get("max_depth", DEFAULT_MAX_DEPTH)
+        min_slices_per_box = data.get("min_slices_per_box", DEFAULT_MIN_SLICES_PER_BOX)
+
+        return BoundingBoxParams(max_depth, min_slices_per_box)
+
 class BoundingBox:
-    def __init__(self, initial_rect, split_threshold=DEFAULT_SPLIT_THRESHOLD):
+    def __init__(self, initial_rect):
         x_min, x_max, y_min, y_max, z_min, z_max = BoundingBox.get_bounds(initial_rect)
 
         self.x_min = x_min
@@ -23,11 +36,27 @@ class BoundingBox:
         self.z_min = z_min
         self.z_max = z_max
 
-        self.split_threshold = split_threshold # The threshold of wasted space for splitting the bounding box
-        self.utilized_volume = None
-        self.prev_tangent = None
-
         self.approx_bounds_memo = None
+
+    def to_dict(self):
+        return {
+            "x_min": self.x_min,
+            "x_max": self.x_max,
+            "y_min": self.y_min,
+            "y_max": self.y_max,
+            "z_min": self.z_min,
+            "z_max": self.z_max
+        }
+    
+    def from_dict(data: dict):
+        x_min = data["x_min"]
+        x_max = data["x_max"]
+        y_min = data["y_min"]
+        y_max = data["y_max"]
+        z_min = data["z_min"]
+        z_max = data["z_max"]
+
+        return BoundingBox(BoundingBox.bounds_to_rect(x_min, x_max, y_min, y_max, z_min, z_max))
 
     @staticmethod 
     def bound_rects(rects: np.ndarray):
@@ -59,7 +88,7 @@ class BoundingBox:
         return BoundingBox.bounds_to_rect(x_min, x_max, y_min, y_max, z_min, z_max)
 
     @staticmethod 
-    def from_rects(rects: np.ndarray, split_threshold=DEFAULT_SPLIT_THRESHOLD):
+    def from_rects(rects: np.ndarray):
         """
         Create a bounding box from a set of slices.
 
@@ -72,7 +101,7 @@ class BoundingBox:
             (BoundingBox): The bounding box object that contains the slices.
         """
 
-        return BoundingBox(BoundingBox.bound_rects(rects), split_threshold=split_threshold)
+        return BoundingBox(BoundingBox.bound_rects(rects))
 
     @staticmethod
     def bounds_to_rect(x_min, x_max, y_min, y_max, z_min, z_max):
@@ -141,7 +170,7 @@ class BoundingBox:
         return (self.x_max - self.x_min) * (self.y_max - self.y_min) * (self.z_max - self.z_min)
     
     def should_be_divided(self, utilized_volume):
-        return utilized_volume < (1 - self.split_threshold) * self.calculate_volume()
+        return utilized_volume < (1 - DEFAULT_SPLIT_THRESHOLD) * self.calculate_volume()
         
     def longest_dimension(self):
         x_range = self.x_max - self.x_min
@@ -150,65 +179,6 @@ class BoundingBox:
 
         return np.argmax([x_range, y_range, z_range])
 
-    def stretch_to_slice(self, rect: np.ndarray, tangent: np.ndarray, slice_volume, dist_between_slices, split=True):
-        """
-        Stretch the bounding box to fit a new slice, potentially splitting 
-        the bounding box if the wasted space exceeds the split threshold.
-
-        Parameters:
-        ----------
-            slice (numpy.ndarray): A 2D array of shape (4, 3) containing the slice to fit.
-            tangent (numpy.ndarray): A 1D array of shape (3,) containing the tangent vector of the slice (assumed to be normalized).
-            split (bool): Whether to split the bounding box if the wasted space exceeds the split threshold.
-
-        Returns:
-        -------
-            (BoundingBox): The bounding box object that contains the slice (a new one if the previous one was split).
-        """
-
-        x_min, x_max, y_min, y_max, z_min, z_max = BoundingBox.get_bounds(rect)
-
-        if self.utilized_volume is None:
-            self.utilized_volume = slice_volume
-        self.utilized_volume += slice_volume
-
-        if split and self.utilized_volume < (1 - self.split_threshold) * self.calculate_volume() and self.prev_tangent is not None:
-            # Determine the dominant axis of the tangent vector
-            axis = np.argmax(np.abs(self.prev_tangent))
-
-            # Calculate the bounds of the slice that is not covered by the current bounding box
-            if axis == 0:
-                if self.prev_tangent[0] > 0:
-                    x_min = max(x_min, self.x_max)
-                else:
-                    x_max = min(x_max, self.x_min)
-            elif axis == 1:
-                if self.prev_tangent[1] > 0:
-                    y_min = max(y_min, self.y_max)
-                else:
-                    y_max = min(y_max, self.y_min)
-            else:
-                if self.prev_tangent[2] > 0:
-                    z_min = max(z_min, self.z_max)
-                else:
-                    z_max = min(z_max, self.z_min)
-        
-            return BoundingBox(BoundingBox.bounds_to_rect(x_min, x_max, y_min, y_max, z_min, z_max), 
-                                slice_volume,
-                                dist_between_slices,
-                                split_threshold=self.split_threshold)
-        
-        self.x_min = min(self.x_min, x_min)
-        self.x_max = max(self.x_max, x_max)
-        self.y_min = min(self.y_min, y_min)
-        self.y_max = max(self.y_max, y_max)
-        self.z_min = min(self.z_min, z_min)
-        self.z_max = max(self.z_max, z_max)
-
-        self.prev_tangent = tangent
-
-        return self
-    
     def to_prism(self):
         vertices = np.array([
             [self.x_min, self.y_max, self.z_max],
@@ -231,37 +201,6 @@ class BoundingBox:
         ])
 
         return faces
-    
-def calculate_bounding_boxes_with_stretching(rects: np.ndarray, tangent_vectors: np.ndarray, slice_volume, dist_between_slices):
-    """
-    Calculate the bounding boxes of the slices by stretching and splitting a single bounding box.
-
-    Parameters:
-    ----------
-        rects (numpy.ndarray): A 3D array of shape (n, 4, 3) containing the slices to bound.
-        tangent_vectors (numpy.ndarray): A 2D array of shape (n, 3) containing the tangent vectors of the slices.
-        slice_volume (float): The volume of a single slice.
-        dist_between_slices (float): The distance between slices.
-
-    Returns:
-    -------
-        (list): A list of bounding boxes that closely fit the slices.
-    """
-    
-    bounding_box = BoundingBox(rects[0])
-    bounding_boxes = [bounding_box]
-
-    for i in range(1, len(rects)):
-        rect = rects[i]
-        tangent = tangent_vectors[i]
-
-        next_bounding_box = bounding_box.stretch_to_slice(rect, tangent, slice_volume, dist_between_slices)
-
-        if next_bounding_box is not bounding_box:
-            bounding_boxes.append(next_bounding_box)
-            bounding_box = next_bounding_box
-    
-    return bounding_boxes
 
 def calculate_bounding_boxes_bsp_link_rects(rects: np.ndarray, min_slices_per_box=DEFAULT_MIN_SLICES_PER_BOX, max_depth=DEFAULT_MAX_DEPTH):
     """

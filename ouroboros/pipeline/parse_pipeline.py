@@ -4,35 +4,41 @@ from ouroboros.config import Config
 
 # TODO: Consider making an abstract parse step
 class ParseJSONPipelineStep(PipelineStep):
-    def _process(self, input_data: any) -> tuple[any, None] | tuple[None, any]:
-        config, json_path = input_data
+    def __init__(self) -> None:
+        super().__init__(inputs=("config", "json_path"))
+
+    def _process(self, input_data: tuple[any]) -> None | str:
+        config, json_path, pipeline_input = input_data
 
         # Verify that a config object is provided
         if not isinstance(config, Config):
-            return None, "Input data must contain a Config object."
+            return "Input data must contain a Config object."
 
         # Verify that input_data is a string containing a path to a JSON file
         if not isinstance(json_path, str):
-            return None, "Input data must contain a string containing a path to a JSON file."
+            return "Input data must contain a string containing a path to a JSON file."
 
         ng_config, error = parse_neuroglancer_json(json_path)
 
         self.update_progress(0.5)
 
         if error:
-            return None, error
+            return error
         
         sample_points, error = neuroglancer_config_to_annotation(ng_config)
 
         if error:
-            return None, error
+            return error
         
         source_url, error = neuroglancer_config_to_source(ng_config)
 
         if error:
-            return None, error
+            return error
         
         # Store the source url in config for later use
         config.source_url = source_url
+
+        # Update the pipeline input with the sample points
+        pipeline_input.sample_points = sample_points
         
-        return (config, sample_points), None
+        return None

@@ -4,11 +4,13 @@ from abc import ABC, abstractmethod
 
 from tqdm import tqdm
 
+from ouroboros.pipeline.pipeline_input import PipelineInput
+
 class Pipeline:
     def __init__(self, steps: list["PipelineStep"]) -> None:
         self.steps = steps
 
-    def process(self, input_data: any) -> tuple[any, None] | tuple[None, any]:
+    def process(self, input_data: PipelineInput) -> tuple[PipelineInput, None] | tuple[None, str]:
         """
         Run the pipeline on the input data.
 
@@ -34,10 +36,17 @@ class Pipeline:
     def get_step_statistics(self):
         return [step.get_time_statistics() for step in self.steps]
 
-# TODO: Consider adding standard pydantic validation interface
-
 class PipelineStep(ABC):
-    def __init__(self) -> None:
+    def __init__(self, inputs: tuple[str]) -> None:
+        """
+        Initialize a new pipeline step.
+
+        Parameters
+        ----------
+            inputs : tuple[str]
+                A tuple containing the inputs to the step (from PipelineInput)
+        """
+
         self.step_name = type(self).__name__
         self.timing = {"pipeline": self.step_name, "custom_times": {}}
         self.progress = 0
@@ -45,7 +54,9 @@ class PipelineStep(ABC):
         self.show_progress_bar = False
         self.progress_bar = None
 
-    def process(self, input_data: any) -> tuple[any, None] | tuple[None, any]:
+        self.inputs = inputs
+
+    def process(self, input_data: PipelineInput) -> tuple[PipelineInput, None] | tuple[PipelineInput, str]:
         if self.show_progress_bar:
             tqdm.write(f"Starting step {self.step_name}")
             self.progress_bar = tqdm(total=100)
@@ -55,7 +66,12 @@ class PipelineStep(ABC):
 
         start = time.perf_counter()
 
-        result = self._process(input_data)
+        # print("Processing step", self.step_name)
+        # print(type(input_data))
+        # print(input_data[self.inputs])
+        # print((input_data,))
+
+        result = self._process(tuple(input_data[self.inputs]) + (input_data,))
 
         # Record the duration of the run
         end = time.perf_counter()
@@ -68,10 +84,10 @@ class PipelineStep(ABC):
         if self.show_progress_bar:
             self.progress_bar.close()
 
-        return result
+        return input_data, result
 
     @abstractmethod
-    def _process(self, input_data: any) -> tuple[any, None] | tuple[None, any]:
+    def _process(self, input_data: tuple[any]) -> None | str:
         pass
 
     def get_time_statistics(self):

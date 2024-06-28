@@ -9,20 +9,20 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 class RenderSlicesPipelineStep(PipelineStep):
     def __init__(self, render_vectors_and_points=False) -> None:
-        super().__init__()
+        super().__init__(inputs=("config", "sample_points"))
 
         self.render_vectors_and_points = render_vectors_and_points
 
-    def _process(self, input_data: any) -> tuple[any, None] | tuple[None, any]:
-        config, sample_points = input_data
+    def _process(self, input_data: tuple[any]) -> None | str:
+        config, sample_points, _ = input_data
 
         # Verify that a config object is provided
         if not isinstance(config, Config):
-            return (None, "Input data must contain a Config object.")
+            return "Input data must contain a Config object."
 
         # Verify that sample points is given
         if not isinstance(sample_points, np.ndarray):
-            return (None, "Input data must contain an array of sample points.")
+            return "Input data must contain an array of sample points."
         
         spline = Spline(sample_points, degree=3)
 
@@ -92,7 +92,7 @@ class RenderSlicesPipelineStep(PipelineStep):
         fig.show()
         plt.show()
 
-        return (config, sample_points), None
+        return None
 
 def plot_slices(axes, rects, color='blue'):
     rects = Poly3DCollection(rects, facecolors=color)

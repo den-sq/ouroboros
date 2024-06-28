@@ -18,28 +18,28 @@ COMPRESSION = "zstd"
 
 class BackprojectPipelineStep(PipelineStep):
     def __init__(self, processes=multiprocessing.cpu_count()) -> None:
-        super().__init__()
+        super().__init__(inputs=("config", "output_file_path", "volume_cache", "slice_rects"))
 
         self.num_processes = processes
 
     def _process(self, input_data: any) -> tuple[any, None] | tuple[None, any]:
-        config, input_tiff_path, volume_cache, slice_rects = input_data
+        config, input_tiff_path, volume_cache, slice_rects, pipeline_input = input_data
 
         # Verify that a config object is provided
         if not isinstance(config, Config):
-            return None, "Input data must contain a Config object."
+            return "Input data must contain a Config object."
 
         # Verify that input_data is a string containing a path to a tif file
         if not isinstance(input_tiff_path, str):
-            return None, "Input data must contain a string containing a path to a tif file."
+            return "Input data must contain a string containing a path to a tif file."
         
         # Verify that a volume cache is given
         if not isinstance(volume_cache, VolumeCache):
-            return None, "Input data must contain a VolumeCache object."
+            return "Input data must contain a VolumeCache object."
         
         # Verify that slice rects is given
         if not isinstance(slice_rects, np.ndarray):
-            return None, "Input data must contain an array of slice rects."
+            return "Input data must contain an array of slice rects."
 
         straightened_volume_path = input_tiff_path
 
@@ -80,7 +80,7 @@ class BackprojectPipelineStep(PipelineStep):
                     volume_memmaps[index] = tifffile.memmap(volume_file_path, mode='r')
 
         except Exception as e:
-            return None, f"An error occurred while processing the bounding boxes: {e}"
+            return f"An error occurred while processing the bounding boxes: {e}"
 
         start = time.perf_counter()
 
@@ -89,6 +89,9 @@ class BackprojectPipelineStep(PipelineStep):
 
         # Save the backprojected volume to a series of tif files
         folder_path = os.path.join(config.output_file_folder, config.output_file_name + "-backprojected")
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)
+
         os.makedirs(folder_path, exist_ok=True)
 
         dtype = volume_cache.get_volume_dtype()
@@ -150,8 +153,11 @@ class BackprojectPipelineStep(PipelineStep):
 
         # Save the backprojected volume to a single tif file
         load_and_save_tiff_from_slices(folder_path, folder_path + ".tif", delete_intermediate=False, compression=COMPRESSION)
+
+        # Update the pipeline input with the output file path
+        pipeline_input.backprojected_folder_path = folder_path
         
-        return folder_path, None
+        return None
 
 def process_bounding_box(config, bounding_box, straightened_volume_path, slice_rects, slice_indices, index):
     durations = {"memmap": [], "get_slices": [], "generate_grid": [], "create_volume": [], "back_project": [], "write_to_tiff": [], "total_process": []}
