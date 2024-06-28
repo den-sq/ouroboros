@@ -1,7 +1,6 @@
 import numpy as np
 
 from scipy.ndimage import map_coordinates
-from scipy.interpolate import griddata
 
 from cloudvolume import VolumeCutout
 from .bounding_boxes import BoundingBox
