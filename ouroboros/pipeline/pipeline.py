@@ -1,6 +1,7 @@
 import numpy as np
 import time
 from abc import ABC, abstractmethod
+from itertools import chain
 
 from tqdm import tqdm
 
@@ -66,12 +67,8 @@ class PipelineStep(ABC):
 
         start = time.perf_counter()
 
-        # print("Processing step", self.step_name)
-        # print(type(input_data))
-        # print(input_data[self.inputs])
-        # print((input_data,))
-
-        result = self._process(tuple(input_data[self.inputs]) + (input_data,))
+        # Select the input data for this step and run the step
+        result = self._process(chain(input_data[self.inputs], (input_data,)))
 
         # Record the duration of the run
         end = time.perf_counter()
