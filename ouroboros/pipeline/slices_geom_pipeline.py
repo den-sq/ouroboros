@@ -33,4 +33,7 @@ class SlicesGeometryPipelineStep(PipelineStep):
         # Update the pipeline input with the slice rects
         pipeline_input.slice_rects = slice_rects
 
+        # Remove sample_points from the pipeline input (it is no longer needed, and it is a large object)
+        pipeline_input.clear_entry("sample_points")
+
         return None

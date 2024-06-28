@@ -24,16 +24,22 @@ class PipelineInput:
     def __getitem__(self, keys):
         return iter(getattr(self, k) for k in keys)
     
+    def clear_entry(self, key):
+        """
+        Clear the entry with the given key.
+        """
+        setattr(self, key, None)
+    
     def to_dict(self):
         """
         Convert the pipeline input to a dictionary.
         """
         return {
             "json_path": self.json_path,
-            "config": self.config.to_dict(),
-            "sample_points": self.sample_points.tolist(),
-            "slice_rects": self.slice_rects.tolist(),
-            "volume_cache": self.volume_cache.to_dict(),
+            "config": self.config.to_dict() if self.config is not None else None,
+            "sample_points": self.sample_points.tolist() if self.sample_points is not None else None,
+            "slice_rects": self.slice_rects.tolist() if self.slice_rects is not None else None,
+            "volume_cache": self.volume_cache.to_dict() if self.volume_cache is not None else None,
             "output_file_path": self.output_file_path,
             "backprojected_folder_path": self.backprojected_folder_path,
             "config_file_path": self.config_file_path
@@ -45,10 +51,10 @@ class PipelineInput:
         Create a pipeline input from a dictionary.
         """
         json_path = data["json_path"]
-        config = Config.from_dict(data["config"])
-        sample_points = np.array(data["sample_points"])
-        slice_rects = np.array(data["slice_rects"])
-        volume_cache = VolumeCache.from_dict(data["volume_cache"])
+        config = Config.from_dict(data["config"]) if data["config"] is not None else None
+        sample_points = np.array(data["sample_points"]) if data["sample_points"] is not None else None
+        slice_rects = np.array(data["slice_rects"]) if data["slice_rects"] is not None else None
+        volume_cache = VolumeCache.from_dict(data["volume_cache"]) if data["volume_cache"] is not None else None
         output_file_path = data["output_file_path"]
         backprojected_folder_path = data["backprojected_folder_path"]
         config_file_path = data["config_file_path"]
