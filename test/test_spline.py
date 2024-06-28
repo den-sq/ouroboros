@@ -1,30 +1,5 @@
 import numpy as np
-import pytest
 from ouroboros.helpers.spline import Spline
-
-def test_fit_spline():
-    import numpy as np
-
-    # Sample points (x, y, z)
-    sample_points = np.array([
-        [0, 0, 0],
-        [1, 1, 1],
-        [2, 0, 2],
-        [3, -1, 3],
-        [4, 0, 4]
-    ])
-
-    # Fit the spline
-    tck = Spline.fit_spline(sample_points, degree=3)
-
-    # Check if the tck object is not None and has the expected structure
-    assert tck is not None, "The tck object should not be None"
-    assert len(tck) == 3, "The tck object should have three components"
-    print(type(tck[0]))
-    print(type(tck[1]))
-    assert isinstance(tck[0], np.ndarray), "The first component of tck should be a numpy array"
-    assert isinstance(tck[1], list), "The second component of tck should be an array"
-    assert isinstance(tck[2], int), "The third component of tck should be an integer"
 
 def test_evaluate_spline():
     import numpy as np
@@ -39,13 +14,13 @@ def test_evaluate_spline():
     ])
 
     # Fit the spline
-    tck = Spline.fit_spline(sample_points, degree=3)
+    spline = Spline(sample_points, degree=3)
 
     # Generate a range of t values
     t_values = np.linspace(0, 1, 100)
 
     # Evaluate the spline
-    evaluated_points = Spline.evaluate_spline(tck, t_values)
+    evaluated_points = spline(t_values)
 
     # Check if the evaluated points array has the correct shape
     assert evaluated_points.shape == (3, 100), "The shape of evaluated points should match the number of t values and dimensions"
