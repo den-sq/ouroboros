@@ -18,6 +18,14 @@ class SaveParallelPipelineStep(PipelineStep):
         self.num_processes = processes
         self.delete_intermediate = delete_intermediate
 
+    def with_delete_intermediate(self) -> "SaveParallelPipelineStep":
+        self.delete_intermediate = True
+        return self
+    
+    def with_processes(self, processes: int) -> "SaveParallelPipelineStep":
+        self.num_processes = processes
+        return self
+
     def _process(self, input_data: tuple[any]) -> None | str:
         config, volume_cache, slice_rects, pipeline_input = input_data
 

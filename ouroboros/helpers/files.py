@@ -1,6 +1,7 @@
 import os
 from tifffile import imread, TiffWriter
 from .memory_usage import calculate_gigabytes_from_dimensions
+import shutil
 
 def load_and_save_tiff_from_slices(folder_name: str, output_file_path: str, delete_intermediate=True, compression=None):
     # Load the saved tifs in numerical order

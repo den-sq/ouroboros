@@ -33,14 +33,13 @@ def spline_demo():
     pipeline.process(input_data)
 
 def slice_demo():
-    config = Config(SLICE_WIDTH, SLICE_HEIGHT, output_file_folder="./data", output_file_name="sample")
+    config = Config(SLICE_WIDTH, SLICE_HEIGHT, output_file_folder="./data", output_file_name="sample", backproject_min_bounding_box=True)
 
     pipeline = Pipeline([
         ParseJSONPipelineStep(),
         SlicesGeometryPipelineStep(),
         VolumeCachePipelineStep(),
         SaveParallelPipelineStep().with_progress_bar(),
-        # BackprojectPipelineStep().with_progress_bar(),
         SaveConfigPipelineStep()
     ])
 
@@ -63,6 +62,7 @@ def slice_demo():
     pipeline = Pipeline([
         LoadConfigPipelineStep(),
         BackprojectPipelineStep().with_progress_bar(),
+        SaveConfigPipelineStep(),
     ])
 
     output, error = pipeline.process(PipelineInput(config_file_path=config_file_path))

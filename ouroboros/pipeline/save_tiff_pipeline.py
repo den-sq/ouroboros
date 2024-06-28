@@ -32,7 +32,7 @@ class SaveTiffPipelineStep(PipelineStep):
         with TiffWriter(file_name) as tif:
             for i in range(len(slice_rects)):
                 if i % 10 == 0:
-                    print(f"Generating slice {i}...")
+                    self.update_progress(i / len(slice_rects))
 
                 grid = generate_coordinate_grid_for_rect(slice_rects[i], config.slice_width, config.slice_height)
 

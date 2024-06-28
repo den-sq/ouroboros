@@ -85,7 +85,12 @@ class BackprojectPipelineStep(PipelineStep):
         start = time.perf_counter()
 
         # Divide the backprojected volume into chunks
-        chunks_and_boxes = create_volume_chunks(volume_cache, CHUNK_SIZE)
+        chunks_and_boxes = create_volume_chunks(volume_cache, CHUNK_SIZE, config.backproject_min_bounding_box)
+
+        # Save the offset of the minimum bounding box, if that option is enabled
+        if config.backproject_min_bounding_box:
+            min_bounding_box = chunks_and_boxes[0][0] # The first chunk bounding box has the same offset as the minimum bounding box
+            pipeline_input.backprojection_offset = f"{min_bounding_box.x_min},{min_bounding_box.y_min},{min_bounding_box.z_min}"
 
         # Save the backprojected volume to a series of tif files
         folder_path = os.path.join(config.output_file_folder, config.output_file_name + "-backprojected")
@@ -102,10 +107,12 @@ class BackprojectPipelineStep(PipelineStep):
         for i, (chunk_bounding_box, bounding_boxes) in enumerate(chunks_and_boxes):
             chunk_volume = chunk_bounding_box.to_empty_volume(dtype=dtype)
 
+            slice_range = range(chunk_bounding_box.x_min, chunk_bounding_box.x_max + 1)
+
             # If there are no bounding boxes in the chunk, write the empty volume to a series of tif files
             if len(bounding_boxes) == 0:
                 slice_index = 0
-                for j in range(i * CHUNK_SIZE, min((i + 1) * CHUNK_SIZE, volume_shape[0])):
+                for j in slice_range:
                     tifffile.imwrite(os.path.join(folder_path, f"{str(j).zfill(num_digits)}.tif"), chunk_volume[slice_index], contiguous=True, compression=COMPRESSION)
                     slice_index += 1
                 continue
@@ -139,7 +146,7 @@ class BackprojectPipelineStep(PipelineStep):
 
             # Write the chunk volume to a series of tif files
             slice_index = 0
-            for j in range(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE):
+            for j in slice_range:
                 tifffile.imwrite(os.path.join(folder_path, f"{str(j).zfill(num_digits)}.tif"), chunk_volume[slice_index], contiguous=True, compression=COMPRESSION)
                 slice_index += 1
 
@@ -201,19 +208,35 @@ def process_bounding_box(config, bounding_box, straightened_volume_path, slice_r
 def make_tiff_memmap(file_name, mode):
     return tifffile.memmap(file_name, mode=mode)
 
-def create_volume_chunks(volume_cache, chunk_size=128):
+def create_volume_chunks(volume_cache, chunk_size=128, backproject_min_bounding_box=False):
     # Find the dimensions of the volume
     volume_shape = volume_cache.get_volume_shape()
 
     # Create bounding boxes along the first axis each containing chunk_size slices
     chunks_and_boxes = []
 
-    for i in range(0, volume_shape[0], chunk_size):
-        end = min(i + chunk_size, volume_shape[0])
+    # If backproject_min_bounding_box is True, create a bounding box that contains the minimum bounding box of the volume
+    min_bounding_box = None
+
+    # Calculate the range of slices to process
+    process_range = range(0, volume_shape[0], chunk_size)
+    volume_end = volume_shape[0]
+
+    if backproject_min_bounding_box:
+        min_bounding_box = BoundingBox.bound_boxes(volume_cache.bounding_boxes)
+        min_x_min, min_x_max, _, _, _, _ = min_bounding_box.approx_bounds()
+        process_range = range(min_x_min, min_x_max + 1, chunk_size)
+        volume_end = min_x_max + 1
+
+    for i in process_range:
+        end = min(i + chunk_size, volume_end)
 
         # Create a bounding box that contains the chunk of slices
-        # bounding_box = BoundingBox((i, 0, 0), (end - 1, volume_shape[1] - 1, volume_shape[2] - 1))
         bounding_box = BoundingBox(BoundingBox.bounds_to_rect(i, end - 1, 0, volume_shape[1] - 1, 0, volume_shape[2] - 1))
+
+        # If backproject_min_bounding_box is True, intersect the bounding box with the minimum bounding box
+        if backproject_min_bounding_box:
+            bounding_box = bounding_box.intersection(min_bounding_box)
 
         # Determine which bounding boxes are in the chunk
         chunk_boxes = [(j, bbox) for j, bbox in enumerate(volume_cache.bounding_boxes) if bbox.intersects(bounding_box)]

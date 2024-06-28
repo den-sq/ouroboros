@@ -17,6 +17,7 @@ class PipelineInput:
     output_file_path: str = None
     backprojected_folder_path: str = None
     config_file_path: str = None
+    backprojection_offset: str = None
 
     def __iter__(self):
         return iter(astuple(self))
@@ -42,7 +43,8 @@ class PipelineInput:
             "volume_cache": self.volume_cache.to_dict() if self.volume_cache is not None else None,
             "output_file_path": self.output_file_path,
             "backprojected_folder_path": self.backprojected_folder_path,
-            "config_file_path": self.config_file_path
+            "config_file_path": self.config_file_path,
+            "backprojection_offset": self.backprojection_offset
         }
     
     @staticmethod
@@ -58,8 +60,9 @@ class PipelineInput:
         output_file_path = data["output_file_path"]
         backprojected_folder_path = data["backprojected_folder_path"]
         config_file_path = data["config_file_path"]
+        backprojection_offset = data["backprojection_offset"]
         
-        return PipelineInput(json_path, config, sample_points, slice_rects, volume_cache, output_file_path, backprojected_folder_path, config_file_path)
+        return PipelineInput(json_path, config, sample_points, slice_rects, volume_cache, output_file_path, backprojected_folder_path, config_file_path, backprojection_offset)
     
     def copy_values_from_input(self, pipeline_input):
         """
@@ -73,6 +76,7 @@ class PipelineInput:
         self.output_file_path = pipeline_input.output_file_path
         self.backprojected_folder_path = pipeline_input.backprojected_folder_path
         self.config_file_path = pipeline_input.config_file_path
+        self.backprojection_offset = pipeline_input.backprojection_offset
     
     def to_json(self):
         """

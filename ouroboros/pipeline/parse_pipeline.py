@@ -1,6 +1,7 @@
 from ouroboros.helpers.parse import parse_neuroglancer_json, neuroglancer_config_to_annotation, neuroglancer_config_to_source
 from .pipeline import PipelineStep
 from ouroboros.config import Config
+import numpy as np
 
 # TODO: Consider making an abstract parse step
 class ParseJSONPipelineStep(PipelineStep):
@@ -30,6 +31,10 @@ class ParseJSONPipelineStep(PipelineStep):
         if error:
             return error
         
+        # Connect the end point to the first couple points if that option is enabled
+        if config.connect_start_and_end:
+            sample_points = np.concatenate((sample_points, sample_points[0:1]), axis=0)
+
         source_url, error = neuroglancer_config_to_source(ng_config)
 
         if error:

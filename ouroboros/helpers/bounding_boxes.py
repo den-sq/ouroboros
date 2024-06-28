@@ -86,6 +86,45 @@ class BoundingBox:
         z_max = np.max(z_coords)
 
         return BoundingBox.bounds_to_rect(x_min, x_max, y_min, y_max, z_min, z_max)
+    
+    @staticmethod 
+    def bound_boxes(bounding_boxes: list["BoundingBox"], use_approx_bounds=True):
+        """
+        Get the minimum bounding box of a set of bounding boxes.
+
+        Parameters:
+        ----------
+            bounding_boxes (list[BoundingBox]): A list of bounding boxes to bound.
+            use_approx_bounds (bool): Whether to use the approximate bounds of the bounding boxes.
+
+        Returns:
+        -------
+            (BoundingBox): A new bounding box that bounds all the bounding boxes.
+        """
+
+        if use_approx_bounds:
+            x_mins = [bb.approx_bounds()[0] for bb in bounding_boxes]
+            x_maxs = [bb.approx_bounds()[1] for bb in bounding_boxes]
+            y_mins = [bb.approx_bounds()[2] for bb in bounding_boxes]
+            y_maxs = [bb.approx_bounds()[3] for bb in bounding_boxes]
+            z_mins = [bb.approx_bounds()[4] for bb in bounding_boxes]
+            z_maxs = [bb.approx_bounds()[5] for bb in bounding_boxes]
+        else:
+            x_mins = [bb.x_min for bb in bounding_boxes]
+            x_maxs = [bb.x_max for bb in bounding_boxes]
+            y_mins = [bb.y_min for bb in bounding_boxes]
+            y_maxs = [bb.y_max for bb in bounding_boxes]
+            z_mins = [bb.z_min for bb in bounding_boxes]
+            z_maxs = [bb.z_max for bb in bounding_boxes]
+
+        x_min = min(x_mins)
+        x_max = max(x_maxs)
+        y_min = min(y_mins)
+        y_max = max(y_maxs)
+        z_min = min(z_mins)
+        z_max = max(z_maxs)
+
+        return BoundingBox(BoundingBox.bounds_to_rect(x_min, x_max, y_min, y_max, z_min, z_max))
 
     @staticmethod 
     def from_rects(rects: np.ndarray):
