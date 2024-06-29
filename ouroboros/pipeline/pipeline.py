@@ -65,7 +65,7 @@ class PipelineStep(ABC):
         self, input_data: PipelineInput
     ) -> tuple[PipelineInput, None] | tuple[PipelineInput, str]:
         if self.show_progress_bar:
-            tqdm.write(f"Starting step {self.step_name}")
+            tqdm.write(f"Starting Step: {self.step_name}")
             self.progress_bar = tqdm(total=100)
 
         # Reset the progress to 0 at the start of the step

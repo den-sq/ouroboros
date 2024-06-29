@@ -1,1 +1,1 @@
-from .ouroboros import spline_demo, slice_demo
+from .ouroboros import slice_demo

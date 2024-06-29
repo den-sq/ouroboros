@@ -90,7 +90,7 @@ class Config:
         Save the configuration to a JSON file.
         """
         with open(json_path, "w") as f:
-            json.dump(self.to_dict(), f)
+            json.dump(self.to_dict(), f, indent=4)
 
     @staticmethod
     def from_json(json_path):
