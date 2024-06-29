@@ -1,7 +1,12 @@
-from ouroboros.helpers.parse import parse_neuroglancer_json, neuroglancer_config_to_annotation, neuroglancer_config_to_source
+from ouroboros.helpers.parse import (
+    parse_neuroglancer_json,
+    neuroglancer_config_to_annotation,
+    neuroglancer_config_to_source,
+)
 from .pipeline import PipelineStep
 from ouroboros.config import Config
 import numpy as np
+
 
 # TODO: Consider making an abstract parse step
 class ParseJSONPipelineStep(PipelineStep):
@@ -25,12 +30,12 @@ class ParseJSONPipelineStep(PipelineStep):
 
         if error:
             return error
-        
+
         sample_points, error = neuroglancer_config_to_annotation(ng_config)
 
         if error:
             return error
-        
+
         # Connect the end point to the first couple points if that option is enabled
         if config.connect_start_and_end:
             sample_points = np.concatenate((sample_points, sample_points[0:1]), axis=0)
@@ -39,11 +44,11 @@ class ParseJSONPipelineStep(PipelineStep):
 
         if error:
             return error
-        
+
         # Store the source url in config for later use
         config.source_url = source_url
 
         # Update the pipeline input with the sample points
         pipeline_input.sample_points = sample_points
-        
+
         return None

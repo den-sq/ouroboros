@@ -7,11 +7,14 @@ from tqdm import tqdm
 
 from ouroboros.pipeline.pipeline_input import PipelineInput
 
+
 class Pipeline:
     def __init__(self, steps: list["PipelineStep"]) -> None:
         self.steps = steps
 
-    def process(self, input_data: PipelineInput) -> tuple[PipelineInput, None] | tuple[None, str]:
+    def process(
+        self, input_data: PipelineInput
+    ) -> tuple[PipelineInput, None] | tuple[None, str]:
         """
         Run the pipeline on the input data.
 
@@ -33,9 +36,10 @@ class Pipeline:
                 return (None, errors)
 
         return (data, None)
-    
+
     def get_step_statistics(self):
         return [step.get_time_statistics() for step in self.steps]
+
 
 class PipelineStep(ABC):
     def __init__(self, inputs: tuple[str]) -> None:
@@ -57,7 +61,9 @@ class PipelineStep(ABC):
 
         self.inputs = inputs
 
-    def process(self, input_data: PipelineInput) -> tuple[PipelineInput, None] | tuple[PipelineInput, str]:
+    def process(
+        self, input_data: PipelineInput
+    ) -> tuple[PipelineInput, None] | tuple[PipelineInput, str]:
         if self.show_progress_bar:
             tqdm.write(f"Starting step {self.step_name}")
             self.progress_bar = tqdm(total=100)
@@ -90,12 +96,22 @@ class PipelineStep(ABC):
     def get_time_statistics(self):
         # Replace custom timings with statistics about the custom timings
         custom_times = self.timing["custom_times"]
-        
+
         # Remove any empty custom times
-        custom_times = {key: value for key, value in custom_times.items() if len(value) > 0}
+        custom_times = {
+            key: value for key, value in custom_times.items() if len(value) > 0
+        }
 
         # Calculate statistics for each custom time
-        custom_times_statistics = {key: {"mean": np.mean(value), "std": np.std(value), "min": np.min(value), "max": np.max(value)} for key, value in custom_times.items()}
+        custom_times_statistics = {
+            key: {
+                "mean": np.mean(value),
+                "std": np.std(value),
+                "min": np.min(value),
+                "max": np.max(value),
+            }
+            for key, value in custom_times.items()
+        }
         self.timing["custom_times"] = custom_times_statistics
 
         return self.timing

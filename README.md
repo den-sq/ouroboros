@@ -1,3 +1,5 @@
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 # Ourobors Python Package
 
 This python package organizes all of the core functionality of the Ouroboros segmentation pipeline.

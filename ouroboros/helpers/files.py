@@ -3,7 +3,10 @@ from tifffile import imread, TiffWriter
 from .memory_usage import calculate_gigabytes_from_dimensions
 import shutil
 
-def load_and_save_tiff_from_slices(folder_name: str, output_file_path: str, delete_intermediate=True, compression=None):
+
+def load_and_save_tiff_from_slices(
+    folder_name: str, output_file_path: str, delete_intermediate=True, compression=None
+):
     # Load the saved tifs in numerical order
     tif_files = get_sorted_tif_files(folder_name)
 
@@ -15,7 +18,7 @@ def load_and_save_tiff_from_slices(folder_name: str, output_file_path: str, dele
 
     contiguous = compression is None
 
-    # Save tifs to a new resulting tif 
+    # Save tifs to a new resulting tif
     with TiffWriter(output_file_path, bigtiff=bigtiff) as tif:
         for filename in tif_files:
             tif_file = imread(f"{folder_name}/{filename}")
@@ -25,14 +28,15 @@ def load_and_save_tiff_from_slices(folder_name: str, output_file_path: str, dele
     if delete_intermediate:
         shutil.rmtree(folder_name)
 
+
 def get_sorted_tif_files(directory):
     # Get all files in the directory
     files = os.listdir(directory)
-    
+
     # Filter to include only .tif files and sort them numerically
     tif_files = sorted(
-        (file for file in files if file.endswith('.tif')),
-        key=lambda x: int(os.path.splitext(x)[0])
+        (file for file in files if file.endswith(".tif")),
+        key=lambda x: int(os.path.splitext(x)[0]),
     )
-    
+
     return tif_files

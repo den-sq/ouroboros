@@ -1,4 +1,7 @@
-from ouroboros.helpers.slice import generate_coordinate_grid_for_rect, slice_volume_from_grid
+from ouroboros.helpers.slice import (
+    generate_coordinate_grid_for_rect,
+    slice_volume_from_grid,
+)
 from ouroboros.helpers.volume_cache import VolumeCache
 from .pipeline import PipelineStep
 from ouroboros.config import Config
@@ -6,6 +9,7 @@ import numpy as np
 
 import os
 from tifffile import TiffWriter
+
 
 class SaveTiffPipelineStep(PipelineStep):
     def __init__(self) -> None:
@@ -17,7 +21,7 @@ class SaveTiffPipelineStep(PipelineStep):
         # Verify that a config object is provided
         if not isinstance(config, Config):
             return "Input data must contain a Config object."
-        
+
         # Verify that a volume cache is given
         if not isinstance(volume_cache, VolumeCache):
             return "Input data must contain a VolumeCache object."
@@ -25,20 +29,26 @@ class SaveTiffPipelineStep(PipelineStep):
         # Verify that slice rects is given
         if not isinstance(slice_rects, np.ndarray):
             return "Input data must contain an array of slice rects."
-        
-        file_name = os.path.join(config.output_file_folder, config.output_file_name) + ".tif"
-        
+
+        file_name = (
+            os.path.join(config.output_file_folder, config.output_file_name) + ".tif"
+        )
+
         # Write the slices to a TIFF file one slice at a time
         with TiffWriter(file_name) as tif:
             for i in range(len(slice_rects)):
                 if i % 10 == 0:
                     self.update_progress(i / len(slice_rects))
 
-                grid = generate_coordinate_grid_for_rect(slice_rects[i], config.slice_width, config.slice_height)
+                grid = generate_coordinate_grid_for_rect(
+                    slice_rects[i], config.slice_width, config.slice_height
+                )
 
                 volume, bounding_box = volume_cache.request_volume_for_slice(i)
 
-                slice_i = slice_volume_from_grid(volume, bounding_box, grid, config.slice_width, config.slice_height)
+                slice_i = slice_volume_from_grid(
+                    volume, bounding_box, grid, config.slice_width, config.slice_height
+                )
 
                 tif.write(slice_i, contiguous=True)
 

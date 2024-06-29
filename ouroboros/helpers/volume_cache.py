@@ -7,8 +7,16 @@ FLUSH_CACHE = False
 
 # TODO: Progress hook of some kind
 
+
 class VolumeCache:
-    def __init__(self, bounding_boxes: list[BoundingBox], link_rects: list[int], source_url: str, mip=None, flush_cache=FLUSH_CACHE) -> None:
+    def __init__(
+        self,
+        bounding_boxes: list[BoundingBox],
+        link_rects: list[int],
+        source_url: str,
+        mip=None,
+        flush_cache=FLUSH_CACHE,
+    ) -> None:
         self.bounding_boxes = bounding_boxes
         self.link_rects = link_rects
         self.source_url = source_url
@@ -22,7 +30,9 @@ class VolumeCache:
 
         # Indicates whether the a volume should be cached after the last slice to request it is processed
         self.cache_volume = [False] * len(bounding_boxes)
-        self.cache_volume[link_rects[-1]] = VolumeCache.should_cache_last_volume(link_rects)
+        self.cache_volume[link_rects[-1]] = VolumeCache.should_cache_last_volume(
+            link_rects
+        )
 
         self.init_cloudvolume()
 
@@ -32,9 +42,9 @@ class VolumeCache:
             "link_rects": self.link_rects,
             "source_url": self.source_url,
             "mip": self.mip,
-            "flush_cache": self.flush_cache
+            "flush_cache": self.flush_cache,
         }
-    
+
     @staticmethod
     def from_dict(data: dict):
         bounding_boxes = [BoundingBox.from_dict(bb) for bb in data["bounding_boxes"]]
@@ -54,12 +64,14 @@ class VolumeCache:
             self.mip = min(available_mips)
 
     def get_volume_gigabytes(self):
-        return calculate_gigabytes_from_dimensions(self.get_volume_shape(), self.get_volume_dtype())
-    
+        return calculate_gigabytes_from_dimensions(
+            self.get_volume_shape(), self.get_volume_dtype()
+        )
+
     def get_volume_shape(self):
         # TODO: Use channel data too
         return self.cv.volume_size
-    
+
     def get_volume_dtype(self):
         return self.cv.dtype
 
@@ -67,7 +79,7 @@ class VolumeCache:
     def should_cache_last_volume(link_rects: list[int]):
         if link_rects[0] == link_rects[-1]:
             return True
-        
+
         return False
 
     def volume_index(self, slice_index: int):
@@ -98,14 +110,17 @@ class VolumeCache:
             self.download_volume(vol_index, bounding_box)
 
         # Remove the last requested volume if it is not to be cached
-        if self.last_requested_slice is not None and self.last_requested_slice != vol_index and \
-                not self.cache_volume[self.last_requested_slice]:
+        if (
+            self.last_requested_slice is not None
+            and self.last_requested_slice != vol_index
+            and not self.cache_volume[self.last_requested_slice]
+        ):
             self.remove_volume(self.last_requested_slice)
 
         self.last_requested_slice = vol_index
 
         return self.volumes[vol_index], bounding_box
-    
+
     def remove_volume(self, volume_index: int):
         # Avoid removing the volume if it is cached for later
         if self.cache_volume[volume_index]:
@@ -113,7 +128,9 @@ class VolumeCache:
 
         self.volumes[volume_index] = None
 
-    def download_volume(self, volume_index: int, bounding_box: BoundingBox, parallel=False) -> VolumeCutout:
+    def download_volume(
+        self, volume_index: int, bounding_box: BoundingBox, parallel=False
+    ) -> VolumeCutout:
         # TODO: Handle errors that occur here
 
         bbox = bounding_box.to_cloudvolume_bbox()
@@ -137,7 +154,7 @@ class VolumeCache:
 
         Returns:
         -------
-            tuple: A tuple containing the volume data, the bounding box of the volume, 
+            tuple: A tuple containing the volume data, the bounding box of the volume,
                     the slice indices associated with the volume, and a function to remove the volume from the cache.
         """
 
@@ -151,7 +168,7 @@ class VolumeCache:
         slice_indices = self.get_slice_indices(volume_index)
 
         return self.volumes[volume_index], bounding_box, slice_indices, volume_index
-    
+
     def get_slice_indices(self, volume_index: int):
         return [i for i, v in enumerate(self.link_rects) if v == volume_index]
 

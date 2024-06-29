@@ -4,11 +4,13 @@ from ouroboros.config import Config
 from ouroboros.helpers.volume_cache import VolumeCache
 import json
 
+
 @dataclass
 class PipelineInput:
     """
     Dataclass for the input to the pipeline.
     """
+
     json_path: str = None
     config: Config = None
     sample_points: np.ndarray = None
@@ -21,16 +23,16 @@ class PipelineInput:
 
     def __iter__(self):
         return iter(astuple(self))
-    
+
     def __getitem__(self, keys):
         return iter(getattr(self, k) for k in keys)
-    
+
     def clear_entry(self, key):
         """
         Clear the entry with the given key.
         """
         setattr(self, key, None)
-    
+
     def to_dict(self):
         """
         Convert the pipeline input to a dictionary.
@@ -38,32 +40,60 @@ class PipelineInput:
         return {
             "json_path": self.json_path,
             "config": self.config.to_dict() if self.config is not None else None,
-            "sample_points": self.sample_points.tolist() if self.sample_points is not None else None,
-            "slice_rects": self.slice_rects.tolist() if self.slice_rects is not None else None,
-            "volume_cache": self.volume_cache.to_dict() if self.volume_cache is not None else None,
+            "sample_points": (
+                self.sample_points.tolist() if self.sample_points is not None else None
+            ),
+            "slice_rects": (
+                self.slice_rects.tolist() if self.slice_rects is not None else None
+            ),
+            "volume_cache": (
+                self.volume_cache.to_dict() if self.volume_cache is not None else None
+            ),
             "output_file_path": self.output_file_path,
             "backprojected_folder_path": self.backprojected_folder_path,
             "config_file_path": self.config_file_path,
-            "backprojection_offset": self.backprojection_offset
+            "backprojection_offset": self.backprojection_offset,
         }
-    
+
     @staticmethod
     def from_dict(data):
         """
         Create a pipeline input from a dictionary.
         """
         json_path = data["json_path"]
-        config = Config.from_dict(data["config"]) if data["config"] is not None else None
-        sample_points = np.array(data["sample_points"]) if data["sample_points"] is not None else None
-        slice_rects = np.array(data["slice_rects"]) if data["slice_rects"] is not None else None
-        volume_cache = VolumeCache.from_dict(data["volume_cache"]) if data["volume_cache"] is not None else None
+        config = (
+            Config.from_dict(data["config"]) if data["config"] is not None else None
+        )
+        sample_points = (
+            np.array(data["sample_points"])
+            if data["sample_points"] is not None
+            else None
+        )
+        slice_rects = (
+            np.array(data["slice_rects"]) if data["slice_rects"] is not None else None
+        )
+        volume_cache = (
+            VolumeCache.from_dict(data["volume_cache"])
+            if data["volume_cache"] is not None
+            else None
+        )
         output_file_path = data["output_file_path"]
         backprojected_folder_path = data["backprojected_folder_path"]
         config_file_path = data["config_file_path"]
         backprojection_offset = data["backprojection_offset"]
-        
-        return PipelineInput(json_path, config, sample_points, slice_rects, volume_cache, output_file_path, backprojected_folder_path, config_file_path, backprojection_offset)
-    
+
+        return PipelineInput(
+            json_path,
+            config,
+            sample_points,
+            slice_rects,
+            volume_cache,
+            output_file_path,
+            backprojected_folder_path,
+            config_file_path,
+            backprojection_offset,
+        )
+
     def copy_values_from_input(self, pipeline_input):
         """
         Copy the values from another pipeline input.
@@ -77,13 +107,13 @@ class PipelineInput:
         self.backprojected_folder_path = pipeline_input.backprojected_folder_path
         self.config_file_path = pipeline_input.config_file_path
         self.backprojection_offset = pipeline_input.backprojection_offset
-    
+
     def to_json(self):
         """
         Convert the pipeline input to a JSON string.
         """
         return json.dumps(self.to_dict())
-    
+
     def save_to_json(self, json_path):
         """
         Save the pipeline input to a JSON file.

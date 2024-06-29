@@ -4,6 +4,7 @@ from .pipeline import PipelineStep
 from ouroboros.config import Config
 import numpy as np
 
+
 class VolumeCachePipelineStep(PipelineStep):
     def __init__(self) -> None:
         super().__init__(inputs=("config", "slice_rects"))
@@ -18,14 +19,21 @@ class VolumeCachePipelineStep(PipelineStep):
         # Verify that slice rects is given
         if not isinstance(slice_rects, np.ndarray):
             return "Input data must contain an array of slice rects."
-        
-        bounding_boxes, link_rects = calculate_bounding_boxes_bsp_link_rects(slice_rects, 
-                                                                             min_slices_per_box=config.bouding_box_params.min_slices_per_box,
-                                                                             max_depth=config.bouding_box_params.max_depth)
-        
+
+        bounding_boxes, link_rects = calculate_bounding_boxes_bsp_link_rects(
+            slice_rects,
+            min_slices_per_box=config.bouding_box_params.min_slices_per_box,
+            max_depth=config.bouding_box_params.max_depth,
+        )
+
         self.update_progress(0.5)
-        
-        volume_cache = VolumeCache(bounding_boxes, link_rects, config.source_url, flush_cache=config.flush_cache)
+
+        volume_cache = VolumeCache(
+            bounding_boxes,
+            link_rects,
+            config.source_url,
+            flush_cache=config.flush_cache,
+        )
 
         # Update the pipeline input with the volume cache
         pipeline_input.volume_cache = volume_cache

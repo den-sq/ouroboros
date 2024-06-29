@@ -7,9 +7,12 @@ from .bounding_boxes import BoundingBox
 
 from .spline import Spline
 
-INDEXING = 'xy'
+INDEXING = "xy"
 
-def calculate_slice_rects(times: np.ndarray, spline: Spline, width, height, spline_points=None) -> np.ndarray:
+
+def calculate_slice_rects(
+    times: np.ndarray, spline: Spline, width, height, spline_points=None
+) -> np.ndarray:
     """
     Calculate the slice rectangles for a spline at a set of time points.
 
@@ -27,7 +30,9 @@ def calculate_slice_rects(times: np.ndarray, spline: Spline, width, height, spli
     """
 
     # Calculate the tangent, normal, and binormal vectors
-    tangent_vectors, normal_vectors, binormal_vectors = spline.calculate_rotation_minimizing_vectors(times)
+    tangent_vectors, normal_vectors, binormal_vectors = (
+        spline.calculate_rotation_minimizing_vectors(times)
+    )
 
     # Transpose the vectors for vectpr-by-vector indexing (3, n) -> (n, 3)
     tangent_vectors = tangent_vectors.T
@@ -72,6 +77,7 @@ def calculate_slice_rects(times: np.ndarray, spline: Spline, width, height, spli
     # Output the rects in the form (n, 4, 3)
     return np.array(rects)
 
+
 def generate_coordinate_grid_for_rect(rect: np.ndarray, width, height) -> np.ndarray:
     """
     Generate a coordinate grid for a rectangle.
@@ -92,22 +98,28 @@ def generate_coordinate_grid_for_rect(rect: np.ndarray, width, height) -> np.nda
     # Generate a grid of (u, v) coordinates
     u = np.linspace(0, 1, width)
     v = np.linspace(0, 1, height)
-    u, v = np.meshgrid(u, v, indexing=INDEXING) # TODO: need 'ij'?
+    u, v = np.meshgrid(u, v, indexing=INDEXING)  # TODO: need 'ij'?
 
     # Interpolate the 3D coordinates
     # TODO: There must be a way to do this faster
-    points = (1 - u)[:, :, np.newaxis] * (1 - v)[:, :, np.newaxis] * top_left + \
-            u[:, :, np.newaxis] * (1 - v)[:, :, np.newaxis] * top_right + \
-            (1 - u)[:, :, np.newaxis] * v[:, :, np.newaxis] * bottom_left + \
-            u[:, :, np.newaxis] * v[:, :, np.newaxis] * bottom_right
+    points = (
+        (1 - u)[:, :, np.newaxis] * (1 - v)[:, :, np.newaxis] * top_left
+        + u[:, :, np.newaxis] * (1 - v)[:, :, np.newaxis] * top_right
+        + (1 - u)[:, :, np.newaxis] * v[:, :, np.newaxis] * bottom_left
+        + u[:, :, np.newaxis] * v[:, :, np.newaxis] * bottom_right
+    )
 
     return points
+
 
 # TODO: When slicing volume, need to know offset of slice in volume
 # TODO: Consider if i and j need to be swapped because of map_coordinates behavior
 # TODO: Combine this method with the one below
 
-def slice_volume_from_grid(volume: VolumeCutout, bounding_box: BoundingBox, grid: np.ndarray, width, height) -> np.ndarray:
+
+def slice_volume_from_grid(
+    volume: VolumeCutout, bounding_box: BoundingBox, grid: np.ndarray, width, height
+) -> np.ndarray:
     """
     Slice a volume based on a grid of coordinates.
 
@@ -130,7 +142,9 @@ def slice_volume_from_grid(volume: VolumeCutout, bounding_box: BoundingBox, grid
     squeezed_volume = np.squeeze(volume, axis=-1)
 
     # Normalize grid coordinates based on bounding box (since volume coordinates are truncated)
-    bounding_box_min = np.array([bounding_box.x_min, bounding_box.y_min, bounding_box.z_min])
+    bounding_box_min = np.array(
+        [bounding_box.x_min, bounding_box.y_min, bounding_box.z_min]
+    )
 
     # Subtract the bounding box min from the grid (width, height, 3)
     normalized_grid = grid - bounding_box_min
@@ -139,11 +153,14 @@ def slice_volume_from_grid(volume: VolumeCutout, bounding_box: BoundingBox, grid
     normalized_grid = normalized_grid.reshape(-1, 3).T
 
     # Map the grid coordinates to the volume
-    slice_points = map_coordinates(squeezed_volume, normalized_grid, mode='nearest')
+    slice_points = map_coordinates(squeezed_volume, normalized_grid, mode="nearest")
 
     return slice_points.reshape(height, width)
 
-def slice_volume_from_grids(volume: VolumeCutout, bounding_box: BoundingBox, grids: np.ndarray, width, height) -> np.ndarray:
+
+def slice_volume_from_grids(
+    volume: VolumeCutout, bounding_box: BoundingBox, grids: np.ndarray, width, height
+) -> np.ndarray:
     """
     Slice a volume based on a grid of coordinates.
 
@@ -166,7 +183,9 @@ def slice_volume_from_grids(volume: VolumeCutout, bounding_box: BoundingBox, gri
     squeezed_volume = np.squeeze(volume, axis=-1)
 
     # Normalize grid coordinates based on bounding box (since volume coordinates are truncated)
-    bounding_box_min = np.array([bounding_box.x_min, bounding_box.y_min, bounding_box.z_min])
+    bounding_box_min = np.array(
+        [bounding_box.x_min, bounding_box.y_min, bounding_box.z_min]
+    )
 
     # Subtract the bounding box min from the grids (n, width, height, 3)
     normalized_grid = grids - bounding_box_min
@@ -175,11 +194,14 @@ def slice_volume_from_grids(volume: VolumeCutout, bounding_box: BoundingBox, gri
     normalized_grid = normalized_grid.reshape(-1, 3).T
 
     # Map the grid coordinates to the volume
-    slice_points = map_coordinates(squeezed_volume, normalized_grid, mode='nearest')
+    slice_points = map_coordinates(squeezed_volume, normalized_grid, mode="nearest")
 
     return slice_points.reshape(len(grids), height, width)
 
-def write_slices_to_volume(volume: np.ndarray, bounding_box: BoundingBox, grids: np.ndarray, slices: np.ndarray):
+
+def write_slices_to_volume(
+    volume: np.ndarray, bounding_box: BoundingBox, grids: np.ndarray, slices: np.ndarray
+):
     """
     Write a slice to volume based on a grid of coordinates.
 
@@ -253,6 +275,7 @@ def write_slices_to_volume(volume: np.ndarray, bounding_box: BoundingBox, grids:
     # Normalize the accumulated volume by the weights
     nonzero_weights = weight_volume != 0
     accumulated_volume[nonzero_weights] /= weight_volume[nonzero_weights]
+
 
 def make_volume_binary(volume: np.ndarray, dtype=np.uint8) -> np.ndarray:
     """

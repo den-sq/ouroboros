@@ -7,6 +7,7 @@ DEFAULT_MIN_SLICES_PER_BOX = 5
 DEFAULT_SPLIT_THRESHOLD = 0.9
 DEFAULT_MAX_DEPTH = 4
 
+
 @dataclass
 class BoundingBoxParams:
     max_depth: int = DEFAULT_MAX_DEPTH
@@ -15,15 +16,16 @@ class BoundingBoxParams:
     def to_dict(self):
         return {
             "max_depth": self.max_depth,
-            "min_slices_per_box": self.min_slices_per_box
+            "min_slices_per_box": self.min_slices_per_box,
         }
-    
+
     @staticmethod
     def from_dict(data: dict):
         max_depth = data.get("max_depth", DEFAULT_MAX_DEPTH)
         min_slices_per_box = data.get("min_slices_per_box", DEFAULT_MIN_SLICES_PER_BOX)
 
         return BoundingBoxParams(max_depth, min_slices_per_box)
+
 
 class BoundingBox:
     def __init__(self, initial_rect):
@@ -45,9 +47,9 @@ class BoundingBox:
             "y_min": self.y_min,
             "y_max": self.y_max,
             "z_min": self.z_min,
-            "z_max": self.z_max
+            "z_max": self.z_max,
         }
-    
+
     def from_dict(data: dict):
         x_min = data["x_min"]
         x_max = data["x_max"]
@@ -56,9 +58,11 @@ class BoundingBox:
         z_min = data["z_min"]
         z_max = data["z_max"]
 
-        return BoundingBox(BoundingBox.bounds_to_rect(x_min, x_max, y_min, y_max, z_min, z_max))
+        return BoundingBox(
+            BoundingBox.bounds_to_rect(x_min, x_max, y_min, y_max, z_min, z_max)
+        )
 
-    @staticmethod 
+    @staticmethod
     def bound_rects(rects: np.ndarray):
         """
         Get the minimum bounding box of a set of slices.
@@ -86,8 +90,8 @@ class BoundingBox:
         z_max = np.max(z_coords)
 
         return BoundingBox.bounds_to_rect(x_min, x_max, y_min, y_max, z_min, z_max)
-    
-    @staticmethod 
+
+    @staticmethod
     def bound_boxes(bounding_boxes: list["BoundingBox"], use_approx_bounds=True):
         """
         Get the minimum bounding box of a set of bounding boxes.
@@ -124,9 +128,11 @@ class BoundingBox:
         z_min = min(z_mins)
         z_max = max(z_maxs)
 
-        return BoundingBox(BoundingBox.bounds_to_rect(x_min, x_max, y_min, y_max, z_min, z_max))
+        return BoundingBox(
+            BoundingBox.bounds_to_rect(x_min, x_max, y_min, y_max, z_min, z_max)
+        )
 
-    @staticmethod 
+    @staticmethod
     def from_rects(rects: np.ndarray):
         """
         Create a bounding box from a set of slices.
@@ -144,13 +150,15 @@ class BoundingBox:
 
     @staticmethod
     def bounds_to_rect(x_min, x_max, y_min, y_max, z_min, z_max):
-        return np.array([
-            [x_min, y_max, z_max],
-            [x_max, y_max, z_min],
-            [x_max, y_min, z_min],
-            [x_min, y_min, z_max]
-        ])
-    
+        return np.array(
+            [
+                [x_min, y_max, z_max],
+                [x_max, y_max, z_min],
+                [x_max, y_min, z_min],
+                [x_min, y_min, z_max],
+            ]
+        )
+
     @staticmethod
     def get_bounds(rect: np.ndarray):
         x, y, z = rect.T
@@ -162,10 +170,12 @@ class BoundingBox:
         z_max = max(z)
 
         return x_min, x_max, y_min, y_max, z_min, z_max
-    
+
     def to_cloudvolume_bbox(self):
-        return Bbox((self.x_min, self.y_min, self.z_min), (self.x_max, self.y_max, self.z_max))
-    
+        return Bbox(
+            (self.x_min, self.y_min, self.z_min), (self.x_max, self.y_max, self.z_max)
+        )
+
     def approx_bounds(self):
         if self.approx_bounds_memo is not None:
             return self.approx_bounds_memo
@@ -183,13 +193,21 @@ class BoundingBox:
 
     def intersects(self, other):
         x_min, x_max, y_min, y_max, z_min, z_max = self.approx_bounds()
-        other_x_min, other_x_max, other_y_min, other_y_max, other_z_min, other_z_max = other.approx_bounds()
+        other_x_min, other_x_max, other_y_min, other_y_max, other_z_min, other_z_max = (
+            other.approx_bounds()
+        )
 
-        return (x_min <= other_x_max and x_max >= other_x_min) and (y_min <= other_y_max and y_max >= other_y_min) and (z_min <= other_z_max and z_max >= other_z_min)
-    
+        return (
+            (x_min <= other_x_max and x_max >= other_x_min)
+            and (y_min <= other_y_max and y_max >= other_y_min)
+            and (z_min <= other_z_max and z_max >= other_z_min)
+        )
+
     def intersection(self, other):
         x_min, x_max, y_min, y_max, z_min, z_max = self.approx_bounds()
-        other_x_min, other_x_max, other_y_min, other_y_max, other_z_min, other_z_max = other.approx_bounds()
+        other_x_min, other_x_max, other_y_min, other_y_max, other_z_min, other_z_max = (
+            other.approx_bounds()
+        )
 
         x_min = max(x_min, other_x_min)
         x_max = min(x_max, other_x_max)
@@ -198,19 +216,27 @@ class BoundingBox:
         z_min = max(z_min, other_z_min)
         z_max = min(z_max, other_z_max)
 
-        return BoundingBox(BoundingBox.bounds_to_rect(x_min, x_max, y_min, y_max, z_min, z_max))
+        return BoundingBox(
+            BoundingBox.bounds_to_rect(x_min, x_max, y_min, y_max, z_min, z_max)
+        )
 
     def to_empty_volume(self, dtype=np.float32):
         x_min, x_max, y_min, y_max, z_min, z_max = self.approx_bounds()
 
-        return np.zeros((x_max - x_min + 1, y_max - y_min + 1, z_max - z_min + 1), dtype=dtype)
-    
+        return np.zeros(
+            (x_max - x_min + 1, y_max - y_min + 1, z_max - z_min + 1), dtype=dtype
+        )
+
     def calculate_volume(self):
-        return (self.x_max - self.x_min) * (self.y_max - self.y_min) * (self.z_max - self.z_min)
-    
+        return (
+            (self.x_max - self.x_min)
+            * (self.y_max - self.y_min)
+            * (self.z_max - self.z_min)
+        )
+
     def should_be_divided(self, utilized_volume):
         return utilized_volume < (1 - DEFAULT_SPLIT_THRESHOLD) * self.calculate_volume()
-        
+
     def longest_dimension(self):
         x_range = self.x_max - self.x_min
         y_range = self.y_max - self.y_min
@@ -219,29 +245,38 @@ class BoundingBox:
         return np.argmax([x_range, y_range, z_range])
 
     def to_prism(self):
-        vertices = np.array([
-            [self.x_min, self.y_max, self.z_max],
-            [self.x_max, self.y_max, self.z_max],
-            [self.x_max, self.y_min, self.z_max],
-            [self.x_min, self.y_min, self.z_max],
-            [self.x_min, self.y_max, self.z_min],
-            [self.x_max, self.y_max, self.z_min],
-            [self.x_max, self.y_min, self.z_min],
-            [self.x_min, self.y_min, self.z_min]
-        ])
+        vertices = np.array(
+            [
+                [self.x_min, self.y_max, self.z_max],
+                [self.x_max, self.y_max, self.z_max],
+                [self.x_max, self.y_min, self.z_max],
+                [self.x_min, self.y_min, self.z_max],
+                [self.x_min, self.y_max, self.z_min],
+                [self.x_max, self.y_max, self.z_min],
+                [self.x_max, self.y_min, self.z_min],
+                [self.x_min, self.y_min, self.z_min],
+            ]
+        )
 
-        faces = np.array([
-            [vertices[0], vertices[1], vertices[2], vertices[3]], # Top
-            [vertices[4], vertices[5], vertices[6], vertices[7]], # Bottom
-            [vertices[0], vertices[1], vertices[5], vertices[4]], # Front
-            [vertices[2], vertices[3], vertices[7], vertices[6]], # Back
-            [vertices[0], vertices[3], vertices[7], vertices[4]], # Left
-            [vertices[1], vertices[2], vertices[6], vertices[5]]  # Right
-        ])
+        faces = np.array(
+            [
+                [vertices[0], vertices[1], vertices[2], vertices[3]],  # Top
+                [vertices[4], vertices[5], vertices[6], vertices[7]],  # Bottom
+                [vertices[0], vertices[1], vertices[5], vertices[4]],  # Front
+                [vertices[2], vertices[3], vertices[7], vertices[6]],  # Back
+                [vertices[0], vertices[3], vertices[7], vertices[4]],  # Left
+                [vertices[1], vertices[2], vertices[6], vertices[5]],  # Right
+            ]
+        )
 
         return faces
 
-def calculate_bounding_boxes_bsp_link_rects(rects: np.ndarray, min_slices_per_box=DEFAULT_MIN_SLICES_PER_BOX, max_depth=DEFAULT_MAX_DEPTH):
+
+def calculate_bounding_boxes_bsp_link_rects(
+    rects: np.ndarray,
+    min_slices_per_box=DEFAULT_MIN_SLICES_PER_BOX,
+    max_depth=DEFAULT_MAX_DEPTH,
+):
     """
     Use binary space partitioning to calculate the bounding boxes of the slices,
     starting with a bounding box that bounds all of the rects.
@@ -252,7 +287,7 @@ def calculate_bounding_boxes_bsp_link_rects(rects: np.ndarray, min_slices_per_bo
 
     Returns:
     -------
-        (list, list): A list of bounding boxes that closely fit the slices and a list 
+        (list, list): A list of bounding boxes that closely fit the slices and a list
                       mapping each rect index to its bounding box.
     """
 
@@ -260,7 +295,7 @@ def calculate_bounding_boxes_bsp_link_rects(rects: np.ndarray, min_slices_per_bo
 
     if len(rects) == 0:
         return [], []
-    
+
     # Calculate the initial bounding box that encompasses all rects
     initial_bounding_box = BoundingBox.from_rects(rects)
 
@@ -293,7 +328,9 @@ def calculate_bounding_boxes_bsp_link_rects(rects: np.ndarray, min_slices_per_bo
         right_partition_indices = current_indices[right_mask]
 
         # Handle any unsplittable boxes
-        if repeat and (len(left_partition_indices) == 0 or len(right_partition_indices) == 0):
+        if repeat and (
+            len(left_partition_indices) == 0 or len(right_partition_indices) == 0
+        ):
             bounding_boxes.append(current_bounding_box)
             for idx in current_indices:
                 rect_to_box_map[idx] = len(bounding_boxes) - 1
@@ -302,9 +339,23 @@ def calculate_bounding_boxes_bsp_link_rects(rects: np.ndarray, min_slices_per_bo
         # Calculate bounding boxes for the partitions
         if len(left_partition_indices) > 0:
             left_bounding_box = BoundingBox.from_rects(rects[left_partition_indices])
-            stack.append((left_partition_indices, left_bounding_box, len(right_partition_indices) == 0, depth - 1))
+            stack.append(
+                (
+                    left_partition_indices,
+                    left_bounding_box,
+                    len(right_partition_indices) == 0,
+                    depth - 1,
+                )
+            )
         if len(right_partition_indices) > 0:
             right_bounding_box = BoundingBox.from_rects(rects[right_partition_indices])
-            stack.append((right_partition_indices, right_bounding_box, len(left_partition_indices) == 0, depth - 1))
+            stack.append(
+                (
+                    right_partition_indices,
+                    right_bounding_box,
+                    len(left_partition_indices) == 0,
+                    depth - 1,
+                )
+            )
 
     return bounding_boxes, rect_to_box_map

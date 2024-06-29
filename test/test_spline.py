@@ -1,17 +1,12 @@
 import numpy as np
 from ouroboros.helpers.spline import Spline
 
+
 def test_evaluate_spline():
     import numpy as np
 
     # Sample points for fitting the spline
-    sample_points = np.array([
-        [0, 0, 0],
-        [1, 1, 1],
-        [2, 0, 2],
-        [3, -1, 3],
-        [4, 0, 4]
-    ])
+    sample_points = np.array([[0, 0, 0], [1, 1, 1], [2, 0, 2], [3, -1, 3], [4, 0, 4]])
 
     # Fit the spline
     spline = Spline(sample_points, degree=3)
@@ -23,16 +18,15 @@ def test_evaluate_spline():
     evaluated_points = spline(t_values)
 
     # Check if the evaluated points array has the correct shape
-    assert evaluated_points.shape == (3, 100), "The shape of evaluated points should match the number of t values and dimensions"
+    assert evaluated_points.shape == (
+        3,
+        100,
+    ), "The shape of evaluated points should match the number of t values and dimensions"
 
 
 def test_calculate_vectors_basic():
     # Sample points arranged in a simple curve
-    sample_points = np.array([
-        [0, 0, 0],
-        [1, 1, 0],
-        [2, 0, 0]
-    ])
+    sample_points = np.array([[0, 0, 0], [1, 1, 0], [2, 0, 0]])
     # Initialize Spline object
     spline = Spline(sample_points, degree=2)
     # Times at which to calculate vectors
@@ -40,23 +34,33 @@ def test_calculate_vectors_basic():
     # Calculate vectors
     tangent_vectors, normal_vectors, binormal_vectors = spline.calculate_vectors(times)
     # Assert that the method returns three numpy arrays
-    assert isinstance(tangent_vectors, np.ndarray), "Tangent vectors should be a numpy array"
-    assert isinstance(normal_vectors, np.ndarray), "Normal vectors should be a numpy array"
-    assert isinstance(binormal_vectors, np.ndarray), "Binormal vectors should be a numpy array"
+    assert isinstance(
+        tangent_vectors, np.ndarray
+    ), "Tangent vectors should be a numpy array"
+    assert isinstance(
+        normal_vectors, np.ndarray
+    ), "Normal vectors should be a numpy array"
+    assert isinstance(
+        binormal_vectors, np.ndarray
+    ), "Binormal vectors should be a numpy array"
     # Assert that the shapes of the vectors are correct
-    assert tangent_vectors.shape == (3, len(times)), "Tangent vectors shape should match (3, number of times)"
-    assert normal_vectors.shape == (3, len(times)), "Normal vectors shape should match (3, number of times)"
-    assert binormal_vectors.shape == (3, len(times)), "Binormal vectors shape should match (3, number of times)"
+    assert tangent_vectors.shape == (
+        3,
+        len(times),
+    ), "Tangent vectors shape should match (3, number of times)"
+    assert normal_vectors.shape == (
+        3,
+        len(times),
+    ), "Normal vectors shape should match (3, number of times)"
+    assert binormal_vectors.shape == (
+        3,
+        len(times),
+    ), "Binormal vectors shape should match (3, number of times)"
+
 
 def test_vectors_orthogonality():
     # Define a simple curve as sample points
-    sample_points = np.array([
-        [1, 0, 0],
-        [1, 2, 1],
-        [2, 1, 2],
-        [3, -2, 4],
-        [4, 7, 4]
-    ])
+    sample_points = np.array([[1, 0, 0], [1, 2, 1], [2, 1, 2], [3, -2, 4], [4, 7, 4]])
 
     # Initialize Spline object
     spline = Spline(sample_points, degree=3)
@@ -70,16 +74,23 @@ def test_vectors_orthogonality():
     tangent_vectors = tangent_vectors.T
     normal_vectors = normal_vectors.T
     binormal_vectors = binormal_vectors.T
-    
+
     # Check orthogonality between each pair of vectors
     for i in range(tangent_vectors.shape[0]):
         tangent_normal_dot = np.dot(tangent_vectors[i], normal_vectors[i])
         tangent_binormal_dot = np.dot(tangent_vectors[i], binormal_vectors[i])
         normal_binormal_dot = np.dot(normal_vectors[i], binormal_vectors[i])
-        
-        assert np.allclose(tangent_normal_dot, 0, atol=1e-6), "Tangent and normal vectors should be orthogonal"
-        assert np.allclose(tangent_binormal_dot, 0, atol=1e-6), "Tangent and binormal vectors should be orthogonal"
-        assert np.allclose(normal_binormal_dot, 0, atol=1e-6), "Normal and binormal vectors should be orthogonal"
+
+        assert np.allclose(
+            tangent_normal_dot, 0, atol=1e-6
+        ), "Tangent and normal vectors should be orthogonal"
+        assert np.allclose(
+            tangent_binormal_dot, 0, atol=1e-6
+        ), "Tangent and binormal vectors should be orthogonal"
+        assert np.allclose(
+            normal_binormal_dot, 0, atol=1e-6
+        ), "Normal and binormal vectors should be orthogonal"
+
 
 # def test_calculate_equidistant_parameters():
 #     # Define a simple curve as sample points
