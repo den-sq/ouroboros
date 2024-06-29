@@ -45,8 +45,8 @@ class ParseJSONPipelineStep(PipelineStep):
         if error:
             return error
 
-        # Store the source url in config for later use
-        config.source_url = source_url
+        # Store the source url in pipeline input for later use
+        pipeline_input.source_url = source_url
 
         # Update the pipeline input with the sample points
         pipeline_input.sample_points = sample_points

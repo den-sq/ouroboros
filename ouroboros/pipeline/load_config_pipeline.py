@@ -1,3 +1,4 @@
+from ouroboros.config import Config
 from .pipeline import PipelineStep
 from .pipeline_input import PipelineInput
 
@@ -7,9 +8,14 @@ class LoadConfigPipelineStep(PipelineStep):
         super().__init__(inputs=("config_file_path",))
 
         self.custom_output_file_path = None
+        self.custom_options = None
 
     def with_custom_output_file_path(self, path: str):
         self.custom_output_file_path = path
+        return self
+
+    def with_custom_options(self, options: Config):
+        self.custom_options = options
         return self
 
     def _process(self, input_data: tuple[any]) -> None | str:
@@ -20,5 +26,8 @@ class LoadConfigPipelineStep(PipelineStep):
 
         if self.custom_output_file_path is not None:
             currrent_pipeline_input.output_file_path = self.custom_output_file_path
+
+        if self.custom_options is not None:
+            currrent_pipeline_input.config = self.custom_options
 
         return None

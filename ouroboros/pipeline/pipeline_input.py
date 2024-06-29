@@ -13,6 +13,7 @@ class PipelineInput:
 
     json_path: str = None
     config: Config = None
+    source_url: str = None
     sample_points: np.ndarray = None
     slice_rects: np.ndarray = None
     volume_cache: VolumeCache = None
@@ -40,6 +41,7 @@ class PipelineInput:
         return {
             "json_path": self.json_path,
             "config": self.config.to_dict() if self.config is not None else None,
+            "source_url": self.source_url,
             "sample_points": (
                 self.sample_points.tolist() if self.sample_points is not None else None
             ),
@@ -64,6 +66,7 @@ class PipelineInput:
         config = (
             Config.from_dict(data["config"]) if data["config"] is not None else None
         )
+        source_url = data["source_url"]
         sample_points = (
             np.array(data["sample_points"])
             if data["sample_points"] is not None
@@ -85,6 +88,7 @@ class PipelineInput:
         return PipelineInput(
             json_path,
             config,
+            source_url,
             sample_points,
             slice_rects,
             volume_cache,
@@ -100,6 +104,7 @@ class PipelineInput:
         """
         self.json_path = pipeline_input.json_path
         self.config = pipeline_input.config
+        self.source_url = pipeline_input.source_url
         self.sample_points = pipeline_input.sample_points
         self.slice_rects = pipeline_input.slice_rects
         self.volume_cache = pipeline_input.volume_cache
@@ -126,6 +131,14 @@ class PipelineInput:
         """
         Load the pipeline input from a JSON file.
         """
-        with open(json_path, "r") as f:
-            data = json.load(f)
+        try:
+            with open(json_path, "r") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            print(f"Pipeline input file not found at {json_path}")
+            return None
+        except json.JSONDecodeError:
+            print(f"Pipeline input file at {json_path} is not a valid JSON file")
+            return None
+
         return PipelineInput.from_dict(data)

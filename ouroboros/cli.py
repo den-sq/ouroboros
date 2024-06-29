@@ -59,6 +59,12 @@ def main():
         help="The configuration file exported from the slicing process.",
     )
     parser_backproject.add_argument(
+        "--options",
+        type=str,
+        help="By default, this command uses the config file to find options. Override those options with a path to another options json file.",
+        default=None,
+    )
+    parser_backproject.add_argument(
         "--verbose",
         action="store_true",
         help="Output timing statistics for the calculations.",
@@ -113,11 +119,16 @@ def handle_slice(args):
 
 
 def handle_backproject(args):
+    config = None
+
+    if args.options:
+        config = Config.from_json(args.options)
+
     pipeline = Pipeline(
         [
-            LoadConfigPipelineStep().with_custom_output_file_path(
-                args.straightened_volume
-            ),
+            LoadConfigPipelineStep()
+            .with_custom_output_file_path(args.straightened_volume)
+            .with_custom_options(config),
             BackprojectPipelineStep().with_progress_bar(),
             SaveConfigPipelineStep(),
         ]

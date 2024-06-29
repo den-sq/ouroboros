@@ -7,10 +7,10 @@ import numpy as np
 
 class VolumeCachePipelineStep(PipelineStep):
     def __init__(self) -> None:
-        super().__init__(inputs=("config", "slice_rects"))
+        super().__init__(inputs=("config", "slice_rects", "source_url"))
 
     def _process(self, input_data: tuple[any]) -> None | str:
-        config, slice_rects, pipeline_input = input_data
+        config, slice_rects, source_url, pipeline_input = input_data
 
         # Verify that a config object is provided
         if not isinstance(config, Config):
@@ -31,7 +31,7 @@ class VolumeCachePipelineStep(PipelineStep):
         volume_cache = VolumeCache(
             bounding_boxes,
             link_rects,
-            config.source_url,
+            source_url,
             flush_cache=config.flush_cache,
         )
 

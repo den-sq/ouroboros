@@ -17,7 +17,6 @@ class Config:
     output_file_folder: str  # Folder to save the output file
     output_file_name: str  # Name of the output file
     dist_between_slices: int = 1  # Distance between slices
-    source_url: str = ""  # URL of the source cloud-volume
     flush_cache: bool = False  # Whether to flush the cache after processing
     connect_start_and_end: bool = (
         False  # Whether to connect the start and end of the given annotation points
@@ -46,7 +45,6 @@ class Config:
             "output_file_folder": self.output_file_folder,
             "output_file_name": self.output_file_name,
             "dist_between_slices": self.dist_between_slices,
-            "source_url": self.source_url,
             "flush_cache": self.flush_cache,
             "connect_start_and_end": self.connect_start_and_end,
             "backproject_min_bounding_box": self.backproject_min_bounding_box,
@@ -64,7 +62,6 @@ class Config:
         output_file_folder = data["output_file_folder"]
         output_file_name = data["output_file_name"]
         dist_between_slices = data.get("dist_between_slices", 1)
-        source_url = data.get("source_url", "")
         flush_cache = data.get("flush_cache", False)
         connect_start_and_end = data.get("connect_start_and_end", False)
         backproject_min_bounding_box = data.get("backproject_min_bounding_box", False)
@@ -77,7 +74,6 @@ class Config:
             output_file_folder=output_file_folder,
             output_file_name=output_file_name,
             dist_between_slices=dist_between_slices,
-            source_url=source_url,
             flush_cache=flush_cache,
             connect_start_and_end=connect_start_and_end,
             backproject_min_bounding_box=backproject_min_bounding_box,
@@ -97,7 +93,14 @@ class Config:
         """
         Create a configuration from a JSON file.
         """
-        with open(json_path, "r") as f:
-            data = json.load(f)
+        try:
+            with open(json_path, "r") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            print(f"Config file not found at {json_path}")
+            return None
+        except json.JSONDecodeError:
+            print(f"Config file at {json_path} is not a valid JSON file")
+            return None
 
         return Config.from_dict(data)
