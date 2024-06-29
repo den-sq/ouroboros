@@ -1,4 +1,4 @@
-from .config import Config
+from .helpers.config import Config
 from .pipeline import (
     Pipeline,
     PipelineInput,

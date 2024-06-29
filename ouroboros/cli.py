@@ -1,7 +1,7 @@
 import argparse
 
-from .config import Config
-from .pipeline import (
+from ouroboros.helpers.config import Config
+from ouroboros.pipeline import (
     Pipeline,
     PipelineInput,
     ParseJSONPipelineStep,

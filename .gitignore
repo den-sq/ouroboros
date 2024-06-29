@@ -3,6 +3,7 @@
 __pycache__
 dist
 .DS_Store
+build
 
 # Testing
 sample-data.json

@@ -6,7 +6,7 @@ from ouroboros.helpers.slice import (
 from ouroboros.helpers.volume_cache import VolumeCache
 from ouroboros.helpers.bounding_boxes import BoundingBox
 from .pipeline import PipelineStep
-from ouroboros.config import Config
+from ouroboros.helpers.config import Config
 from ouroboros.helpers.files import load_and_save_tiff_from_slices
 
 import concurrent.futures

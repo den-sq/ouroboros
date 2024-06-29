@@ -1,4 +1,4 @@
-from ouroboros.config import Config
+from ouroboros.helpers.config import Config
 from .pipeline import PipelineStep
 from .pipeline_input import PipelineInput
 

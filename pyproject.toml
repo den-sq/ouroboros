@@ -7,11 +7,12 @@ readme = "README.md"
 
 [tool.poetry.scripts]
 ouroboros-cli = "ouroboros.cli:main"
+build-executable = "pyinstaller:install"
 
 # Use python 3.10
 # https://stackoverflow.com/questions/60580113/change-python-version-to-3-x and run poetry install, poetry lock
 [tool.poetry.dependencies]
-python = "^3.10.5"
+python = ">=3.10.5,<3.13"
 numpy = "^1.26.4"
 scipy = "^1.13.1"
 matplotlib = "^3.9.0"
@@ -21,6 +22,7 @@ tifffile = "^2024.6.18"
 pydantic = "^2.7.4"
 tqdm = "^4.66.4"
 imagecodecs = "^2024.6.1"
+pyinstaller = "^6.8.0"
 
 
 [build-system]

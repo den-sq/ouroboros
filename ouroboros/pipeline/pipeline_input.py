@@ -1,6 +1,6 @@
 from dataclasses import astuple, dataclass
 import numpy as np
-from ouroboros.config import Config
+from ouroboros.helpers.config import Config
 from ouroboros.helpers.volume_cache import VolumeCache
 import json
 

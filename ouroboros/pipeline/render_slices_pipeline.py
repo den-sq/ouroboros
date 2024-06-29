@@ -2,7 +2,7 @@ from ouroboros.helpers.bounding_boxes import calculate_bounding_boxes_bsp_link_r
 from ouroboros.helpers.slice import calculate_slice_rects
 from ouroboros.helpers.spline import Spline
 from .pipeline import PipelineStep
-from ouroboros.config import Config
+from ouroboros.helpers.config import Config
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection

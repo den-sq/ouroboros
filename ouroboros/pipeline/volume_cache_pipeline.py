@@ -1,7 +1,7 @@
 from ouroboros.helpers.bounding_boxes import calculate_bounding_boxes_bsp_link_rects
 from ouroboros.helpers.volume_cache import VolumeCache
 from .pipeline import PipelineStep
-from ouroboros.config import Config
+from ouroboros.helpers.config import Config
 import numpy as np
 
 

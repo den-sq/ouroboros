@@ -4,7 +4,7 @@ from ouroboros.helpers.parse import (
     neuroglancer_config_to_source,
 )
 from .pipeline import PipelineStep
-from ouroboros.config import Config
+from ouroboros.helpers.config import Config
 import numpy as np
 
 
