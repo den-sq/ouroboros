@@ -15,4 +15,4 @@ path_to_main = str(CURRENT_PATH / "ouroboros" / "cli.py")
 
 def install():
     PyInstaller.__main__.run(["cli.spec"])
-    # PyInstaller.__main__.run([path_to_main, "--onefile", "-n", OUTPUT_NAME, "cli.spec"])
+    # PyInstaller.__main__.run([path_to_main, "--onefile", "-n", OUTPUT_NAME])
