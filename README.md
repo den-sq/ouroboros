@@ -11,12 +11,15 @@ Installing this package automatically provides a CLI called `ouroboros-cli`. It 
 **Commands**
 
 Slice the original volume along a path and save to a tiff file.
+
 `ouroboros-cli slice <neuroglancer.json> <options.json> [--verbose]` 
 
 Project the straightened slices back into the space of the original volume.
+
 `ouroboros-cli backproject <straightened_volume.tif> <config.json> [--options options.json] [--verbose]`
 
 Export a sample options file into the current folder.
+
 `ouroboros-cli sample-options`
 
 ### Development
