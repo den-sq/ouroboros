@@ -281,6 +281,8 @@ def make_volume_binary(volume: np.ndarray, dtype=np.uint8) -> np.ndarray:
     """
     Convert a volume to binary format.
 
+    Note: To view a binary volume, use the threshold feature in ImageJ.
+
     Parameters:
     ----------
         volume (numpy.ndarray): The volume to convert to binary format.

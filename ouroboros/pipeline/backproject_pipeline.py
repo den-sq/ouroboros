@@ -1,5 +1,6 @@
 from ouroboros.helpers.slice import (
     generate_coordinate_grid_for_rect,
+    make_volume_binary,
     write_slices_to_volume,
 )
 from ouroboros.helpers.volume_cache import VolumeCache
@@ -189,6 +190,10 @@ class BackprojectPipelineStep(PipelineStep):
                     int_y_min : int_y_max + 1,
                     int_z_min : int_z_max + 1,
                 ][non_zero_mask] = intersection_volume[non_zero_mask]
+
+            # If make_backprojection_binary, set all non-zero values to 1
+            if config.make_backprojection_binary:
+                chunk_volume = make_volume_binary(chunk_volume)
 
             # Write the chunk volume to a series of tif files
             slice_index = 0
