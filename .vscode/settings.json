@@ -1,0 +1,38 @@
+{
+	"[typescript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"editor.formatOnSave": true,
+		"editor.indentSize": "tabSize",
+		"editor.tabSize": 4
+	},
+	"[typescriptreact]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"editor.formatOnSave": true,
+		"editor.indentSize": "tabSize",
+		"editor.tabSize": 4
+	},
+	"[javascript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"editor.formatOnSave": true,
+		"editor.indentSize": "tabSize",
+		"editor.tabSize": 4
+	},
+	"[json]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"editor.formatOnSave": true,
+		"editor.indentSize": "tabSize",
+		"editor.tabSize": 4
+	},
+	"[css]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"editor.formatOnSave": true,
+		"editor.indentSize": "tabSize",
+		"editor.tabSize": 4
+	},
+	"[html]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"editor.formatOnSave": true,
+		"editor.indentSize": "tabSize",
+		"editor.tabSize": 4
+	}
+}
