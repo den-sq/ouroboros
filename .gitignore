@@ -1,13 +1,1 @@
-# Generated files
-.venv
-__pycache__
-dist
 .DS_Store
-build
-
-# Testing
-sample-data.json
-sample-volume
-data
-.pytest_cache
-.benchmarks

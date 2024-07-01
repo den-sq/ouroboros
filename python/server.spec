@@ -5,7 +5,7 @@ import imagecodecs
 hiddenimports = ["imagecodecs." + x for x in imagecodecs._extensions()]
 
 a = Analysis(
-    ['/Users/wegosci/Code/ouroboros/ouroboros/server.py'],
+    ['/Users/wegosci/Code/ouroboros/python/ouroboros/server.py'],
     pathex=[],
     binaries=[],
     datas=[],
