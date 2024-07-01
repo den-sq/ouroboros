@@ -37,6 +37,9 @@ class Pipeline:
 
         return (data, None)
 
+    def get_steps_progress(self):
+        return [(step.step_name, step.get_progress()) for step in self.steps]
+
     def get_step_statistics(self):
         return [step.get_time_statistics() for step in self.steps]
 

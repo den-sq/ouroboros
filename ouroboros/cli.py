@@ -151,7 +151,7 @@ def handle_backproject(args):
 def handle_sample_options():
     sample_options = Config(100, 100, "./output/", "sample")
 
-    sample_options.save_to_json("./sample_options.json")
+    sample_options.save_to_json("./sample-options.json")
 
 
 if __name__ == "__main__":

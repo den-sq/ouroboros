@@ -18,7 +18,6 @@ import numpy as np
 import shutil
 
 CHUNK_SIZE = 128
-COMPRESSION = "zstd"
 
 
 class BackprojectPipelineStep(PipelineStep):
@@ -143,7 +142,7 @@ class BackprojectPipelineStep(PipelineStep):
                         os.path.join(folder_path, f"{str(j).zfill(num_digits)}.tif"),
                         chunk_volume[slice_index],
                         contiguous=True,
-                        compression=COMPRESSION,
+                        compression=config.backprojection_compression,
                     )
                     slice_index += 1
                 continue
@@ -202,7 +201,7 @@ class BackprojectPipelineStep(PipelineStep):
                     os.path.join(folder_path, f"{str(j).zfill(num_digits)}.tif"),
                     chunk_volume[slice_index],
                     contiguous=True,
-                    compression=COMPRESSION,
+                    compression=config.backprojection_compression,
                 )
                 slice_index += 1
 
@@ -219,12 +218,16 @@ class BackprojectPipelineStep(PipelineStep):
         self.add_timing("export", time.perf_counter() - start)
 
         # Save the backprojected volume to a single tif file
-        load_and_save_tiff_from_slices(
-            folder_path,
-            folder_path + ".tif",
-            delete_intermediate=False,
-            compression=COMPRESSION,
-        )
+        if config.make_single_file:
+            try:
+                load_and_save_tiff_from_slices(
+                    folder_path,
+                    folder_path + ".tif",
+                    delete_intermediate=False,
+                    compression=config.backprojection_compression,
+                )
+            except Exception as e:
+                return f"Error creating single tif file: {e}"
 
         # Update the pipeline input with the output file path
         pipeline_input.backprojected_folder_path = folder_path

@@ -146,14 +146,15 @@ class SaveParallelPipelineStep(PipelineStep):
             for key, value in durations.items():
                 self.add_timing_list(key, value)
 
-        try:
-            load_and_save_tiff_from_slices(
-                folder_name,
-                output_file_path,
-                delete_intermediate=self.delete_intermediate,
-            )
-        except Exception as e:
-            return f"Error creating single tif file: {e}"
+        if config.make_single_file:
+            try:
+                load_and_save_tiff_from_slices(
+                    folder_name,
+                    output_file_path,
+                    delete_intermediate=self.delete_intermediate,
+                )
+            except Exception as e:
+                return f"Error creating single tif file: {e}"
 
         # Update the pipeline input with the output file path
         pipeline_input.output_file_path = output_file_path

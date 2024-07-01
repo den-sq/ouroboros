@@ -7,6 +7,7 @@ readme = "README.md"
 
 [tool.poetry.scripts]
 ouroboros-cli = "ouroboros.cli:main"
+ouroboros-server = "ouroboros.server:main"
 build-executable = "pyinstaller:install"
 
 # Use python 3.10
@@ -23,6 +24,9 @@ pydantic = "^2.7.4"
 tqdm = "^4.66.4"
 imagecodecs = "^2024.6.1"
 pyinstaller = "^6.8.0"
+fastapi = "^0.111.0"
+asyncio = "^3.4.3"
+uuid = "^1.30"
 
 
 [build-system]

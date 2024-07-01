@@ -7,7 +7,8 @@ from ouroboros.helpers.bounding_boxes import BoundingBoxParams
 
 # TODO: Add all the necessary fields to the Config class
 # compression type, output to a single file vs folder, etc.
-# whether to back project and make result binary
+
+# Still need to add compression to the thing and detect color based on channels and other data
 
 
 @dataclass
@@ -30,6 +31,10 @@ class Config:
     bouding_box_params: BoundingBoxParams = (
         BoundingBoxParams()
     )  # Parameters for generating bounding boxes
+    backprojection_compression: str = (
+        "zstd"  # Compression type for the backprojected file
+    )
+    make_single_file: bool = True  # Whether to save the output to a single file
 
     @property
     def output_file_path(self):
@@ -50,6 +55,8 @@ class Config:
             "backproject_min_bounding_box": self.backproject_min_bounding_box,
             "make_backprojection_binary": self.make_backprojection_binary,
             "bouding_box_params": self.bouding_box_params.to_dict(),
+            "backprojection_compression": self.backprojection_compression,
+            "make_single_file": self.make_single_file,
         }
 
     @staticmethod
@@ -67,6 +74,8 @@ class Config:
         backproject_min_bounding_box = data.get("backproject_min_bounding_box", False)
         make_backprojection_binary = data.get("make_backprojection_binary", False)
         bouding_box_params = BoundingBoxParams.from_dict(data["bouding_box_params"])
+        backprojection_compression = data.get("backprojection_compression", "zstd")
+        make_single_file = data.get("make_single_file", True)
 
         return Config(
             slice_width=slice_width,
@@ -79,6 +88,8 @@ class Config:
             backproject_min_bounding_box=backproject_min_bounding_box,
             make_backprojection_binary=make_backprojection_binary,
             bouding_box_params=bouding_box_params,
+            backprojection_compression=backprojection_compression,
+            make_single_file=make_single_file,
         )
 
     def save_to_json(self, json_path):
@@ -89,7 +100,7 @@ class Config:
             json.dump(self.to_dict(), f, indent=4)
 
     @staticmethod
-    def from_json(json_path):
+    def from_json(json_path) -> "Config | str":
         """
         Create a configuration from a JSON file.
         """
@@ -97,10 +108,8 @@ class Config:
             with open(json_path, "r") as f:
                 data = json.load(f)
         except FileNotFoundError:
-            print(f"Config file not found at {json_path}")
-            return None
+            return f"Config file not found at {json_path}"
         except json.JSONDecodeError:
-            print(f"Config file at {json_path} is not a valid JSON file")
-            return None
+            return f"Config file at {json_path} is not a valid JSON file"
 
         return Config.from_dict(data)
