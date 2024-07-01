@@ -16,18 +16,18 @@ build-executable = "pyinstaller:install"
 python = ">=3.10.5,<3.13"
 numpy = "^1.26.4"
 scipy = "^1.13.1"
-matplotlib = "^3.9.0"
-pytest = "^8.2.2"
 cloud-volume = "^8.33.0"
 tifffile = "^2024.6.18"
 pydantic = "^2.7.4"
 tqdm = "^4.66.4"
 imagecodecs = "^2024.6.1"
-pyinstaller = "^6.8.0"
 fastapi = "^0.111.0"
 asyncio = "^3.4.3"
 uuid = "^1.30"
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.2"
+pyinstaller = "^6.8.0"
 
 [build-system]
 requires = ["poetry-core"]
