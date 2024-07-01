@@ -8,7 +8,8 @@ readme = "README.md"
 [tool.poetry.scripts]
 ouroboros-cli = "ouroboros.cli:main"
 ouroboros-server = "ouroboros.server:main"
-build-executable = "pyinstaller:install"
+build-cli-executable = "pyinstaller:build_cli_executable"
+build-server-executable = "pyinstaller:build_server_executable"
 
 # Use python 3.10
 # https://stackoverflow.com/questions/60580113/change-python-version-to-3-x and run poetry install, poetry lock

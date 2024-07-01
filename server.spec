@@ -5,7 +5,7 @@ import imagecodecs
 hiddenimports = ["imagecodecs." + x for x in imagecodecs._extensions()]
 
 a = Analysis(
-    ['/Users/wegosci/Code/ouroboros/ouroboros/cli.py'],
+    ['/Users/wegosci/Code/ouroboros/ouroboros/server.py'],
     pathex=[],
     binaries=[],
     datas=[],
@@ -38,7 +38,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='ouroboros-cli',
+    name='ouroboros-server',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

@@ -1,3 +1,5 @@
+from multiprocessing import freeze_support
+
 import argparse
 
 from ouroboros.helpers.config import Config
@@ -155,4 +157,7 @@ def handle_sample_options():
 
 
 if __name__ == "__main__":
+    # Necessary to run multiprocessing in child processes
+    freeze_support()
+
     main()

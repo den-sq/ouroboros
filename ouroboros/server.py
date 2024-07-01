@@ -1,3 +1,5 @@
+from multiprocessing import freeze_support
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
@@ -20,7 +22,7 @@ from ouroboros.pipeline import (
     VolumeCachePipelineStep,
 )
 
-HOST = "0.0.0.0"
+HOST = "127.0.0.1"
 PORT = 8000
 
 
@@ -118,12 +120,16 @@ def handle_backproject(task: BackProjectTask):
 def handle_task(task: Task):
     task.status = "started"
 
-    if isinstance(task, SliceTask):
-        handle_slice(task)
-    elif isinstance(task, BackProjectTask):
-        handle_backproject(task)
-    else:
-        raise ValueError("Invalid task type")
+    try:
+        if isinstance(task, SliceTask):
+            handle_slice(task)
+        elif isinstance(task, BackProjectTask):
+            handle_backproject(task)
+        else:
+            raise ValueError("Invalid task type")
+    except BaseException as e:
+        task.status = "error"
+        task.error = str(e)
 
     if task.status != "error":
         task.status = "done"
@@ -216,4 +222,7 @@ def main():
 
 
 if __name__ == "__main__":
+    # Necessary to run multiprocessing in child processes
+    freeze_support()
+
     main()
