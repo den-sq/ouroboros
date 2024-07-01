@@ -1,26 +1,28 @@
 # Ouroboros
 
-An Electron application with React and TypeScript
+Quickly extract ROIs from cloud-hosted medical scans.
 
-## Recommended IDE Setup
+This repository is a monorepo containing the code for the Ouroboros app and the Ouroboros python package (`python` folder). 
 
--   [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+## Development
 
-## Project Setup
+VScode Setup: [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) & [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
 
-### Install
+### Project Setup
+
+#### Install
 
 ```bash
 $ npm install
 ```
 
-### Development
+#### Development
 
 ```bash
 $ npm run dev
 ```
 
-### Build
+#### Build
 
 ```bash
 # For windows

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ouroboros"
-version = "0.0.0"
+version = "1.0.0"
 description = ""
 authors = ["Weaver Goldman <we.goldm@gmail.com>"]
 readme = "README.md"
