@@ -24,7 +24,7 @@ Export a sample options file into the current folder.
 
 ### Development
 
-_Note: As of 6/19/24, cloud-volume works best in python 3.10, so it is highly advised to use it. There are some aids in the pyproject.toml file._
+_Note: As of 6/19/24, cloud-volume works best in python 3.10, so it is highly advised to use it. There are some aids in the pyproject.toml file. I recommend using pyenv to manage your version, and the easiest way is to use `pyenv global python-version`_
 
 [Poetry](https://python-poetry.org/) is the virtual environment and dependency manager for this project.
 
