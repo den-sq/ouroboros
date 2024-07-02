@@ -1,0 +1,8 @@
+.menuPanel {
+	background: var(--dark-background);
+	display: grid;
+	grid-template-rows: auto 1fr;
+	gap: 0.5rem;
+	width: 100%;
+	height: 100%;
+}

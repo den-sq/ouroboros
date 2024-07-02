@@ -1,0 +1,8 @@
+<svg height="100%" viewBox="0 0 53 39" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+<!-- <path d="M2 17L26.322 27L50.6441 17" stroke-width="3" stroke-linecap="round"/> -->
+<path d="M2 12L26.322 22L50.6441 12" stroke-width="3" stroke-linecap="round"/>
+<path d="M50.644 12L26.322 2L1.99998 12" stroke-width="3" stroke-linecap="round"/>
+<!-- <path d="M2 22L25.9418 31.8437C26.1854 31.9438 26.4587 31.9438 26.7023 31.8437L50.6441 22" stroke-width="3" stroke-linecap="round"/> -->
+<path d="M2 27L25.9418 36.8437C26.1854 36.9438 26.4587 36.9438 26.7023 36.8437L50.6441 27" stroke-width="3" stroke-linecap="round"/>
+</svg>
+<!-- Note: Some of the paths were temporariliy removed because they were cutting out other sections -->

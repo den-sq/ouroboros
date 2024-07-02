@@ -1,55 +1,31 @@
 :root {
-	--ev-c-white: #ffffff;
-	--ev-c-white-soft: #f8f8f8;
-	--ev-c-white-mute: #f2f2f2;
+	--dark-background: #1b1b23;
+	--light-background: #2d2d35;
+	--window-background: #2d2e3c;
 
-	--ev-c-black: #1b1b1f;
-	--ev-c-black-soft: #222222;
-	--ev-c-black-mute: #282828;
+	--active-menu-text: #c7c7c7;
+	--inactive-menu-text: #616161;
 
-	--ev-c-gray-1: #515c67;
-	--ev-c-gray-2: #414853;
-	--ev-c-gray-3: #32363f;
+	--panel-header-text: #969696;
+	--primary-text: #dedede;
+	--dark-text: #000000;
 
-	--ev-c-text-1: rgba(255, 255, 245, 0.86);
-	--ev-c-text-2: rgba(235, 235, 245, 0.6);
-	--ev-c-text-3: rgba(235, 235, 245, 0.38);
+	--panel-background: var(--dark-background);
+	--file-explorer-background: var(--light-background);
 
-	--ev-button-alt-border: transparent;
-	--ev-button-alt-text: var(--ev-c-text-1);
-	--ev-button-alt-bg: var(--ev-c-gray-3);
-	--ev-button-alt-hover-border: transparent;
-	--ev-button-alt-hover-text: var(--ev-c-text-1);
-	--ev-button-alt-hover-bg: var(--ev-c-gray-2);
-}
+	--progress-bar-color: var(--primary-text);
 
-:root {
-	--color-background: var(--ev-c-black);
-	--color-background-soft: var(--ev-c-black-soft);
-	--color-background-mute: var(--ev-c-black-mute);
-
-	--color-text: var(--ev-c-text-1);
-}
-
-*,
-*::before,
-*::after {
-	box-sizing: border-box;
-	margin: 0;
-	font-weight: normal;
-}
-
-ul {
-	list-style: none;
+	--option-highlight-color: #9e9de3;
+	--option-internal-color: var(--dark-text);
 }
 
 body {
 	min-height: 100vh;
-	color: var(--color-text);
-	background: var(--color-background);
+	color: var(--primary-text);
+	background: var(--window-background);
 	line-height: 1.6;
 	font-family:
-		Inter,
+		'Poppins',
 		-apple-system,
 		BlinkMacSystemFont,
 		'Segoe UI',
@@ -64,4 +40,128 @@ body {
 	text-rendering: optimizeLegibility;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
+}
+
+.header-font-size {
+	font-size: 2.25rem;
+}
+
+.file-explorer-font-size {
+	font-size: 1.125rem;
+}
+
+.progress-step-font-size {
+	font-size: 1rem;
+}
+
+.option-font-size {
+	font-size: 1.25rem;
+}
+
+.poppins-thin {
+	font-family: 'Poppins', sans-serif;
+	font-weight: 100;
+	font-style: normal;
+}
+
+.poppins-extralight {
+	font-family: 'Poppins', sans-serif;
+	font-weight: 200;
+	font-style: normal;
+}
+
+.poppins-light {
+	font-family: 'Poppins', sans-serif;
+	font-weight: 300;
+	font-style: normal;
+}
+
+.poppins-regular {
+	font-family: 'Poppins', sans-serif;
+	font-weight: 400;
+	font-style: normal;
+}
+
+.poppins-medium {
+	font-family: 'Poppins', sans-serif;
+	font-weight: 500;
+	font-style: normal;
+}
+
+.poppins-semibold {
+	font-family: 'Poppins', sans-serif;
+	font-weight: 600;
+	font-style: normal;
+}
+
+.poppins-bold {
+	font-family: 'Poppins', sans-serif;
+	font-weight: 700;
+	font-style: normal;
+}
+
+.poppins-extrabold {
+	font-family: 'Poppins', sans-serif;
+	font-weight: 800;
+	font-style: normal;
+}
+
+.poppins-black {
+	font-family: 'Poppins', sans-serif;
+	font-weight: 900;
+	font-style: normal;
+}
+
+.poppins-thin-italic {
+	font-family: 'Poppins', sans-serif;
+	font-weight: 100;
+	font-style: italic;
+}
+
+.poppins-extralight-italic {
+	font-family: 'Poppins', sans-serif;
+	font-weight: 200;
+	font-style: italic;
+}
+
+.poppins-light-italic {
+	font-family: 'Poppins', sans-serif;
+	font-weight: 300;
+	font-style: italic;
+}
+
+.poppins-regular-italic {
+	font-family: 'Poppins', sans-serif;
+	font-weight: 400;
+	font-style: italic;
+}
+
+.poppins-medium-italic {
+	font-family: 'Poppins', sans-serif;
+	font-weight: 500;
+	font-style: italic;
+}
+
+.poppins-semibold-italic {
+	font-family: 'Poppins', sans-serif;
+	font-weight: 600;
+	font-style: italic;
+}
+
+.poppins-bold-italic {
+	font-family: 'Poppins', sans-serif;
+	font-weight: 700;
+	font-style: italic;
+}
+
+.poppins-extrabold-italic {
+	font-family: 'Poppins', sans-serif;
+	font-weight: 800;
+	font-style: italic;
+}
+
+.poppins-black-italic {
+	font-family: 'Poppins', sans-serif;
+	font-weight: 900;
+	font-style: italic;
 }

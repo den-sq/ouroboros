@@ -1,0 +1,12 @@
+.fileExplorerPanel {
+	margin-left: 1rem;
+	margin-right: 1rem;
+	width: calc(100% - 2rem);
+	height: calc(100% - 1rem);
+	display: flex;
+	flex-direction: column;
+	justify-content: start;
+	align-items: start;
+	background-color: var(--light-background);
+	border-radius: 1.25rem;
+}
