@@ -81,7 +81,12 @@ def neuroglancer_config_to_source(config) -> Result:
     try:
         for layer in config["layers"]:
             if layer["type"] == "image":
-                return layer["source"], None
+                if isinstance(layer["source"], dict):
+                    return layer["source"]["url"], None
+                elif isinstance(layer["source"], str):
+                    return layer["source"], None
+                else:
+                    return None, "Invalid source format in the file."
     except Exception as e:
         return None, f"An error occurred while extracting the source URL: {str(e)}"
 
