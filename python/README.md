@@ -22,16 +22,22 @@ Export a sample options file into the current folder.
 
 `ouroboros-cli sample-options`
 
+### Server Usage
+
+This package also comes with a FastAPI server that can be run with `ouroboros-server`. Internally, this is compiled using PyInstaller and run in the electron app. 
+
+The usage is very similar to the cli, so to try it out, I recommend going to the `docs` website for the server once you run it. That is `http://127.0.0.1:8000/docs`.
+
 ### Development
 
 _Note: As of 6/19/24, cloud-volume works best in python 3.10, so it is highly advised to use it. There are some aids in the pyproject.toml file. I recommend using pyenv to manage your version, and the easiest way is to use `pyenv global python-version`_
 
 [Poetry](https://python-poetry.org/) is the virtual environment and dependency manager for this project.
 
-`poetry install` - install all dependencies of this project into a local virtual environment
-`poetry add [package]` - add a new dependency to the project
-`poetry run [file.py]` - run a python file locally without activating the virtual environment
-`poetry shell` - active the virtual environment in this shell
+- `poetry install` - install all dependencies of this project into a local virtual environment
+- `poetry add [package]` - add a new dependency to the project
+- `poetry run [file.py]` - run a python file locally without activating the virtual environment
+- `poetry shell` - active the virtual environment in this shell
 
 **To make sure that you can run PyInstaller locally (requires Python with shared libraries):**
 
