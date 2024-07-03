@@ -3,18 +3,14 @@ import SliceIcon from './assets/slice-icon.svg?react'
 import SegmentIcon from './assets/segment-icon.svg?react'
 import BackprojectIcon from './assets/backproject-icon.svg?react'
 import MenuOption from './components/MenuOption/MenuOption'
-import FileExplorer from '../FileExplorer/FileExplorer'
 
 function Menu(): JSX.Element {
 	return (
-		<>
-			<div>
-				<MenuOption optionName={'Slice'} icon={<SliceIcon />} active={true} />
-				<MenuOption optionName={'Segment'} icon={<SegmentIcon />} />
-				<MenuOption optionName={'Backproject'} icon={<BackprojectIcon />} />
-			</div>
-			<FileExplorer></FileExplorer>
-		</>
+		<div>
+			<MenuOption optionName={'Slice'} icon={<SliceIcon />} active={true} />
+			<MenuOption optionName={'Segment'} icon={<SegmentIcon />} />
+			<MenuOption optionName={'Backproject'} icon={<BackprojectIcon />} />
+		</div>
 	)
 }
 
