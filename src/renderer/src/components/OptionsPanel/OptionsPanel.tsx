@@ -6,7 +6,10 @@ import styles from './OptionsPanel.module.css'
 import CompoundEntryElement from './components/CompoundEntry/CompoundEntry'
 
 function OptionsPanel(): JSX.Element {
-	const entries: (Entry | CompoundEntry)[] = [new OptionsFile()]
+	const entries: (Entry | CompoundEntry)[] = [
+		new Entry('neuroglancer_json', 'Neuroglancer JSON', '', 'filePath'),
+		new OptionsFile()
+	]
 
 	const entryElement = entries.flatMap((entryObject) => {
 		if (entryObject instanceof Entry) return entryToElement(entryObject)
