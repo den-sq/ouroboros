@@ -2,20 +2,28 @@ import { useRef, useEffect, useState, useContext, ChangeEvent } from 'react'
 import styles from './OptionEntry.module.css'
 import { useDroppable } from '@dnd-kit/core'
 import { DragContext } from '@renderer/App'
+import { ValueType, Entry } from '@renderer/lib/options'
 
 const MIN_WIDTH = 25
 const LABEL_GAP = 15
 
-// Types: number, string, boolean, droppable
+function OptionEntry({
+	entry,
+	minWidth = MIN_WIDTH
+}: {
+	entry: Entry
+	minWidth?: number
+}): JSX.Element {
+	const label = entry.label
+	const initialValue = entry.value
+	const inputType = entry.type
+	const inputName = entry.name
 
-function OptionEntry({ label, initialValue, inputType, minWidth = MIN_WIDTH }): JSX.Element {
 	const inputRef = useRef<HTMLInputElement>(null)
 	const labelRef = useRef<HTMLDivElement>(null)
 	const [labelWidth, setLabelWidth] = useState(0)
 
 	const [inputValue, setInputValue] = useState(initialValue)
-
-	const inputName = label.toLowerCase().replaceAll(' ', '-')
 
 	const { parentChildData } = useContext(DragContext)
 
@@ -24,7 +32,7 @@ function OptionEntry({ label, initialValue, inputType, minWidth = MIN_WIDTH }): 
 	})
 
 	const style = {
-		opacity: isOver && inputType == 'droppable' ? 0.5 : 1
+		opacity: isOver && inputType == 'filePath' ? 0.5 : 1
 	}
 
 	let htmlInputType = 'text'
@@ -39,7 +47,7 @@ function OptionEntry({ label, initialValue, inputType, minWidth = MIN_WIDTH }): 
 		case 'boolean':
 			htmlInputType = 'checkbox'
 			break
-		case 'droppable':
+		case 'filePath':
 			htmlInputType = 'text'
 			break
 		default:
@@ -48,10 +56,10 @@ function OptionEntry({ label, initialValue, inputType, minWidth = MIN_WIDTH }): 
 
 	// Receive file paths dropped from FileExplorer
 	useEffect(() => {
-		if (parentChildData && parentChildData[0] === inputName && inputType === 'droppable') {
+		if (parentChildData && parentChildData[0] === inputName && inputType === 'filePath') {
 			const childData = parentChildData[1]?.data?.current
 
-			if (childData && childData.source === 'file-explorer' && childData.type == 'file') {
+			if (childData && childData.source === 'file-explorer') {
 				if (inputRef.current) {
 					setInputValue(childData.path)
 
@@ -61,7 +69,7 @@ function OptionEntry({ label, initialValue, inputType, minWidth = MIN_WIDTH }): 
 		}
 	}, [parentChildData])
 
-	function resizeInput(value: string) {
+	function resizeInput(value: ValueType) {
 		if (inputType === 'boolean') return
 
 		if (labelRef.current) {
@@ -80,7 +88,7 @@ function OptionEntry({ label, initialValue, inputType, minWidth = MIN_WIDTH }): 
 			tempSpan.style.fontSize = getComputedStyle(input).fontSize
 			tempSpan.style.fontFamily = getComputedStyle(input).fontFamily
 			tempSpan.style.visibility = 'hidden' // Hide span
-			tempSpan.textContent = value
+			tempSpan.textContent = value.toString()
 			document.body.appendChild(tempSpan)
 
 			// Set input width based on temp span width, with a minimum width
@@ -94,10 +102,12 @@ function OptionEntry({ label, initialValue, inputType, minWidth = MIN_WIDTH }): 
 	}, [initialValue, minWidth])
 
 	const onChange = (e: ChangeEvent<HTMLInputElement>) => {
-		// Before or after?
-		setInputValue(e.target.value)
-
-		if (inputType === 'boolean') return
+		if (inputType === 'boolean') {
+			setInputValue(e.target.value !== 'true')
+			return
+		} else {
+			setInputValue(e.target.value)
+		}
 		if (!inputRef.current) return
 
 		const target = e.target
@@ -113,7 +123,7 @@ function OptionEntry({ label, initialValue, inputType, minWidth = MIN_WIDTH }): 
 			<div className={`${styles.optionEntry} poppins-medium`}>
 				<div
 					ref={labelRef}
-					className={`${styles.optionLabel} option-font-size ${isOver && inputType == 'droppable' ? 'poppins-bold' : ''}`}
+					className={`${styles.optionLabel} option-font-size ${isOver && inputType == 'filePath' ? 'poppins-bold' : ''}`}
 				>
 					{label}
 				</div>
@@ -122,7 +132,12 @@ function OptionEntry({ label, initialValue, inputType, minWidth = MIN_WIDTH }): 
 					ref={inputRef}
 					type={htmlInputType}
 					className={styles.optionInput}
-					value={inputValue}
+					checked={
+						inputType == 'boolean'
+							? inputValue === 'true' || inputValue === true
+							: undefined
+					}
+					value={inputValue as string}
 					onChange={onChange}
 				/>
 			</div>

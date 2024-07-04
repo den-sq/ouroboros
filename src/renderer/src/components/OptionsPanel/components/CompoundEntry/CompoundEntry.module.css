@@ -1,0 +1,10 @@
+.indent {
+	margin-left: 2rem;
+	width: calc(100% - 2rem);
+}
+
+.title {
+	margin-left: 1rem;
+	max-width: calc(100% - 1rem);
+	color: var(--primary-text);
+}
