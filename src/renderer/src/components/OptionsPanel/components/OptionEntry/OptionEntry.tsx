@@ -1,17 +1,31 @@
-import { useRef, useEffect, useState, ChangeEvent } from 'react'
+import { useRef, useEffect, useState, useContext, ChangeEvent } from 'react'
 import styles from './OptionEntry.module.css'
+import { useDroppable } from '@dnd-kit/core'
+import { DragContext } from '@renderer/App'
 
 const MIN_WIDTH = 25
 const LABEL_GAP = 15
 
-// Types: number, string, boolean, draggable
+// Types: number, string, boolean, droppable
 
 function OptionEntry({ label, initialValue, inputType, minWidth = MIN_WIDTH }): JSX.Element {
 	const inputRef = useRef<HTMLInputElement>(null)
 	const labelRef = useRef<HTMLDivElement>(null)
 	const [labelWidth, setLabelWidth] = useState(0)
 
-	const inputName = label.toLowerCase().replace(' ', '-')
+	const [inputValue, setInputValue] = useState(initialValue)
+
+	const inputName = label.toLowerCase().replaceAll(' ', '-')
+
+	const { parentChildData } = useContext(DragContext)
+
+	const { isOver, setNodeRef } = useDroppable({
+		id: inputName
+	})
+
+	const style = {
+		opacity: isOver && inputType == 'droppable' ? 0.5 : 1
+	}
 
 	let htmlInputType = 'text'
 
@@ -25,14 +39,29 @@ function OptionEntry({ label, initialValue, inputType, minWidth = MIN_WIDTH }): 
 		case 'boolean':
 			htmlInputType = 'checkbox'
 			break
-		case 'draggable':
+		case 'droppable':
 			htmlInputType = 'text'
 			break
 		default:
 			break
 	}
 
+	// Receive file paths dropped from FileExplorer
 	useEffect(() => {
+		if (parentChildData && parentChildData[0] === inputName && inputType === 'droppable') {
+			const childData = parentChildData[1]?.data?.current
+
+			if (childData && childData.source === 'file-explorer' && childData.type == 'file') {
+				if (inputRef.current) {
+					setInputValue(childData.path)
+
+					resizeInput(childData.path)
+				}
+			}
+		}
+	}, [parentChildData])
+
+	function resizeInput(value: string) {
 		if (inputType === 'boolean') return
 
 		if (labelRef.current) {
@@ -51,16 +80,23 @@ function OptionEntry({ label, initialValue, inputType, minWidth = MIN_WIDTH }): 
 			tempSpan.style.fontSize = getComputedStyle(input).fontSize
 			tempSpan.style.fontFamily = getComputedStyle(input).fontFamily
 			tempSpan.style.visibility = 'hidden' // Hide span
-			tempSpan.textContent = initialValue
+			tempSpan.textContent = value
 			document.body.appendChild(tempSpan)
 
 			// Set input width based on temp span width, with a minimum width
 			input.style.width = `${Math.max(tempSpan.offsetWidth, minWidth)}px`
 			document.body.removeChild(tempSpan)
 		}
+	}
+
+	useEffect(() => {
+		resizeInput(initialValue)
 	}, [initialValue, minWidth])
 
 	const onChange = (e: ChangeEvent<HTMLInputElement>) => {
+		// Before or after?
+		setInputValue(e.target.value)
+
 		if (inputType === 'boolean') return
 		if (!inputRef.current) return
 
@@ -73,18 +109,23 @@ function OptionEntry({ label, initialValue, inputType, minWidth = MIN_WIDTH }): 
 	}
 
 	return (
-		<div className={`${styles.optionEntry} poppins-medium`}>
-			<div ref={labelRef} className={`${styles.optionLabel} option-font-size`}>
-				{label}
+		<div ref={setNodeRef} style={style}>
+			<div className={`${styles.optionEntry} poppins-medium`}>
+				<div
+					ref={labelRef}
+					className={`${styles.optionLabel} option-font-size ${isOver && inputType == 'droppable' ? 'poppins-bold' : ''}`}
+				>
+					{label}
+				</div>
+				<input
+					name={inputName}
+					ref={inputRef}
+					type={htmlInputType}
+					className={styles.optionInput}
+					value={inputValue}
+					onChange={onChange}
+				/>
 			</div>
-			<input
-				name={inputName}
-				ref={inputRef}
-				type={htmlInputType}
-				className={styles.optionInput}
-				defaultValue={initialValue}
-				onChange={onChange}
-			/>
 		</div>
 	)
 }

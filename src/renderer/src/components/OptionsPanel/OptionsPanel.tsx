@@ -19,6 +19,7 @@ function OptionsPanel(): JSX.Element {
 		<div className="panel">
 			<form className={styles.form} method="post" onSubmit={handleSubmit}>
 				<Header text={'Options'} />
+				<OptionEntry label={'Neurglancer JSON'} initialValue={''} inputType={'droppable'} />
 				<OptionEntry label={'Slice Width'} initialValue={120} inputType={'number'} />
 				<OptionEntry label={'Slice Height'} initialValue={120} inputType={'number'} />
 				<OptionEntry

@@ -26,6 +26,8 @@
 		"electron-updater": "^6.1.7"
 	},
 	"devDependencies": {
+		"@dnd-kit/core": "^6.1.0",
+		"@dnd-kit/utilities": "^3.2.2",
 		"@electron-toolkit/eslint-config-prettier": "^2.0.0",
 		"@electron-toolkit/eslint-config-ts": "^2.0.0",
 		"@electron-toolkit/tsconfig": "^1.0.1",
