@@ -3,6 +3,8 @@
 	margin-right: 1rem;
 	width: calc(100% - 2rem);
 	height: calc(100% - 1rem);
+	max-height: calc(100% - 1rem);
+	overflow-y: scroll;
 	display: flex;
 	flex-direction: column;
 	justify-content: start;

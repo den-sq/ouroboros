@@ -6,6 +6,7 @@
 	gap: 1rem;
 	width: calc(100% - 2rem);
 	height: calc(100% - 2rem);
+	max-height: calc(100vh - 2rem);
 }
 
 .slicePage > div:nth-child(1) {

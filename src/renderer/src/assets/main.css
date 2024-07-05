@@ -16,6 +16,7 @@ body {
 	user-select: none;
 	width: 100vw;
 	height: 100vh;
+	max-height: 100vh;
 }
 
 .panel {
@@ -27,4 +28,6 @@ body {
 	align-items: start;
 	background-color: var(--dark-background);
 	border-radius: 1.25rem;
+	position: relative;
+	overflow-y: scroll;
 }
