@@ -61,7 +61,7 @@ function OptionEntry({
 
 			if (childData && childData.source === 'file-explorer') {
 				if (inputRef.current) {
-					setInputValue(childData.path)
+					updateValue(childData.path)
 
 					resizeInput(childData.path)
 				}
@@ -97,17 +97,32 @@ function OptionEntry({
 		}
 	}
 
+	function updateValue(value: any) {
+		switch (inputType) {
+			case 'boolean':
+				const newValue = value !== 'true'
+				setInputValue(newValue)
+				entry.setValue(newValue)
+				break
+			case 'number':
+				setInputValue(value)
+				entry.setValue(Number(value))
+				break
+			default:
+				setInputValue(value)
+				entry.setValue(value)
+				break
+		}
+	}
+
 	useEffect(() => {
 		resizeInput(initialValue)
 	}, [initialValue, minWidth])
 
 	const onChange = (e: ChangeEvent<HTMLInputElement>) => {
-		if (inputType === 'boolean') {
-			setInputValue(e.target.value !== 'true')
-			return
-		} else {
-			setInputValue(e.target.value)
-		}
+		updateValue(e.target.value)
+
+		if (inputType === 'boolean') return
 		if (!inputRef.current) return
 
 		const target = e.target

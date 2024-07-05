@@ -19,12 +19,7 @@ function OptionsPanel(): JSX.Element {
 	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault()
 
-		const form = e.target as HTMLFormElement
-		const formData = new FormData(form)
-
-		for (let [key, value] of formData.entries()) {
-			console.log(`${key}: ${value}`)
-		}
+		// TODO: Save options
 	}
 
 	return (
