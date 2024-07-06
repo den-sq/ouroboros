@@ -1,10 +1,10 @@
-import React, { useState } from 'react'
+import { createContext, useState } from 'react'
 import MenuPanel from './components/MenuPanel/MenuPanel'
 import SlicesPage from './routes/SlicesPage/SlicesPage'
 
 import { DndContext, DragEndEvent, UniqueIdentifier, Active } from '@dnd-kit/core'
 
-export const DragContext = React.createContext(null as any)
+export const DragContext = createContext(null as any)
 
 function App(): JSX.Element {
 	const [active, setActive] = useState<Active | null>(null)

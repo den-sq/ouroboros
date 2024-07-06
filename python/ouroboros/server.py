@@ -1,6 +1,8 @@
 from multiprocessing import freeze_support
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from sse_starlette.sse import EventSourceResponse
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
@@ -157,6 +159,19 @@ async def lifespan(app: FastAPI):
 tasks = {}
 app = FastAPI(lifespan=lifespan)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/")
+async def server_active():
+    return JSONResponse("Server is active")
+
 
 @app.post("/slice/")
 async def add_slice_task(neuroglancer_json: str, options: str, request: Request):
@@ -166,7 +181,7 @@ async def add_slice_task(neuroglancer_json: str, options: str, request: Request)
     )
     tasks[task_id] = task
     request.state.queue.put_nowait(task)  # Add request to the queue
-    return task_id
+    return {"task_id": task_id}
 
 
 @app.post("/backproject/")
@@ -185,11 +200,10 @@ async def add_backproject_task(
     )
     tasks[task_id] = task
     request.state.queue.put_nowait(task)  # Add request to the queue
-    return task_id
+    return {"task_id": task_id}
 
 
-@app.get("/status/{task_id}")
-async def check_status(task_id: str):
+def get_status(task_id: str):
     if task_id in tasks:
         task = tasks[task_id]
         if task.status == "started" or task.status == "done":
@@ -205,16 +219,63 @@ async def check_status(task_id: str):
             "error": task.error,
         }
     else:
-        return JSONResponse("Item ID Not Found", status_code=404)
+        return {
+            "status": "error",
+            "progress": [],
+            "error": "Item ID Not Found",
+        }
+
+
+@app.get("/status/{task_id}")
+async def check_status(task_id: str):
+    result = get_status(task_id)
+
+    if result["error"] == "Item ID Not Found":
+        return JSONResponse(result, status_code=404)
+    elif result["error"]:
+        return JSONResponse(result, status_code=500)
+    else:
+        return JSONResponse(result, status_code=200)
+
+
+@app.get("/status_stream")
+async def status_stream(request: Request, task_id: str, update_freq: int = 2000):
+    async def event_generator():
+        while True:
+            if await request.is_disconnected():
+                break
+
+            result = get_status(task_id)
+
+            event = ""
+
+            match result["status"]:
+                case "error":
+                    event = "error"
+                case "done":
+                    event = "done"
+                case _:
+                    event = "update"
+
+            yield {
+                "event": event,
+                "id": task_id,
+                "retry": update_freq,
+                "data": result,
+            }
+
+            await asyncio.sleep(update_freq / 1000.0)
+
+    return EventSourceResponse(event_generator())
 
 
 @app.delete("/delete/{task_id}")
 async def delete_task(task_id: str):
     if task_id in tasks:
         del tasks[task_id]
-        return JSONResponse("Task Deleted", status_code=200)
+        return JSONResponse({"success": True}, status_code=200)
     else:
-        return JSONResponse("Item ID Not Found", status_code=404)
+        return JSONResponse({"success": False}, status_code=404)
 
 
 def main():

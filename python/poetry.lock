@@ -3157,6 +3157,25 @@ files = [
 ]
 
 [[package]]
+name = "sse-starlette"
+version = "2.1.2"
+description = "SSE plugin for Starlette"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "sse_starlette-2.1.2-py3-none-any.whl", hash = "sha256:af7fbd2b307befcf59130ab5b9a8ad67d06c4dd76cf98d0b46ec6500286bdc89"},
+    {file = "sse_starlette-2.1.2.tar.gz", hash = "sha256:b93035678d5c2c4a94bd34d3d5803636a32ee898943e68120796da9bb3bbb073"},
+]
+
+[package.dependencies]
+anyio = "*"
+starlette = "*"
+uvicorn = "*"
+
+[package.extras]
+examples = ["fastapi"]
+
+[[package]]
 name = "starlette"
 version = "0.37.2"
 description = "The little ASGI library that shines."
@@ -3812,4 +3831,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10.5,<3.13"
-content-hash = "0a57ec82ed76118cfbf990537c21482f4560faf8bf3420d8614f3382aebdd87f"
+content-hash = "44de037be7a308ff7da43fafdb0180fba4802455f13699ec2ffdc2efddbe011d"
