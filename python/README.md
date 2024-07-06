@@ -32,6 +32,8 @@ The usage is very similar to the cli, so to try it out, I recommend going to the
 
 _Note: As of 6/19/24, cloud-volume works best in python 3.10, so it is highly advised to use it. There are some aids in the pyproject.toml file. I recommend using pyenv to manage your version, and the easiest way is to use `pyenv global python-version`_
 
+It is highly recommended that if you work on the codebase for the Ouroboros Python package, you open its folder separately from the main repository. Otherwise, Poetry may be confused by the working directory.
+
 [Poetry](https://python-poetry.org/) is the virtual environment and dependency manager for this project.
 
 - `poetry install` - install all dependencies of this project into a local virtual environment
