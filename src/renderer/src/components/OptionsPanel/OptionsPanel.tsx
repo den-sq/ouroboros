@@ -10,18 +10,13 @@ import { ServerContext } from '@renderer/contexts/ServerContext/ServerContext'
 import { DirectoryContext } from '@renderer/contexts/DirectoryContext/DirectoryContext'
 
 function OptionsPanel(): JSX.Element {
-	const { connected, useFetch } = useContext(ServerContext)
+	const { connected, performFetch } = useContext(ServerContext)
 	const { directoryPath, refreshDirectory } = useContext(DirectoryContext)
 
-	const [query, setQuery] = useState({})
-	const [runFetch, setRunFetch] = useState(false)
-
-	useFetch('/slice/', query, runFetch, { method: 'POST' })
-
-	const entries: (Entry | CompoundEntry)[] = [
+	const [entries] = useState<(Entry | CompoundEntry)[]>([
 		new Entry('neuroglancer_json', 'Neuroglancer JSON', '', 'filePath'),
 		new OptionsFile()
-	]
+	])
 
 	const entryElement = entries.flatMap((entryObject) => {
 		if (entryObject instanceof Entry) return entryToElement(entryObject)
@@ -67,8 +62,11 @@ function OptionsPanel(): JSX.Element {
 		const outputOptions = await join(outputFolder, modifiedName)
 
 		// Run the slice generation
-		setQuery({ neuroglancer_json: neuroglancerJSON, options: outputOptions })
-		setRunFetch(true)
+		performFetch(
+			'/slice/',
+			{ neuroglancer_json: neuroglancerJSON, options: outputOptions },
+			{ method: 'POST' }
+		)
 	}
 
 	return (

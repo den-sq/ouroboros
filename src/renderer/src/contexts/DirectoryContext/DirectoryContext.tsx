@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useEffect, useState } from 'react'
 
 export const DirectoryContext = createContext(null as any)
 
@@ -24,14 +24,14 @@ function DirectoryProvider({ children }) {
 		}
 	}, [])
 
-	const refreshDirectory = () => {
+	const refreshDirectory = useCallback(() => {
 		window.electron.ipcRenderer
 			.invoke('fetch-folder-contents', directoryPath)
 			.then(({ files, isFolder }) => {
 				setFiles(files satisfies string[])
 				setIsFolder(isFolder satisfies boolean[])
 			})
-	}
+	}, [directoryPath])
 
 	useEffect(() => {
 		refreshDirectory()

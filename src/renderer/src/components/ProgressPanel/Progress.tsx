@@ -8,45 +8,41 @@ import { AlertContext } from '@renderer/contexts/AlertContext/AlertContext'
 
 function ProgressPanel(): JSX.Element {
 	const { refreshDirectory } = useContext(DirectoryContext)
-	const { connected, activeID, useStream } = useContext(ServerContext)
+	const { connected, fetchResults, performStream, streamResults, streamDone, streamError } =
+		useContext(ServerContext)
 	const { addAlert } = useContext(AlertContext)
-
-	const [runStream, setRunStream] = useState(false)
-	const [query, setQuery] = useState({})
-	const { data, done, error } = useStream('/status_stream', query, runStream)
 
 	const [progress, setProgress] = useState<any>(null)
 
 	// Listen to the status stream for the active task
 	useEffect(() => {
-		if (activeID) {
-			setQuery({ task_id: activeID })
-			setRunStream(true)
+		if (fetchResults) {
+			performStream('/status_stream', fetchResults)
 		}
-	}, [activeID])
+	}, [fetchResults])
 
 	// Update the progress state when new data is received
 	useEffect(() => {
-		if (data && 'progress' in data) {
-			if (!('error' in data && data.error)) {
-				setProgress(data.progress)
+		if (streamResults && 'progress' in streamResults) {
+			if (!('error' in streamResults && streamResults.error)) {
+				setProgress(streamResults.progress)
 			}
 		}
-	}, [data])
+	}, [streamResults])
 
 	// Refresh the file list when the task is done
 	useEffect(() => {
-		if (done && !error?.status) {
+		if (streamDone && !streamError?.status) {
 			addAlert('Task completed successfully!', 'success')
 			refreshDirectory()
-		} else if (error?.status) {
-			addAlert(error.message, 'error')
+		} else if (streamError?.status) {
+			addAlert(streamError.message, 'error')
 			refreshDirectory()
 		}
-	}, [done, error])
+	}, [streamDone, streamError])
 
 	const progressBars =
-		!error?.status && progress
+		!streamError?.status && progress
 			? progress.map((p: any, i: number) => {
 					const [name, _progress] = p
 					return <ProgressBar key={i} progress={_progress * 100} name={name} />

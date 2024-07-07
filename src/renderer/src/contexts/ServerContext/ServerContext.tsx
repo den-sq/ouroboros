@@ -1,33 +1,33 @@
-import { createContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useEffect, useState } from 'react'
 
 const DEFAULT_SERVER_URL = 'http://127.0.0.1:8000'
-const ID_PROPERTY_NAME = 'task_id'
+// const ID_PROPERTY_NAME = 'task_id'
 
 export type ServerContextValue = {
 	baseURL: string
-	activeID: string | null
 	connected: boolean
-	useFetch: (
+	fetchResults: object | null
+	fetchError: { status: boolean; message: string }
+	streamResults: object | null
+	streamError: { status: boolean; message: string }
+	streamDone: boolean
+	performFetch: (
 		relativeURL: string,
 		query?: Record<string, any>,
-		runFetch?: boolean,
 		options?: RequestInit
-	) => {
-		data: object | null
-		loading: boolean
-		error: { status: boolean; message: string } | null
-	}
-	useStream: (
-		relativeURL: string,
-		query?: Record<string, any>,
-		runStream?: boolean
-	) => { data: object | null; done: boolean; error: { status: boolean; message: string } | null }
+	) => Promise<void>
+	performStream: (relativeURL: string, query?: Record<string, any>) => void
 }
 
 export const ServerContext = createContext<ServerContextValue>(null as any)
 
-function ServerProvider({ baseURL = DEFAULT_SERVER_URL, idPropName = ID_PROPERTY_NAME, children }) {
-	const [activeID, setActiveID] = useState<string | null>(null)
+function useServerContextProvider(baseURL = DEFAULT_SERVER_URL) {
+	const [fetchResults, setFetchResults] = useState<object | null>(null)
+	const [fetchError, setFetchError] = useState({ status: false, message: '' })
+
+	const [streamResults, setStreamResults] = useState<object | null>(null)
+	const [streamError, setStreamError] = useState({ status: false, message: '' })
+	const [streamDone, setStreamDone] = useState(false)
 
 	const [connected, setConnected] = useState(false)
 	const retryDelay = 5000 // Delay between checks in milliseconds
@@ -61,106 +61,118 @@ function ServerProvider({ baseURL = DEFAULT_SERVER_URL, idPropName = ID_PROPERTY
 		}
 	}, [baseURL, retryDelay])
 
-	const getFullURL = (relativeURL: string, query = {}) => {
-		// Append query parameters to the URL
-		const searchParams = Object.keys(query)
-			.map((key) => {
-				const value = query[key]
-				return `${key}=${value}`
+	const getFullURL = useCallback(
+		(relativeURL: string, query = {}) => {
+			// Append query parameters to the URL
+			const searchParams = Object.keys(query)
+				.map((key) => {
+					const value = query[key]
+					return `${key}=${value}`
+				})
+				.join('&')
+
+			if (searchParams.toString().length > 0) {
+				relativeURL += '?' + searchParams.toString()
+			}
+
+			return new URL(relativeURL, baseURL).toString()
+		},
+		[baseURL]
+	)
+
+	const performFetch = useCallback(
+		async (relativeURL: string, query: Record<string, any> = {}, options: RequestInit = {}) => {
+			const fullURL = getFullURL(relativeURL, query)
+
+			// Reset the fetch error state
+			setFetchError({ status: false, message: '' })
+
+			try {
+				const response = await fetch(fullURL, options)
+				const data = await response.json()
+				setFetchResults(data)
+			} catch (error) {
+				const message =
+					error instanceof Error
+						? error.message
+						: 'Unknown error occurred while fetching data.'
+				setFetchError({ status: true, message: message })
+			}
+		},
+		[getFullURL]
+	)
+
+	const performStream = useCallback(
+		(relativeURL: string, query: Record<string, any> = {}) => {
+			const fullURL = getFullURL(relativeURL, query)
+			const eventSource = new EventSource(fullURL)
+
+			eventSource.addEventListener('open', () => {
+				setStreamResults(null)
+				setStreamDone(false)
+				setStreamError({ status: false, message: '' })
 			})
-			.join('&')
-
-		if (searchParams.toString().length > 0) {
-			relativeURL += '?' + searchParams.toString()
-		}
-
-		return new URL(relativeURL, baseURL).toString()
-	}
-
-	// https://github.com/franlol/useFetch
-	function useFetch(relativeURL: string, query = {}, runFetch = true, options = {}) {
-		const [data, setData] = useState({})
-		const [loading, setLoading] = useState(false)
-		const [error, setError] = useState({ status: false, message: '' })
-
-		useEffect(() => {
-			;(async () => {
-				if (!runFetch) return
-
-				setLoading(true)
-				try {
-					const response = await fetch(getFullURL(relativeURL, query), options)
-					if (!response.ok) throw new Error('Error fetching data.')
-					const json = await response.json()
-					setData(json)
-					setLoading(false)
-
-					// Update the active ID if it is present in the response
-					if (idPropName && idPropName in json) {
-						setActiveID(json[idPropName])
-					}
-				} catch (error) {
-					let message = 'Unknown error occurred while fetching data.'
-					if (error instanceof Error) {
-						message = error.message
-					}
-					setError({ status: true, message: message })
-					setLoading(false)
-				}
-			})()
-		}, [runFetch])
-		return { data, loading, error }
-	}
-
-	function useStream(relativeURL: string, query = {}, runStream = true) {
-		const [data, setData] = useState({})
-		const [done, setDone] = useState(false)
-		const [error, setError] = useState({ status: false, message: '' })
-
-		useEffect(() => {
-			if (!runStream) return
-
-			const eventSource = new EventSource(getFullURL(relativeURL, query))
 
 			eventSource.addEventListener('update_event', (event) => {
-				setData(JSON.parse(event.data))
+				const data = JSON.parse(event.data)
+				setStreamResults(data)
 			})
 
 			eventSource.addEventListener('done_event', (event) => {
-				setData(JSON.parse(event.data))
-				setDone(true)
+				const data = JSON.parse(event.data)
+				setStreamResults(data)
+				setStreamDone(true)
 				eventSource.close()
 			})
 
 			eventSource.addEventListener('error_event', (event) => {
 				const data = JSON.parse(event.data)
-
-				setData(data)
+				setStreamResults(data)
 
 				let error = 'Unknown error occurred while streaming data.'
 
-				if ('error' in data && data.error) {
+				if ('error' in data && data.error && typeof data.error === 'string') {
 					error = data.error
 				}
 
-				setError({ status: true, message: error })
-				setDone(true)
+				setStreamError({ status: true, message: error })
+				setStreamDone(true)
+				eventSource.close()
+			})
+
+			eventSource.addEventListener('error', (error) => {
+				const message =
+					error instanceof Error
+						? error.message
+						: 'Unknown error occurred while streaming data.'
+				setStreamError({ status: true, message: message })
 				eventSource.close()
 			})
 
 			return () => {
 				eventSource.close()
 			}
-		}, [runStream])
-
-		return { data, done, error }
-	}
-
-	return (
-		<ServerContext.Provider value={{ baseURL, activeID, connected, useFetch, useStream }}>
-			{children}
-		</ServerContext.Provider>
+		},
+		[getFullURL]
 	)
+
+	return {
+		baseURL,
+		fetchResults,
+		streamResults,
+		performFetch,
+		performStream,
+		fetchError,
+		streamError,
+		streamDone,
+		connected
+	}
+}
+
+function ServerProvider({ baseURL = DEFAULT_SERVER_URL, children }) {
+	const serverContextValue = useServerContextProvider(baseURL)
+
+	return <ServerContext.Provider value={serverContextValue}>{children}</ServerContext.Provider>
 }
 
 export default ServerProvider
