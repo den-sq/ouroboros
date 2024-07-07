@@ -1,21 +1,34 @@
-import MenuPanel from './components/MenuPanel/MenuPanel'
-import SlicesPage from './routes/SlicesPage/SlicesPage'
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 
-import DirectoryProvider from './contexts/DirectoryContext/DirectoryContext'
-import DragProvider from './contexts/DragContext/DragContext'
-import AlertProvider from './contexts/AlertContext/AlertContext'
+import SlicesPage from './routes/SlicesPage/SlicesPage'
+import BackprojectPage from './routes/BackprojectPage/BackprojectPage'
+import Root from './routes/Root/Root'
+
+const router = createBrowserRouter([
+	{
+		path: '/',
+		element: <Root />,
+		children: [
+			{
+				path: '/',
+				element: <Navigate to="/slice" />
+			},
+			{
+				path: '/slice',
+				element: <SlicesPage />
+			},
+			{
+				path: '/backproject',
+				element: <BackprojectPage />
+			}
+		]
+	}
+])
 
 function App(): JSX.Element {
 	return (
 		<>
-			<AlertProvider>
-				<DirectoryProvider>
-					<DragProvider>
-						<MenuPanel />
-						<SlicesPage />
-					</DragProvider>
-				</DirectoryProvider>
-			</AlertProvider>
+			<RouterProvider router={router} />
 		</>
 	)
 }
