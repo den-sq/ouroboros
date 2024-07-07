@@ -3,13 +3,15 @@ import Header from '../Header/Header'
 import ProgressBar from './components/ProgressBar/ProgressBar'
 import ServerConnectedIndicator from './components/ServerConnectedIndicator/ServerConnectedIndicator'
 import { ServerContext } from '../../contexts/ServerConnection/ServerConnection'
+import { DirectoryContext } from '@renderer/contexts/DirectoryContext/Directory'
 
 function ProgressPanel(): JSX.Element {
+	const { refreshDirectory } = useContext(DirectoryContext)
 	const { connected, activeID, useStream } = useContext(ServerContext)
 
 	const [runStream, setRunStream] = useState(false)
 	const [query, setQuery] = useState({})
-	const { data, error } = useStream('/status_stream', query, runStream)
+	const { data, done, error } = useStream('/status_stream', query, runStream)
 
 	const [progress, setProgress] = useState<any>(null)
 
@@ -27,6 +29,13 @@ function ProgressPanel(): JSX.Element {
 			setProgress(data.progress)
 		}
 	}, [data])
+
+	// Refresh the file list when the task is done
+	useEffect(() => {
+		if (done || error?.status) {
+			refreshDirectory()
+		}
+	}, [done, error])
 
 	const progressBars =
 		!error?.status && progress

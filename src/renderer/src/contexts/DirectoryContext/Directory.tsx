@@ -8,15 +8,21 @@ function Directory({ children }) {
 	const [files, setFiles] = useState<string[]>([])
 	const [isFolder, setIsFolder] = useState<boolean[]>([])
 
-	window.electron.ipcRenderer.on('selected-folder', (_, directory) => {
-		if (!directory || directory.length === 0) return
+	useEffect(() => {
+		window.electron.ipcRenderer.on('selected-folder', (_, directory) => {
+			if (!directory || directory.length === 0) return
 
-		setDirectoryPath(directory)
+			setDirectoryPath(directory)
 
-		// Clean up the directory name
-		const directorySplit = directory.split('/')
-		setDirectoryName(directorySplit[directorySplit.length - 1])
-	})
+			// Clean up the directory name
+			const directorySplit = directory.split('/')
+			setDirectoryName(directorySplit[directorySplit.length - 1])
+		})
+
+		return () => {
+			window.electron.ipcRenderer.removeAllListeners('selected-folder')
+		}
+	}, [])
 
 	const refreshDirectory = () => {
 		window.electron.ipcRenderer
@@ -30,13 +36,6 @@ function Directory({ children }) {
 	useEffect(() => {
 		refreshDirectory()
 	}, [directoryPath])
-
-	// Add cleanup for the IPC event listener
-	useEffect(() => {
-		return () => {
-			window.electron.ipcRenderer.removeAllListeners('selected-folder')
-		}
-	}, [])
 
 	return (
 		<DirectoryContext.Provider
