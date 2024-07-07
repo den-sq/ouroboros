@@ -2,7 +2,7 @@ import { createContext, useEffect, useState } from 'react'
 
 export const DirectoryContext = createContext(null as any)
 
-function Directory({ children }) {
+function DirectoryProvider({ children }) {
 	const [directoryName, setDirectoryName] = useState(null)
 	const [directoryPath, setDirectoryPath] = useState(null)
 	const [files, setFiles] = useState<string[]>([])
@@ -46,4 +46,4 @@ function Directory({ children }) {
 	)
 }
 
-export default Directory
+export default DirectoryProvider

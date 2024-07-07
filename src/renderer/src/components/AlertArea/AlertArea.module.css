@@ -1,0 +1,16 @@
+.alertArea {
+	position: fixed;
+	top: 1.5rem;
+	left: 0;
+	right: 0;
+	margin: auto;
+	width: 500px;
+	max-width: 50%;
+	border-radius: 0.25rem;
+	opacity: 1;
+	transition: opacity 0.5s;
+	z-index: 99999;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}

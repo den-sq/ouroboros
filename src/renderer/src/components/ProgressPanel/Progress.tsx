@@ -2,12 +2,14 @@ import { useContext, useEffect, useState } from 'react'
 import Header from '../Header/Header'
 import ProgressBar from './components/ProgressBar/ProgressBar'
 import ServerConnectedIndicator from './components/ServerConnectedIndicator/ServerConnectedIndicator'
-import { ServerContext } from '../../contexts/ServerConnection/ServerConnection'
-import { DirectoryContext } from '@renderer/contexts/DirectoryContext/Directory'
+import { ServerContext } from '../../contexts/ServerContext/ServerContext'
+import { DirectoryContext } from '@renderer/contexts/DirectoryContext/DirectoryContext'
+import { AlertContext } from '@renderer/contexts/AlertContext/AlertContext'
 
 function ProgressPanel(): JSX.Element {
 	const { refreshDirectory } = useContext(DirectoryContext)
 	const { connected, activeID, useStream } = useContext(ServerContext)
+	const { addAlert } = useContext(AlertContext)
 
 	const [runStream, setRunStream] = useState(false)
 	const [query, setQuery] = useState({})
@@ -26,13 +28,19 @@ function ProgressPanel(): JSX.Element {
 	// Update the progress state when new data is received
 	useEffect(() => {
 		if (data && 'progress' in data) {
-			setProgress(data.progress)
+			if (!('error' in data && data.error)) {
+				setProgress(data.progress)
+			}
 		}
 	}, [data])
 
 	// Refresh the file list when the task is done
 	useEffect(() => {
-		if (done || error?.status) {
+		if (done && !error?.status) {
+			addAlert('Task completed successfully!', 'success')
+			refreshDirectory()
+		} else if (error?.status) {
+			addAlert(error.message, 'error')
 			refreshDirectory()
 		}
 	}, [done, error])

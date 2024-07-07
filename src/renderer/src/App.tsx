@@ -1,18 +1,21 @@
 import MenuPanel from './components/MenuPanel/MenuPanel'
 import SlicesPage from './routes/SlicesPage/SlicesPage'
 
-import Directory from './contexts/DirectoryContext/Directory'
-import Drag from './contexts/DragContext/DragContext'
+import DirectoryProvider from './contexts/DirectoryContext/DirectoryContext'
+import DragProvider from './contexts/DragContext/DragContext'
+import AlertProvider from './contexts/AlertContext/AlertContext'
 
 function App(): JSX.Element {
 	return (
 		<>
-			<Directory>
-				<Drag>
-					<MenuPanel />
-					<SlicesPage />
-				</Drag>
-			</Directory>
+			<AlertProvider>
+				<DirectoryProvider>
+					<DragProvider>
+						<MenuPanel />
+						<SlicesPage />
+					</DragProvider>
+				</DirectoryProvider>
+			</AlertProvider>
 		</>
 	)
 }

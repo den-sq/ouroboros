@@ -6,8 +6,8 @@ import styles from './OptionsPanel.module.css'
 import CompoundEntryElement from './components/CompoundEntry/CompoundEntry'
 import { join, writeFile } from '@renderer/lib/file'
 import { useContext, useState } from 'react'
-import { ServerContext } from '@renderer/contexts/ServerConnection/ServerConnection'
-import { DirectoryContext } from '@renderer/contexts/DirectoryContext/Directory'
+import { ServerContext } from '@renderer/contexts/ServerContext/ServerContext'
+import { DirectoryContext } from '@renderer/contexts/DirectoryContext/DirectoryContext'
 
 function OptionsPanel(): JSX.Element {
 	const { connected, useFetch } = useContext(ServerContext)

@@ -4,7 +4,7 @@ import { DndContext, DragEndEvent, UniqueIdentifier, Active } from '@dnd-kit/cor
 
 export const DragContext = createContext(null as any)
 
-function Drag({ children }): JSX.Element {
+function DragProvider({ children }): JSX.Element {
 	const [active, setActive] = useState<Active | null>(null)
 	const [parentChildData, setParentChildData] = useState<[UniqueIdentifier, Active] | null>(null)
 
@@ -30,4 +30,4 @@ function Drag({ children }): JSX.Element {
 	}
 }
 
-export default Drag
+export default DragProvider

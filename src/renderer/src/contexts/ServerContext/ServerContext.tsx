@@ -26,11 +26,7 @@ export type ServerContextValue = {
 
 export const ServerContext = createContext<ServerContextValue>(null as any)
 
-function ServerConnection({
-	baseURL = DEFAULT_SERVER_URL,
-	idPropName = ID_PROPERTY_NAME,
-	children
-}) {
+function ServerProvider({ baseURL = DEFAULT_SERVER_URL, idPropName = ID_PROPERTY_NAME, children }) {
 	const [activeID, setActiveID] = useState<string | null>(null)
 
 	const [connected, setConnected] = useState(false)
@@ -126,18 +122,28 @@ function ServerConnection({
 
 			const eventSource = new EventSource(getFullURL(relativeURL, query))
 
-			eventSource.addEventListener('update', (event) => {
+			eventSource.addEventListener('update_event', (event) => {
 				setData(JSON.parse(event.data))
 			})
 
-			eventSource.addEventListener('done', (event) => {
+			eventSource.addEventListener('done_event', (event) => {
 				setData(JSON.parse(event.data))
 				setDone(true)
 				eventSource.close()
 			})
 
-			eventSource.addEventListener('error', () => {
-				setError({ status: true, message: 'Unknown error occurred while streaming data.' })
+			eventSource.addEventListener('error_event', (event) => {
+				const data = JSON.parse(event.data)
+
+				setData(data)
+
+				let error = 'Unknown error occurred while streaming data.'
+
+				if ('error' in data && data.error) {
+					error = data.error
+				}
+
+				setError({ status: true, message: error })
 				setDone(true)
 				eventSource.close()
 			})
@@ -157,4 +163,4 @@ function ServerConnection({
 	)
 }
 
-export default ServerConnection
+export default ServerProvider

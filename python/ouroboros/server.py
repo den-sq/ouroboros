@@ -251,11 +251,11 @@ async def status_stream(request: Request, task_id: str, update_freq: int = 2000)
 
             match result["status"]:
                 case "error":
-                    event = "error"
+                    event = "error_event"
                 case "done":
-                    event = "done"
+                    event = "done_event"
                 case _:
-                    event = "update"
+                    event = "update_event"
 
             yield {
                 "event": event,

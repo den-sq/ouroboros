@@ -5,7 +5,7 @@ import { DragOverlay } from '@dnd-kit/core'
 import { useContext } from 'react'
 import DraggableEntry from './components/DraggableEntry/DraggableEntry'
 import { DragContext } from '@renderer/contexts/DragContext/DragContext'
-import { DirectoryContext } from '@renderer/contexts/DirectoryContext/Directory'
+import { DirectoryContext } from '@renderer/contexts/DirectoryContext/DirectoryContext'
 
 function FileExplorer(): JSX.Element {
 	const { active } = useContext(DragContext)

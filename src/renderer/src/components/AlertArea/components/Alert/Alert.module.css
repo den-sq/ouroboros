@@ -1,0 +1,33 @@
+.alert {
+	margin-top: 0.5rem;
+	margin-bottom: 0.5rem;
+	width: 100%;
+	padding: 0.5rem;
+	border-radius: 0.25rem;
+	opacity: 1;
+	transition: opacity 0.5s;
+}
+
+.alertHidden {
+	opacity: 0;
+}
+
+.alert-error {
+	background-color: #ff5757;
+	color: var(--primary-text);
+}
+
+.alert-warning {
+	background-color: #ffdb57;
+	color: black;
+}
+
+.alert-info {
+	background-color: #57aaff;
+	color: var(--primary-text);
+}
+
+.alert-success {
+	background-color: #57ff57;
+	color: black;
+}

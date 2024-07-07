@@ -2,17 +2,17 @@ import OptionsPanel from '@renderer/components/OptionsPanel/OptionsPanel'
 import styles from './SlicesPage.module.css'
 import VisualizePanel from '@renderer/components/VisualizePanel/VisualizePanel'
 import ProgressPanel from '@renderer/components/ProgressPanel/Progress'
-import ServerConnection from '@renderer/contexts/ServerConnection/ServerConnection'
+import ServerProvider from '@renderer/contexts/ServerContext/ServerContext'
 
 function SlicesPage(): JSX.Element {
 	return (
-		<ServerConnection>
+		<ServerProvider>
 			<div className={styles.slicePage}>
 				<VisualizePanel />
 				<ProgressPanel />
 				<OptionsPanel />
 			</div>
-		</ServerConnection>
+		</ServerProvider>
 	)
 }
 
