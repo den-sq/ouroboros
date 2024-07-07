@@ -28,7 +28,7 @@ class Config:
     make_backprojection_binary: bool = (
         False  # Whether to make the backprojection binary (values of 0 or 1)
     )
-    bouding_box_params: BoundingBoxParams = (
+    bounding_box_params: BoundingBoxParams = (
         BoundingBoxParams()
     )  # Parameters for generating bounding boxes
     backprojection_compression: str = (
@@ -54,7 +54,7 @@ class Config:
             "connect_start_and_end": self.connect_start_and_end,
             "backproject_min_bounding_box": self.backproject_min_bounding_box,
             "make_backprojection_binary": self.make_backprojection_binary,
-            "bouding_box_params": self.bouding_box_params.to_dict(),
+            "bounding_box_params": self.bounding_box_params.to_dict(),
             "backprojection_compression": self.backprojection_compression,
             "make_single_file": self.make_single_file,
         }
@@ -73,7 +73,7 @@ class Config:
         connect_start_and_end = data.get("connect_start_and_end", False)
         backproject_min_bounding_box = data.get("backproject_min_bounding_box", False)
         make_backprojection_binary = data.get("make_backprojection_binary", False)
-        bouding_box_params = BoundingBoxParams.from_dict(data["bouding_box_params"])
+        bounding_box_params = BoundingBoxParams.from_dict(data["bounding_box_params"])
         backprojection_compression = data.get("backprojection_compression", "zstd")
         make_single_file = data.get("make_single_file", True)
 
@@ -87,7 +87,7 @@ class Config:
             connect_start_and_end=connect_start_and_end,
             backproject_min_bounding_box=backproject_min_bounding_box,
             make_backprojection_binary=make_backprojection_binary,
-            bouding_box_params=bouding_box_params,
+            bounding_box_params=bounding_box_params,
             backprojection_compression=backprojection_compression,
             make_single_file=make_single_file,
         )

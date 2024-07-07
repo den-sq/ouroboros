@@ -7,8 +7,9 @@ import { ServerContext } from '../../contexts/ServerConnection/ServerConnection'
 function ProgressPanel(): JSX.Element {
 	const { connected, activeID, useStream } = useContext(ServerContext)
 
+	const [runStream, setRunStream] = useState(false)
 	const [query, setQuery] = useState({})
-	const { data, error } = useStream('/status_stream', query)
+	const { data, error } = useStream('/status_stream', query, runStream)
 
 	const [progress, setProgress] = useState<any>(null)
 
@@ -16,6 +17,7 @@ function ProgressPanel(): JSX.Element {
 	useEffect(() => {
 		if (activeID) {
 			setQuery({ task_id: activeID })
+			setRunStream(true)
 		}
 	}, [activeID])
 

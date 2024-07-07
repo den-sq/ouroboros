@@ -18,17 +18,30 @@ function Directory({ children }) {
 		setDirectoryName(directorySplit[directorySplit.length - 1])
 	})
 
-	useEffect(() => {
+	const refreshDirectory = () => {
 		window.electron.ipcRenderer
 			.invoke('fetch-folder-contents', directoryPath)
 			.then(({ files, isFolder }) => {
 				setFiles(files satisfies string[])
 				setIsFolder(isFolder satisfies boolean[])
 			})
+	}
+
+	useEffect(() => {
+		refreshDirectory()
 	}, [directoryPath])
 
+	// Add cleanup for the IPC event listener
+	useEffect(() => {
+		return () => {
+			window.electron.ipcRenderer.removeAllListeners('selected-folder')
+		}
+	}, [])
+
 	return (
-		<DirectoryContext.Provider value={{ files, isFolder, directoryPath, directoryName }}>
+		<DirectoryContext.Provider
+			value={{ files, isFolder, directoryPath, directoryName, refreshDirectory }}
+		>
 			{children}
 		</DirectoryContext.Provider>
 	)

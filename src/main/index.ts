@@ -196,6 +196,24 @@ app.whenReady().then(() => {
 		}
 	})
 
+	// Save a string to a file
+	ipcMain.handle('save-file', async (_, { folder, name, data }) => {
+		try {
+			// Create the folder if it doesn't exist
+			await fs.mkdir(folder, { recursive: true })
+
+			await fs.writeFile(join(folder, name), data)
+			return true
+		} catch (error) {
+			return false
+		}
+	})
+
+	// Join two paths
+	ipcMain.handle('join-path', (_, { folder, name }) => {
+		return join(folder, name)
+	})
+
 	createWindow()
 
 	app.on('activate', function () {

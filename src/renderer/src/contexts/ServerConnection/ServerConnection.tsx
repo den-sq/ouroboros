@@ -9,7 +9,9 @@ export type ServerContextValue = {
 	connected: boolean
 	useFetch: (
 		relativeURL: string,
-		query?: Record<string, any>
+		query?: Record<string, any>,
+		runFetch?: boolean,
+		options?: RequestInit
 	) => {
 		data: object | null
 		loading: boolean
@@ -17,7 +19,8 @@ export type ServerContextValue = {
 	}
 	useStream: (
 		relativeURL: string,
-		query?: Record<string, any>
+		query?: Record<string, any>,
+		runStream?: boolean
 	) => { data: object | null; done: boolean; error: { status: boolean; message: string } | null }
 }
 
@@ -64,7 +67,12 @@ function ServerConnection({
 
 	const getFullURL = (relativeURL: string, query = {}) => {
 		// Append query parameters to the URL
-		const searchParams = new URLSearchParams(query)
+		const searchParams = Object.keys(query)
+			.map((key) => {
+				const value = query[key]
+				return `${key}=${value}`
+			})
+			.join('&')
 
 		if (searchParams.toString().length > 0) {
 			relativeURL += '?' + searchParams.toString()
@@ -74,13 +82,15 @@ function ServerConnection({
 	}
 
 	// https://github.com/franlol/useFetch
-	function useFetch(relativeURL: string, query = {}, options = {}) {
+	function useFetch(relativeURL: string, query = {}, runFetch = true, options = {}) {
 		const [data, setData] = useState({})
 		const [loading, setLoading] = useState(false)
 		const [error, setError] = useState({ status: false, message: '' })
 
 		useEffect(() => {
 			;(async () => {
+				if (!runFetch) return
+
 				setLoading(true)
 				try {
 					const response = await fetch(getFullURL(relativeURL, query), options)
@@ -102,16 +112,18 @@ function ServerConnection({
 					setLoading(false)
 				}
 			})()
-		}, [relativeURL, query, options])
+		}, [runFetch])
 		return { data, loading, error }
 	}
 
-	function useStream(relativeURL: string, query = {}) {
+	function useStream(relativeURL: string, query = {}, runStream = true) {
 		const [data, setData] = useState({})
 		const [done, setDone] = useState(false)
 		const [error, setError] = useState({ status: false, message: '' })
 
 		useEffect(() => {
+			if (!runStream) return
+
 			const eventSource = new EventSource(getFullURL(relativeURL, query))
 
 			eventSource.addEventListener('update', (event) => {
@@ -133,7 +145,7 @@ function ServerConnection({
 			return () => {
 				eventSource.close()
 			}
-		}, [relativeURL, query])
+		}, [runStream])
 
 		return { data, done, error }
 	}

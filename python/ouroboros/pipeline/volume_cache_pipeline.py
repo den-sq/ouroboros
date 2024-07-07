@@ -22,8 +22,8 @@ class VolumeCachePipelineStep(PipelineStep):
 
         bounding_boxes, link_rects = calculate_bounding_boxes_bsp_link_rects(
             slice_rects,
-            min_slices_per_box=config.bouding_box_params.min_slices_per_box,
-            max_depth=config.bouding_box_params.max_depth,
+            min_slices_per_box=config.bounding_box_params.min_slices_per_box,
+            max_depth=config.bounding_box_params.max_depth,
         )
 
         self.update_progress(0.5)

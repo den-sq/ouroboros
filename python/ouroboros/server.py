@@ -1,3 +1,4 @@
+import json
 from multiprocessing import freeze_support
 
 from fastapi import FastAPI, Request
@@ -77,6 +78,8 @@ def handle_slice(task: SliceTask):
     # Store the input data in the task
     task.pipeline_input = input_data
 
+    task.status = "started"
+
     _, error = pipeline.process(input_data)
 
     if error:
@@ -112,6 +115,8 @@ def handle_backproject(task: BackProjectTask):
     # Store the input data in the task
     task.pipeline_input = input_data
 
+    task.status = "started"
+
     _, error = pipeline.process(input_data)
 
     if error:
@@ -120,8 +125,6 @@ def handle_backproject(task: BackProjectTask):
 
 
 def handle_task(task: Task):
-    task.status = "started"
-
     try:
         if isinstance(task, SliceTask):
             handle_slice(task)
@@ -133,18 +136,15 @@ def handle_task(task: Task):
         task.status = "error"
         task.error = str(e)
 
-    if task.status != "error":
-        task.status = "done"
-
 
 async def process_requests(queue: asyncio.Queue, pool: Executor):
     while True:
         task = await queue.get()
         loop = asyncio.get_running_loop()
-        task.status = "started"
         await loop.run_in_executor(pool, handle_task, task)
         queue.task_done()
-        task.status = "done"
+        if task.status != "error":
+            task.status = "done"
 
 
 @asynccontextmanager
@@ -261,8 +261,11 @@ async def status_stream(request: Request, task_id: str, update_freq: int = 2000)
                 "event": event,
                 "id": task_id,
                 "retry": update_freq,
-                "data": result,
+                "data": json.dumps(result),
             }
+
+            if event == "done":
+                break
 
             await asyncio.sleep(update_freq / 1000.0)
 
