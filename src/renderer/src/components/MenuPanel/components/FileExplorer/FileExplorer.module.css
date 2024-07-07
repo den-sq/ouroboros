@@ -12,3 +12,9 @@
 	background-color: var(--light-background);
 	border-radius: 1.25rem;
 }
+
+.helpText {
+	margin: 1rem;
+	color: var(--primary-text);
+	font-size: 1.25rem;
+}

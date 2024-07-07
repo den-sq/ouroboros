@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from 'react'
 import Header from '../Header/Header'
 import ProgressBar from './components/ProgressBar/ProgressBar'
 import ServerConnectedIndicator from './components/ServerConnectedIndicator/ServerConnectedIndicator'
-import { ServerContext } from '../ServerConnection/ServerConnection'
+import { ServerContext } from '../../contexts/ServerConnection/ServerConnection'
 
 function ProgressPanel(): JSX.Element {
 	const { connected, activeID, useStream } = useContext(ServerContext)

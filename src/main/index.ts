@@ -1,7 +1,17 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import {
+	app,
+	shell,
+	BrowserWindow,
+	ipcMain,
+	Menu,
+	dialog,
+	MenuItemConstructorOptions
+} from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+
+import fs from 'fs/promises'
 
 function createWindow(): void {
 	const mainWindow = new BrowserWindow({
@@ -14,6 +24,119 @@ function createWindow(): void {
 		},
 		title: 'Ouroboros'
 	})
+
+	const isMac = process.platform === 'darwin'
+
+	const template = [
+		// { role: 'appMenu' }
+		...(isMac
+			? [
+					{
+						label: app.name,
+						submenu: [
+							{ role: 'about' },
+							{ type: 'separator' },
+							{ role: 'services' },
+							{ type: 'separator' },
+							{ role: 'hide' },
+							{ role: 'hideOthers' },
+							{ role: 'unhide' },
+							{ type: 'separator' },
+							{ role: 'quit' }
+						]
+					}
+				]
+			: []),
+		// { role: 'fileMenu' }
+		{
+			label: 'File',
+			submenu: [
+				{
+					label: 'Open Folder',
+					click: async () => {
+						const result = await dialog.showOpenDialog(mainWindow, {
+							properties: ['openDirectory']
+						})
+						if (!result.canceled) {
+							mainWindow.webContents.send('selected-folder', result.filePaths[0])
+						}
+					}
+				},
+				{ type: 'separator' },
+				isMac ? { role: 'close' } : { role: 'quit' }
+			]
+		},
+		// { role: 'editMenu' }
+		{
+			label: 'Edit',
+			submenu: [
+				{ role: 'undo' },
+				{ role: 'redo' },
+				{ type: 'separator' },
+				{ role: 'cut' },
+				{ role: 'copy' },
+				{ role: 'paste' },
+				...(isMac
+					? [
+							{ role: 'pasteAndMatchStyle' },
+							{ role: 'delete' },
+							{ role: 'selectAll' },
+							{ type: 'separator' },
+							{
+								label: 'Speech',
+								submenu: [{ role: 'startSpeaking' }, { role: 'stopSpeaking' }]
+							}
+						]
+					: [{ role: 'delete' }, { type: 'separator' }, { role: 'selectAll' }])
+			]
+		},
+		// { role: 'viewMenu' }
+		{
+			label: 'View',
+			submenu: [
+				{ role: 'reload' },
+				{ role: 'forceReload' },
+				{ role: 'toggleDevTools' },
+				{ type: 'separator' },
+				{ role: 'resetZoom' },
+				{ role: 'zoomIn' },
+				{ role: 'zoomOut' },
+				{ type: 'separator' },
+				{ role: 'togglefullscreen' }
+			]
+		},
+		// { role: 'windowMenu' }
+		{
+			label: 'Window',
+			submenu: [
+				{ role: 'minimize' },
+				{ role: 'zoom' },
+				...(isMac
+					? [
+							{ type: 'separator' },
+							{ role: 'front' },
+							{ type: 'separator' },
+							{ role: 'window' }
+						]
+					: [{ role: 'close' }])
+			]
+		},
+		{
+			role: 'help',
+			submenu: [
+				{
+					label: 'Learn More',
+					click: async () => {
+						await shell.openExternal('https://github.com/We-Gold/ouroboros')
+					}
+				}
+			]
+		}
+	]
+
+	const menu = Menu.buildFromTemplate(template as MenuItemConstructorOptions[])
+
+	Menu.setApplicationMenu(menu)
 
 	mainWindow.on('ready-to-show', () => {
 		mainWindow.maximize()
@@ -36,7 +159,7 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
 	// Set app user model id for windows
-	electronApp.setAppUserModelId('com.electron')
+	electronApp.setAppUserModelId('com.wegold')
 
 	// Default open or close DevTools by F12 in development
 	// and ignore CommandOrControl + R in production.
@@ -45,8 +168,33 @@ app.whenReady().then(() => {
 		optimizer.watchWindowShortcuts(window)
 	})
 
-	// IPC test
-	ipcMain.on('ping', () => console.log('pong'))
+	// Fetch the contents of the given folder
+	ipcMain.handle('fetch-folder-contents', async (_, folderPath: string) => {
+		try {
+			// https://nodejs.org/api/fs.html#fspromisesreaddirpath-options
+			const files = await fs.readdir(folderPath)
+
+			// Filter out hidden files
+			// https://stackoverflow.com/questions/18973655/how-to-ignore-hidden-files-in-fs-readdir-result
+			const noHidden = files.filter((item) => !/(^|\/)\.[^\/\.]/g.test(item))
+
+			// Determine if each file is a folder or a file
+			const isFolder = await Promise.all(
+				noHidden.map(async (file) => {
+					try {
+						const stats = await fs.stat(join(folderPath, file))
+						return stats.isDirectory()
+					} catch (error) {
+						return false
+					}
+				})
+			)
+
+			return { files: noHidden, isFolder: isFolder }
+		} catch (error) {
+			return { files: [], isFolder: [] }
+		}
+	})
 
 	createWindow()
 

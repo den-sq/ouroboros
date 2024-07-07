@@ -9,6 +9,7 @@ const api = {}
 // just add to the DOM global.
 if (process.contextIsolated) {
 	try {
+		// https://www.npmjs.com/package/@electron-toolkit/preload
 		contextBridge.exposeInMainWorld('electron', electronAPI)
 		contextBridge.exposeInMainWorld('api', api)
 	} catch (error) {
