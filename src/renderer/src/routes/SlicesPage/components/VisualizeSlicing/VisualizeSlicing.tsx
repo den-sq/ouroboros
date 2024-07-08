@@ -25,7 +25,7 @@ export type BoundingBox = {
 	max: Point
 }
 
-const colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple']
+export const RAINBOW_GRADIENT = makeRainbowGradient(10)
 
 // TODO maybe add grid
 
@@ -34,16 +34,37 @@ function VisualizeSlicing({
 	rects,
 	boundingBoxes,
 	linkRects,
-	useEveryNthRect
+	useEveryNthRect,
+	colors
 }: {
 	rects: Rect[]
 	boundingBoxes: BoundingBox[]
 	linkRects: number[]
 	useEveryNthRect?: number
+	colors?: string[]
 }): JSX.Element {
 	if (useEveryNthRect === undefined) {
 		useEveryNthRect = 1
 	}
+
+	if (colors === undefined) {
+		colors = RAINBOW_GRADIENT
+	}
+
+	const boundingBoxIndicesBySliceOrder = useMemo(() => {
+		let nextIndex = 0
+		const indexMap = new Array(boundingBoxes.length).fill(null)
+
+		linkRects.forEach((boundingBoxIndex) => {
+			if (indexMap[boundingBoxIndex] !== null) {
+				return
+			}
+
+			indexMap[boundingBoxIndex] = nextIndex++
+		})
+
+		return indexMap
+	}, [boundingBoxes])
 
 	const bounds = useMemo(
 		() =>
@@ -99,11 +120,12 @@ function VisualizeSlicing({
 					if (i % useEveryNthRect !== 0) {
 						return null
 					}
-					const color = colors[linkRects[i] % colors.length]
+					const color =
+						colors[boundingBoxIndicesBySliceOrder[linkRects[i]] % colors.length]
 					return <Slice key={i} rect={rect} color={color} opacity={0.5} />
 				})}
 				{boundingBoxes.map((boundingBox, i) => {
-					const color = colors[i % colors.length]
+					const color = colors[boundingBoxIndicesBySliceOrder[i] % colors.length]
 					return <BoundingBox key={i} boundingBox={boundingBox} color={color} />
 				})}
 			</Canvas>
@@ -178,6 +200,18 @@ function Slice({
 			/>
 		</mesh>
 	)
+}
+
+function makeRainbowGradient(numColors = 10) {
+	const gradient: string[] = []
+
+	// Make a rainbow gradient with HSL
+	for (let i = 0; i < numColors; i++) {
+		const hue = i / numColors
+		gradient.push(`hsl(${hue * 360}, 100%, 50%)`)
+	}
+
+	return gradient
 }
 
 export default VisualizeSlicing
