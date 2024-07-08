@@ -191,14 +191,20 @@ function Slice({
 	}, [rect])
 
 	return (
-		<mesh geometry={geometry}>
-			<meshBasicMaterial
-				transparent={true}
-				opacity={opacity}
-				color={color}
-				side={DoubleSide}
-			/>
-		</mesh>
+		<>
+			<mesh geometry={geometry}>
+				<meshBasicMaterial
+					transparent={true}
+					opacity={opacity}
+					color={color}
+					side={DoubleSide}
+				/>
+				<lineSegments>
+					<edgesGeometry attach="geometry" args={[geometry]} />
+					<lineBasicMaterial color={'black'} linewidth={3} />
+				</lineSegments>
+			</mesh>
+		</>
 	)
 }
 
