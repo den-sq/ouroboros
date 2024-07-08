@@ -4,12 +4,16 @@ import VisualizePanel from '@renderer/components/VisualizePanel/VisualizePanel'
 import ProgressPanel from '@renderer/components/ProgressPanel/Progress'
 import { ServerContext } from '@renderer/contexts/ServerContext/ServerContext'
 import { CompoundEntry, Entry, OptionsFile } from '@renderer/lib/options'
-import { useContext, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { DirectoryContext } from '@renderer/contexts/DirectoryContext/DirectoryContext'
 import { join, writeFile } from '@renderer/lib/file'
+import { AlertContext } from '@renderer/contexts/AlertContext/AlertContext'
+
+const SLICE_STREAM = '/slice_status_stream/'
 
 function SlicesPage(): JSX.Element {
-	const { connected, performFetch } = useContext(ServerContext)
+	const { connected, performFetch, useFetchListener, performStream, useStreamListener } =
+		useContext(ServerContext)
 	const { directoryPath, refreshDirectory } = useContext(DirectoryContext)
 
 	const [entries] = useState<(Entry | CompoundEntry)[]>([
@@ -61,10 +65,64 @@ function SlicesPage(): JSX.Element {
 		)
 	}
 
+	const { addAlert } = useContext(AlertContext)
+
+	const [progress, setProgress] = useState<any>([])
+
+	const { results: fetchResults } = useFetchListener('/slice/')
+	const {
+		results: streamResults,
+		error: streamError,
+		done: streamDone
+	} = useStreamListener(SLICE_STREAM)
+
+	// Listen to the status stream for the active task
+	useEffect(() => {
+		if (fetchResults && 'task_id' in fetchResults) {
+			performStream(SLICE_STREAM, fetchResults)
+		}
+	}, [fetchResults])
+
+	// Update the progress state when new data is received
+	useEffect(() => {
+		if (streamResults && 'progress' in streamResults) {
+			if (!('error' in streamResults && streamResults.error)) {
+				setProgress(streamResults.progress)
+			}
+		}
+	}, [streamResults])
+
+	// Refresh the file list when the task is done
+	useEffect(() => {
+		refreshDirectory()
+
+		if (streamError?.status) {
+			addAlert(streamError.message, 'error')
+		}
+
+		// if (streamDone && !streamError?.status) {
+		// 	addAlert('Task completed successfully!', 'success')
+		// 	refreshDirectory()
+
+		// 	// Delete the task from the server
+		// 	if (fetchResults && 'task_id' in fetchResults) {
+		// 		performFetch('/delete/', fetchResults, { method: 'POST' })
+		// 	}
+		// } else if (streamError?.status) {
+		// 	addAlert(streamError.message, 'error')
+		// 	refreshDirectory()
+
+		// 	// Delete the task from the server
+		// 	if (fetchResults && 'task_id' in fetchResults) {
+		// 		performFetch('/delete/', fetchResults, { method: 'POST' })
+		// 	}
+		// }
+	}, [streamDone, streamError])
+
 	return (
 		<div className={styles.slicePage}>
 			<VisualizePanel />
-			<ProgressPanel />
+			<ProgressPanel progress={progress} connected={connected} />
 			<OptionsPanel entries={entries} onSubmit={onSubmit} />
 		</div>
 	)

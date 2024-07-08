@@ -238,7 +238,41 @@ async def check_status(task_id: str):
         return JSONResponse(result, status_code=200)
 
 
-@app.get("/status_stream")
+@app.get("/slice_status_stream/")
+async def status_stream(request: Request, task_id: str, update_freq: int = 2000):
+    async def event_generator():
+        while True:
+            if await request.is_disconnected():
+                break
+
+            result = get_status(task_id)
+
+            event = ""
+
+            match result["status"]:
+                case "error":
+                    event = "error_event"
+                case "done":
+                    event = "done_event"
+                case _:
+                    event = "update_event"
+
+            yield {
+                "event": event,
+                "id": task_id,
+                "retry": update_freq,
+                "data": json.dumps(result),
+            }
+
+            if event == "done":
+                break
+
+            await asyncio.sleep(update_freq / 1000.0)
+
+    return EventSourceResponse(event_generator())
+
+
+@app.get("/backproject_status_stream/")
 async def status_stream(request: Request, task_id: str, update_freq: int = 2000):
     async def event_generator():
         while True:

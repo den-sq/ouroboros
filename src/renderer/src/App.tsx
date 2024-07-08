@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import SlicesPage from './routes/SlicesPage/SlicesPage'
 import BackprojectPage from './routes/BackprojectPage/BackprojectPage'
 import Root from './routes/Root/Root'
+import ServerProvider from './contexts/ServerContext/ServerContext'
 
 const router = createBrowserRouter([
 	{
@@ -15,11 +16,19 @@ const router = createBrowserRouter([
 			},
 			{
 				path: '/slice',
-				element: <SlicesPage />
+				element: (
+					<ServerProvider>
+						<SlicesPage />
+					</ServerProvider>
+				)
 			},
 			{
 				path: '/backproject',
-				element: <BackprojectPage />
+				element: (
+					<ServerProvider>
+						<BackprojectPage />
+					</ServerProvider>
+				)
 			}
 		]
 	}

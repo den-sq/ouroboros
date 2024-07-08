@@ -1,33 +1,105 @@
 import { createContext, useCallback, useEffect, useState } from 'react'
 
 const DEFAULT_SERVER_URL = 'http://127.0.0.1:8000'
-// const ID_PROPERTY_NAME = 'task_id'
+
+export type ServerError = {
+	status: boolean
+	message: string
+}
 
 export type ServerContextValue = {
 	baseURL: string
 	connected: boolean
-	fetchResults: object | null
-	fetchError: { status: boolean; message: string }
-	streamResults: object | null
-	streamError: { status: boolean; message: string }
-	streamDone: boolean
 	performFetch: (
 		relativeURL: string,
 		query?: Record<string, any>,
 		options?: RequestInit
 	) => Promise<void>
 	performStream: (relativeURL: string, query?: Record<string, any>) => void
+	useFetchListener: (relativeURL: string) => { results: object | null; error: ServerError }
+	useStreamListener: (relativeURL: string) => {
+		results: object | null
+		error: ServerError
+		done: boolean
+	}
 }
 
 export const ServerContext = createContext<ServerContextValue>(null as any)
 
 function useServerContextProvider(baseURL = DEFAULT_SERVER_URL) {
-	const [fetchResults, setFetchResults] = useState<object | null>(null)
-	const [fetchError, setFetchError] = useState({ status: false, message: '' })
+	const [fetchStates, setFetchStates] = useState<
+		Map<string, { results: object | null; error: ServerError }>
+	>(new Map())
+	const [streamStates, setStreamStates] = useState<
+		Map<string, { results: object | null; error: ServerError; done: boolean }>
+	>(new Map())
 
-	const [streamResults, setStreamResults] = useState<object | null>(null)
-	const [streamError, setStreamError] = useState({ status: false, message: '' })
-	const [streamDone, setStreamDone] = useState(false)
+	const setFetchStatesHelper = useCallback(
+		({
+			relativeURL,
+			results,
+			error
+		}: {
+			relativeURL: string
+			results?: object | null
+			error?: ServerError
+		}) => {
+			setFetchStates(
+				(prev) =>
+					new Map(
+						prev.set(relativeURL, {
+							results:
+								results == undefined
+									? prev.get(relativeURL)?.results ?? null
+									: results,
+							error:
+								error == undefined
+									? prev.get(relativeURL)?.error ?? {
+											status: false,
+											message: ''
+										}
+									: error
+						})
+					)
+			)
+		},
+		[]
+	)
+
+	const setStreamStatesHelper = useCallback(
+		({
+			relativeURL,
+			results,
+			error,
+			done
+		}: {
+			relativeURL: string
+			results?: object | null
+			error?: ServerError
+			done?: boolean
+		}) => {
+			setStreamStates(
+				(prev) =>
+					new Map(
+						prev.set(relativeURL, {
+							results:
+								results == undefined
+									? prev.get(relativeURL)?.results ?? null
+									: results,
+							error:
+								error == undefined
+									? prev.get(relativeURL)?.error ?? {
+											status: false,
+											message: ''
+										}
+									: error,
+							done: done == undefined ? prev.get(relativeURL)?.done ?? false : done
+						})
+					)
+			)
+		},
+		[]
+	)
 
 	const [connected, setConnected] = useState(false)
 	const retryDelay = 5000 // Delay between checks in milliseconds
@@ -84,19 +156,28 @@ function useServerContextProvider(baseURL = DEFAULT_SERVER_URL) {
 		async (relativeURL: string, query: Record<string, any> = {}, options: RequestInit = {}) => {
 			const fullURL = getFullURL(relativeURL, query)
 
-			// Reset the fetch error state
-			setFetchError({ status: false, message: '' })
+			setFetchStatesHelper({
+				relativeURL,
+				error: { status: false, message: '' }
+			})
 
 			try {
 				const response = await fetch(fullURL, options)
 				const data = await response.json()
-				setFetchResults(data)
+
+				setFetchStatesHelper({
+					relativeURL,
+					results: data
+				})
 			} catch (error) {
 				const message =
 					error instanceof Error
 						? error.message
 						: 'Unknown error occurred while fetching data.'
-				setFetchError({ status: true, message: message })
+				setFetchStatesHelper({
+					relativeURL,
+					error: { status: true, message: message }
+				})
 			}
 		},
 		[getFullURL]
@@ -108,26 +189,37 @@ function useServerContextProvider(baseURL = DEFAULT_SERVER_URL) {
 			const eventSource = new EventSource(fullURL)
 
 			eventSource.addEventListener('open', () => {
-				setStreamResults(null)
-				setStreamDone(false)
-				setStreamError({ status: false, message: '' })
+				setStreamStatesHelper({
+					relativeURL,
+					done: false,
+					error: { status: false, message: '' }
+				})
 			})
 
 			eventSource.addEventListener('update_event', (event) => {
 				const data = JSON.parse(event.data)
-				setStreamResults(data)
+				setStreamStatesHelper({
+					relativeURL,
+					results: data
+				})
 			})
 
 			eventSource.addEventListener('done_event', (event) => {
 				const data = JSON.parse(event.data)
-				setStreamResults(data)
-				setStreamDone(true)
+				setStreamStatesHelper({
+					relativeURL,
+					results: data,
+					done: true
+				})
 				eventSource.close()
 			})
 
 			eventSource.addEventListener('error_event', (event) => {
 				const data = JSON.parse(event.data)
-				setStreamResults(data)
+				setStreamStatesHelper({
+					relativeURL,
+					results: data
+				})
 
 				let error = 'Unknown error occurred while streaming data.'
 
@@ -135,8 +227,11 @@ function useServerContextProvider(baseURL = DEFAULT_SERVER_URL) {
 					error = data.error
 				}
 
-				setStreamError({ status: true, message: error })
-				setStreamDone(true)
+				setStreamStatesHelper({
+					relativeURL,
+					error: { status: true, message: error },
+					done: true
+				})
 				eventSource.close()
 			})
 
@@ -145,7 +240,10 @@ function useServerContextProvider(baseURL = DEFAULT_SERVER_URL) {
 					error instanceof Error
 						? error.message
 						: 'Unknown error occurred while streaming data.'
-				setStreamError({ status: true, message: message })
+				setStreamStatesHelper({
+					relativeURL,
+					error: { status: true, message: message }
+				})
 				eventSource.close()
 			})
 
@@ -156,16 +254,45 @@ function useServerContextProvider(baseURL = DEFAULT_SERVER_URL) {
 		[getFullURL]
 	)
 
+	const useFetchListener = (relativeURL: string) => {
+		const [results, setResults] = useState<object | null>(null)
+		const [error, setError] = useState<ServerError>({ status: false, message: '' })
+
+		useEffect(() => {
+			const state = fetchStates.get(relativeURL)
+			if (state) {
+				setResults(state.results)
+				setError(state.error)
+			}
+		}, [relativeURL, fetchStates])
+
+		return { results, error }
+	}
+
+	const useStreamListener = (relativeURL: string) => {
+		const [results, setResults] = useState<object | null>(null)
+		const [error, setError] = useState<ServerError>({ status: false, message: '' })
+		const [done, setDone] = useState(false)
+
+		useEffect(() => {
+			const state = streamStates.get(relativeURL)
+			if (state) {
+				setResults(state.results)
+				setError(state.error)
+				setDone(state.done)
+			}
+		}, [relativeURL, streamStates])
+
+		return { results, error, done }
+	}
+
 	return {
 		baseURL,
-		fetchResults,
-		streamResults,
+		connected,
 		performFetch,
 		performStream,
-		fetchError,
-		streamError,
-		streamDone,
-		connected
+		useFetchListener,
+		useStreamListener
 	}
 }
 
