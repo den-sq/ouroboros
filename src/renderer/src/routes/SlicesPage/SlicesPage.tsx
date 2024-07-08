@@ -8,6 +8,7 @@ import { useContext, useEffect, useState } from 'react'
 import { DirectoryContext } from '@renderer/contexts/DirectoryContext/DirectoryContext'
 import { join, writeFile } from '@renderer/lib/file'
 import { AlertContext } from '@renderer/contexts/AlertContext/AlertContext'
+import VisualizeSlicing from './components/VisualizeSlicing/VisualizeSlicing'
 
 const SLICE_STREAM = '/slice_status_stream/'
 
@@ -121,7 +122,7 @@ function SlicesPage(): JSX.Element {
 
 	return (
 		<div className={styles.slicePage}>
-			<VisualizePanel />
+			<VisualizePanel>{/* <VisualizeSlicing /> */}</VisualizePanel>
 			<ProgressPanel progress={progress} connected={connected} />
 			<OptionsPanel entries={entries} onSubmit={onSubmit} />
 		</div>

@@ -129,7 +129,7 @@ function BackprojectPage(): JSX.Element {
 
 	return (
 		<div className={styles.backprojectPage}>
-			<VisualizePanel />
+			<VisualizePanel></VisualizePanel>
 			<ProgressPanel progress={progress} connected={connected} />
 			<OptionsPanel entries={entries} onSubmit={onSubmit} />
 		</div>

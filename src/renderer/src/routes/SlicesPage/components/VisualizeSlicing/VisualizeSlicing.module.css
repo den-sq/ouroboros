@@ -1,0 +1,6 @@
+.visualizeSlicing {
+	margin: 0.5rem;
+	width: calc(100% - 1rem);
+	height: calc(100% - 1rem);
+	background-color: transparent;
+}
