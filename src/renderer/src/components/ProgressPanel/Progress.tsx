@@ -8,15 +8,22 @@ import { AlertContext } from '@renderer/contexts/AlertContext/AlertContext'
 
 function ProgressPanel(): JSX.Element {
 	const { refreshDirectory } = useContext(DirectoryContext)
-	const { connected, fetchResults, performStream, streamResults, streamDone, streamError } =
-		useContext(ServerContext)
+	const {
+		connected,
+		performFetch,
+		fetchResults,
+		performStream,
+		streamResults,
+		streamDone,
+		streamError
+	} = useContext(ServerContext)
 	const { addAlert } = useContext(AlertContext)
 
 	const [progress, setProgress] = useState<any>(null)
 
 	// Listen to the status stream for the active task
 	useEffect(() => {
-		if (fetchResults) {
+		if (fetchResults && 'task_id' in fetchResults) {
 			performStream('/status_stream', fetchResults)
 		}
 	}, [fetchResults])
@@ -35,9 +42,19 @@ function ProgressPanel(): JSX.Element {
 		if (streamDone && !streamError?.status) {
 			addAlert('Task completed successfully!', 'success')
 			refreshDirectory()
+
+			// Delete the task from the server
+			if (fetchResults && 'task_id' in fetchResults) {
+				performFetch('/delete/', fetchResults, { method: 'POST' })
+			}
 		} else if (streamError?.status) {
 			addAlert(streamError.message, 'error')
 			refreshDirectory()
+
+			// Delete the task from the server
+			if (fetchResults && 'task_id' in fetchResults) {
+				performFetch('/delete/', fetchResults, { method: 'POST' })
+			}
 		}
 	}, [streamDone, streamError])
 

@@ -272,7 +272,7 @@ async def status_stream(request: Request, task_id: str, update_freq: int = 2000)
     return EventSourceResponse(event_generator())
 
 
-@app.delete("/delete/{task_id}")
+@app.post("/delete/")
 async def delete_task(task_id: str):
     if task_id in tasks:
         del tasks[task_id]
