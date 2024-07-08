@@ -107,14 +107,14 @@ function VisualizeSlicing({
 	// Adding some extra distance to ensure the entire bounding box is visible
 	const cameraPosition = [
 		center[0],
-		center[1],
-		center[2] + distance + maxDimension * 0.5
+		center[1] + distance + maxDimension * 0.5,
+		center[2]
 	] as Vector3
 
 	return (
 		<div className={styles.visualizeSlicing}>
 			<Canvas>
-				<PerspectiveCamera fov={FOV} makeDefault position={cameraPosition} />
+				<PerspectiveCamera fov={FOV} makeDefault position={cameraPosition} up={[0, 0, 1]} />
 				<OrbitControls target={center as Vector3} />
 				{rects.map((rect, i) => {
 					if (i % useEveryNthRect !== 0) {
