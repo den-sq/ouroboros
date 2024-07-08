@@ -20,7 +20,7 @@ export type Rect = {
 	bottomLeft: Point
 }
 
-export type BoundingBox = {
+export type BoundingBoxType = {
 	min: Point
 	max: Point
 }
@@ -38,7 +38,7 @@ function VisualizeSlicing({
 	colors
 }: {
 	rects: Rect[]
-	boundingBoxes: BoundingBox[]
+	boundingBoxes: BoundingBoxType[]
 	linkRects: number[]
 	useEveryNthRect?: number
 	colors?: string[]
@@ -111,22 +111,31 @@ function VisualizeSlicing({
 		center[2]
 	] as Vector3
 
+	const sliceElements = useMemo(() => {
+		return rects.map((rect, i) => {
+			if (i % useEveryNthRect !== 0) {
+				return null
+			}
+			const color = colors[boundingBoxIndicesBySliceOrder[linkRects[i]] % colors.length]
+			return <Slice key={i} rect={rect} color={color} opacity={0.5} />
+		})
+	}, [rects, useEveryNthRect, colors, boundingBoxIndicesBySliceOrder, linkRects])
+
 	return (
 		<div className={styles.visualizeSlicing}>
 			<Canvas>
-				<PerspectiveCamera fov={FOV} makeDefault position={cameraPosition} up={[0, 0, 1]} />
+				<PerspectiveCamera
+					fov={FOV}
+					makeDefault
+					position={cameraPosition}
+					up={[0, 0, 1]}
+					far={distance + maxDimension}
+				/>
 				<OrbitControls target={center as Vector3} />
-				{rects.map((rect, i) => {
-					if (i % useEveryNthRect !== 0) {
-						return null
-					}
-					const color =
-						colors[boundingBoxIndicesBySliceOrder[linkRects[i]] % colors.length]
-					return <Slice key={i} rect={rect} color={color} opacity={0.5} />
-				})}
+
+				{sliceElements}
 				{boundingBoxes.map((boundingBox, i) => {
-					const color = colors[boundingBoxIndicesBySliceOrder[i] % colors.length]
-					return <BoundingBox key={i} boundingBox={boundingBox} color={color} />
+					return <BoundingBox key={i} boundingBox={boundingBox} color={'white'} />
 				})}
 			</Canvas>
 		</div>
@@ -137,7 +146,7 @@ function BoundingBox({
 	boundingBox,
 	color
 }: {
-	boundingBox: BoundingBox
+	boundingBox: BoundingBoxType
 	color: string
 }): JSX.Element {
 	const { min, max } = boundingBox
@@ -156,9 +165,8 @@ function BoundingBox({
 		<mesh position={position}>
 			<lineSegments>
 				<edgesGeometry attach="geometry" args={[geometry]} />
-				<lineBasicMaterial attach="material" linewidth={3} />
+				<lineBasicMaterial color={color} linewidth={3} />
 			</lineSegments>
-			<meshBasicMaterial color={color} />
 		</mesh>
 	)
 }

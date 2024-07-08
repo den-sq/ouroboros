@@ -10,6 +10,8 @@ import { join, writeFile } from '@renderer/lib/file'
 import { AlertContext } from '@renderer/contexts/AlertContext/AlertContext'
 import VisualizeSlicing from './components/VisualizeSlicing/VisualizeSlicing'
 
+const SLICE_RENDER_PROPORTION = 0.01
+
 const SLICE_STREAM = '/slice_status_stream/'
 
 function SlicesPage(): JSX.Element {
@@ -30,7 +32,12 @@ function SlicesPage(): JSX.Element {
 		<div className={styles.slicePage}>
 			<VisualizePanel>
 				{visualizationData ? (
-					<VisualizeSlicing {...visualizationData} useEveryNthRect={10} />
+					<VisualizeSlicing
+						{...visualizationData}
+						useEveryNthRect={Math.floor(
+							visualizationData.rects.length * SLICE_RENDER_PROPORTION
+						)}
+					/>
 				) : null}
 			</VisualizePanel>
 			<ProgressPanel progress={progress} connected={connected} />
@@ -68,50 +75,6 @@ function useSlicePageState() {
 		new Entry('neuroglancer_json', 'Neuroglancer JSON', '', 'filePath'),
 		new OptionsFile()
 	])
-
-	const onSubmit = async () => {
-		if (!connected) {
-			return
-		}
-
-		const optionsObject = entries[1].toObject()
-
-		const outputFolder = await join(directoryPath, optionsObject['output_file_folder'])
-
-		// Add the absolute output folder to the options object
-		optionsObject['output_file_folder'] = outputFolder
-
-		const outputName = optionsObject['output_file_name']
-		const neuroglancerJSON = await join(directoryPath, entries[0].toObject() as string)
-
-		// Validate options
-		if (
-			!optionsObject['output_file_folder'] ||
-			!outputName ||
-			!entries[0].toObject() ||
-			optionsObject['output_file_folder'] === '' ||
-			outputName === '' ||
-			entries[0].toObject() === ''
-		) {
-			return
-		}
-
-		const modifiedName = `${outputName}-options-slice.json`
-
-		// Save options to file
-		await writeFile(outputFolder, modifiedName, JSON.stringify(optionsObject, null, 4))
-
-		refreshDirectory()
-
-		const outputOptions = await join(outputFolder, modifiedName)
-
-		// Run the slice generation
-		performFetch(
-			'/slice/',
-			{ neuroglancer_json: neuroglancerJSON, options: outputOptions },
-			{ method: 'POST' }
-		)
-	}
 
 	const { addAlert } = useContext(AlertContext)
 
@@ -173,6 +136,56 @@ function useSlicePageState() {
 		// 	}
 		// }
 	}, [streamDone, streamError])
+
+	const onSubmit = async () => {
+		if (!connected) {
+			return
+		}
+
+		// Delete the previous task if it exists
+		if (fetchResults && 'task_id' in fetchResults) {
+			performFetch('/delete/', fetchResults, { method: 'POST' })
+			return
+		}
+
+		const optionsObject = entries[1].toObject()
+
+		const outputFolder = await join(directoryPath, optionsObject['output_file_folder'])
+
+		// Add the absolute output folder to the options object
+		optionsObject['output_file_folder'] = outputFolder
+
+		const outputName = optionsObject['output_file_name']
+		const neuroglancerJSON = await join(directoryPath, entries[0].toObject() as string)
+
+		// Validate options
+		if (
+			!optionsObject['output_file_folder'] ||
+			!outputName ||
+			!entries[0].toObject() ||
+			optionsObject['output_file_folder'] === '' ||
+			outputName === '' ||
+			entries[0].toObject() === ''
+		) {
+			return
+		}
+
+		const modifiedName = `${outputName}-options-slice.json`
+
+		// Save options to file
+		await writeFile(outputFolder, modifiedName, JSON.stringify(optionsObject, null, 4))
+
+		refreshDirectory()
+
+		const outputOptions = await join(outputFolder, modifiedName)
+
+		// Run the slice generation
+		performFetch(
+			'/slice/',
+			{ neuroglancer_json: neuroglancerJSON, options: outputOptions },
+			{ method: 'POST' }
+		)
+	}
 
 	return { progress, connected, entries, onSubmit, visualizationResults }
 }
