@@ -13,6 +13,53 @@ import VisualizeSlicing from './components/VisualizeSlicing/VisualizeSlicing'
 const SLICE_STREAM = '/slice_status_stream/'
 
 function SlicesPage(): JSX.Element {
+	const { progress, connected, entries, onSubmit, visualizationResults } = useSlicePageState()
+
+	const visualizationData =
+		visualizationResults && 'data' in visualizationResults
+			? visualizationDataToProps(
+					visualizationResults.data as {
+						rects: number[][][]
+						bounding_boxes: { min: number[]; max: number[] }[]
+						link_rects: number[]
+					}
+				)
+			: null
+
+	return (
+		<div className={styles.slicePage}>
+			<VisualizePanel>
+				{visualizationData ? (
+					<VisualizeSlicing {...visualizationData} useEveryNthRect={10} />
+				) : null}
+			</VisualizePanel>
+			<ProgressPanel progress={progress} connected={connected} />
+			<OptionsPanel entries={entries} onSubmit={onSubmit} />
+		</div>
+	)
+}
+
+function visualizationDataToProps(
+	visualizationData: {
+		rects: number[][][]
+		bounding_boxes: { min: number[]; max: number[] }[]
+		link_rects: number[]
+	} | null
+) {
+	if (!visualizationData) {
+		return null
+	}
+
+	const rects = visualizationData.rects.map((rect) => {
+		return { topLeft: rect[0], topRight: rect[1], bottomRight: rect[2], bottomLeft: rect[3] }
+	})
+	const boundingBoxes = visualizationData.bounding_boxes
+	const linkRects = visualizationData.link_rects
+
+	return { rects, boundingBoxes, linkRects }
+}
+
+function useSlicePageState() {
 	const { connected, performFetch, useFetchListener, performStream, useStreamListener } =
 		useContext(ServerContext)
 	const { directoryPath, refreshDirectory } = useContext(DirectoryContext)
@@ -77,6 +124,8 @@ function SlicesPage(): JSX.Element {
 		done: streamDone
 	} = useStreamListener(SLICE_STREAM)
 
+	const { results: visualizationResults } = useFetchListener('/slice_visualization/')
+
 	// Listen to the status stream for the active task
 	useEffect(() => {
 		if (fetchResults && 'task_id' in fetchResults) {
@@ -101,6 +150,11 @@ function SlicesPage(): JSX.Element {
 			addAlert(streamError.message, 'error')
 		}
 
+		if (streamDone && fetchResults && 'task_id' in fetchResults) {
+			// Get the visualization data
+			performFetch('/slice_visualization/', fetchResults)
+		}
+
 		// if (streamDone && !streamError?.status) {
 		// 	addAlert('Task completed successfully!', 'success')
 		// 	refreshDirectory()
@@ -120,13 +174,7 @@ function SlicesPage(): JSX.Element {
 		// }
 	}, [streamDone, streamError])
 
-	return (
-		<div className={styles.slicePage}>
-			<VisualizePanel>{/* <VisualizeSlicing /> */}</VisualizePanel>
-			<ProgressPanel progress={progress} connected={connected} />
-			<OptionsPanel entries={entries} onSubmit={onSubmit} />
-		</div>
-	)
+	return { progress, connected, entries, onSubmit, visualizationResults }
 }
 
 export default SlicesPage

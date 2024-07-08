@@ -1,5 +1,6 @@
 import json
 from multiprocessing import freeze_support
+from unittest import result
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -182,6 +183,38 @@ async def add_slice_task(neuroglancer_json: str, options: str, request: Request)
     tasks[task_id] = task
     request.state.queue.put_nowait(task)  # Add request to the queue
     return {"task_id": task_id}
+
+
+@app.get("/slice_visualization/")
+async def get_slice_visualization(task_id: str):
+    result = {
+        "data": None,
+        "error": None,
+    }
+
+    if task_id in tasks:
+        task = tasks[task_id]
+        if task.status == "done":
+            data = {
+                "rects": task.pipeline_input.slice_rects.tolist(),
+                "bounding_boxes": [
+                    {
+                        "min": [bbox.x_min, bbox.y_min, bbox.z_min],
+                        "max": [bbox.x_max, bbox.y_max, bbox.z_max],
+                    }
+                    for bbox in task.pipeline_input.volume_cache.bounding_boxes
+                ],
+                "link_rects": task.pipeline_input.volume_cache.link_rects,
+            }
+            result["data"] = data
+
+            return JSONResponse(result, status_code=200)
+        else:
+            result["error"] = "Task is not done."
+            return JSONResponse(result, status_code=400)
+    else:
+        result["error"] = "Item ID Not Found"
+        return JSONResponse(result, status_code=404)
 
 
 @app.post("/backproject/")

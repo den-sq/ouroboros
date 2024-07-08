@@ -11,7 +11,7 @@ import {
 	Float32BufferAttribute
 } from 'three'
 
-export type Point = [number, number, number]
+export type Point = number[]
 
 export type Rect = {
 	topLeft: Point
@@ -27,32 +27,90 @@ export type BoundingBox = {
 
 const colors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple']
 
+// TODO maybe add grid
+
 // https://github.com/We-Gold/ouroboros/blob/b67033cf3155a5ee6a3356f649b5df84d667fb6c/ouroboros/pipeline/render_slices_pipeline.py
 function VisualizeSlicing({
 	rects,
 	boundingBoxes,
-	linkRects
+	linkRects,
+	useEveryNthRect
 }: {
 	rects: Rect[]
 	boundingBoxes: BoundingBox[]
 	linkRects: number[]
+	useEveryNthRect?: number
 }): JSX.Element {
+	if (useEveryNthRect === undefined) {
+		useEveryNthRect = 1
+	}
+
+	const bounds = useMemo(
+		() =>
+			boundingBoxes.reduce(
+				(acc, { min, max }) => {
+					acc.min[0] = Math.min(acc.min[0], min[0])
+					acc.min[1] = Math.min(acc.min[1], min[1])
+					acc.min[2] = Math.min(acc.min[2], min[2])
+
+					acc.max[0] = Math.max(acc.max[0], max[0])
+					acc.max[1] = Math.max(acc.max[1], max[1])
+					acc.max[2] = Math.max(acc.max[2], max[2])
+
+					return acc
+				},
+				{
+					min: [Infinity, Infinity, Infinity],
+					max: [-Infinity, -Infinity, -Infinity]
+				}
+			),
+		[boundingBoxes]
+	)
+
+	const position = bounds.min
+	const center = [
+		(bounds.min[0] + bounds.max[0]) / 2,
+		(bounds.min[1] + bounds.max[1]) / 2,
+		(bounds.min[2] + bounds.max[2]) / 2
+	] as Vector3
+	const width = bounds.max[0] - bounds.min[0]
+	const height = bounds.max[1] - bounds.min[1]
+	const depth = bounds.max[2] - bounds.min[2]
+
+	// Calculate the distance required to view the entire bounding box
+	// This is a simplified approach and might need adjustments based on FOV and aspect ratio
+	const maxDimension = Math.max(width, height, depth)
+	const distance = maxDimension / (2 * Math.tan((Math.PI / 180) * 30)) // Assuming a 60 degree FOV
+
+	// Adjust the camera position to be centered and far enough to see everything
+	// Adding some extra distance to ensure the entire bounding box is visible
+	const cameraPosition = [
+		center[0],
+		center[1],
+		center[2] + distance + maxDimension * 0.5
+	] as Vector3
+
 	return (
 		<div className={styles.visualizeSlicing}>
 			<Canvas>
-				<PerspectiveCamera makeDefault position={[0, 0, 10]} />
-				<OrbitControls />
-				<ambientLight intensity={0.1} />
-				<directionalLight color="white" position={[0, 0, 5]} />
+				<PerspectiveCamera
+					makeDefault
+					position={cameraPosition}
+					lookAt={() => center as Vector3}
+				/>
+				<OrbitControls target={center as Vector3} />
 				{rects.map((rect, i) => {
+					if (i % useEveryNthRect !== 0) {
+						return null
+					}
 					const color = colors[linkRects[i] % colors.length]
-					return <Slice key={i} rect={rect} color={color} opacity={0.3} />
+					return <Slice key={i} rect={rect} color={color} opacity={0.5} />
 				})}
 				{boundingBoxes.map((boundingBox, i) => {
 					const color = colors[i % colors.length]
 					return <BoundingBox key={i} boundingBox={boundingBox} color={color} />
 				})}
-				<axesHelper args={[5]} />
+				<axesHelper position={position as Vector3} args={[5]} />
 			</Canvas>
 		</div>
 	)
@@ -117,7 +175,12 @@ function Slice({
 
 	return (
 		<mesh geometry={geometry}>
-			<meshBasicMaterial opacity={opacity} color={color} side={DoubleSide} />
+			<meshBasicMaterial
+				transparent={true}
+				opacity={opacity}
+				color={color}
+				side={DoubleSide}
+			/>
 		</mesh>
 	)
 }
