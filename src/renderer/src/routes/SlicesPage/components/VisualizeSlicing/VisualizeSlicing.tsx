@@ -67,7 +67,6 @@ function VisualizeSlicing({
 		[boundingBoxes]
 	)
 
-	const position = bounds.min
 	const center = [
 		(bounds.min[0] + bounds.max[0]) / 2,
 		(bounds.min[1] + bounds.max[1]) / 2,
@@ -79,8 +78,9 @@ function VisualizeSlicing({
 
 	// Calculate the distance required to view the entire bounding box
 	// This is a simplified approach and might need adjustments based on FOV and aspect ratio
+	const FOV = 50
 	const maxDimension = Math.max(width, height, depth)
-	const distance = maxDimension / (2 * Math.tan((Math.PI / 180) * 30)) // Assuming a 60 degree FOV
+	const distance = maxDimension / (2 * Math.tan((Math.PI / 180) * (FOV / 2)))
 
 	// Adjust the camera position to be centered and far enough to see everything
 	// Adding some extra distance to ensure the entire bounding box is visible
@@ -93,11 +93,7 @@ function VisualizeSlicing({
 	return (
 		<div className={styles.visualizeSlicing}>
 			<Canvas>
-				<PerspectiveCamera
-					makeDefault
-					position={cameraPosition}
-					lookAt={() => center as Vector3}
-				/>
+				<PerspectiveCamera fov={FOV} makeDefault position={cameraPosition} />
 				<OrbitControls target={center as Vector3} />
 				{rects.map((rect, i) => {
 					if (i % useEveryNthRect !== 0) {
@@ -110,7 +106,6 @@ function VisualizeSlicing({
 					const color = colors[i % colors.length]
 					return <BoundingBox key={i} boundingBox={boundingBox} color={color} />
 				})}
-				<axesHelper position={position as Vector3} args={[5]} />
 			</Canvas>
 		</div>
 	)
