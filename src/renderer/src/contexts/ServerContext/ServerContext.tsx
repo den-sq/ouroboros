@@ -16,6 +16,8 @@ export type ServerContextValue = {
 		options?: RequestInit
 	) => Promise<void>
 	performStream: (relativeURL: string, query?: Record<string, any>) => void
+	clearFetch: (relativeURL: string) => void
+	clearStream: (relativeURL: string) => void
 	useFetchListener: (relativeURL: string) => { results: object | null; error: ServerError }
 	useStreamListener: (relativeURL: string) => {
 		results: object | null
@@ -183,8 +185,16 @@ function useServerContextProvider(baseURL = DEFAULT_SERVER_URL) {
 		[getFullURL]
 	)
 
+	const clearFetch = useCallback((relativeURL: string) => {
+		setFetchStatesHelper({
+			relativeURL,
+			results: null,
+			error: { status: false, message: '' }
+		})
+	}, [])
+
 	const performStream = useCallback(
-		(relativeURL: string, query: Record<string, any> = {}) => {
+		(relativeURL: string, query: Record<string, any> = {}): Promise<void> => {
 			const fullURL = getFullURL(relativeURL, query)
 			const eventSource = new EventSource(fullURL)
 
@@ -247,12 +257,29 @@ function useServerContextProvider(baseURL = DEFAULT_SERVER_URL) {
 				eventSource.close()
 			})
 
-			return () => {
-				eventSource.close()
-			}
+			return new Promise((resolve) => {
+				// Resolve the promise when the done event is received
+				eventSource.addEventListener('done_event', () => {
+					resolve()
+				})
+
+				// Resolve the promise when the error event is received
+				eventSource.addEventListener('error_event', () => {
+					resolve()
+				})
+			})
 		},
 		[getFullURL]
 	)
+
+	const clearStream = useCallback((relativeURL: string) => {
+		setStreamStatesHelper({
+			relativeURL,
+			results: null,
+			error: { status: false, message: '' },
+			done: false
+		})
+	}, [])
 
 	const useFetchListener = (relativeURL: string) => {
 		const [results, setResults] = useState<object | null>(null)
@@ -291,6 +318,8 @@ function useServerContextProvider(baseURL = DEFAULT_SERVER_URL) {
 		connected,
 		performFetch,
 		performStream,
+		clearFetch,
+		clearStream,
 		useFetchListener,
 		useStreamListener
 	}

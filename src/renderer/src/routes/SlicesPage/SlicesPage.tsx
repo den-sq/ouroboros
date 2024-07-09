@@ -67,8 +67,15 @@ function visualizationDataToProps(
 }
 
 function useSlicePageState() {
-	const { connected, performFetch, useFetchListener, performStream, useStreamListener } =
-		useContext(ServerContext)
+	const {
+		connected,
+		performFetch,
+		useFetchListener,
+		performStream,
+		useStreamListener,
+		clearFetch,
+		clearStream
+	} = useContext(ServerContext)
 	const { directoryPath, refreshDirectory } = useContext(DirectoryContext)
 
 	const [entries] = useState<(Entry | CompoundEntry)[]>([
@@ -117,24 +124,6 @@ function useSlicePageState() {
 			// Get the visualization data
 			performFetch('/slice_visualization/', fetchResults)
 		}
-
-		// if (streamDone && !streamError?.status) {
-		// 	addAlert('Task completed successfully!', 'success')
-		// 	refreshDirectory()
-
-		// 	// Delete the task from the server
-		// 	if (fetchResults && 'task_id' in fetchResults) {
-		// 		performFetch('/delete/', fetchResults, { method: 'POST' })
-		// 	}
-		// } else if (streamError?.status) {
-		// 	addAlert(streamError.message, 'error')
-		// 	refreshDirectory()
-
-		// 	// Delete the task from the server
-		// 	if (fetchResults && 'task_id' in fetchResults) {
-		// 		performFetch('/delete/', fetchResults, { method: 'POST' })
-		// 	}
-		// }
 	}, [streamDone, streamError])
 
 	const onSubmit = async () => {
@@ -144,8 +133,11 @@ function useSlicePageState() {
 
 		// Delete the previous task if it exists
 		if (fetchResults && 'task_id' in fetchResults) {
-			performFetch('/delete/', fetchResults, { method: 'POST' })
-			return
+			performFetch('/delete/', fetchResults, { method: 'POST' }).then(() => {
+				// Clear the task once it has been deleted
+				clearFetch('/slice/')
+				clearStream(SLICE_STREAM)
+			})
 		}
 
 		const optionsObject = entries[1].toObject()
