@@ -194,6 +194,7 @@ def slice_volume_from_grids(
     normalized_grid = normalized_grid.reshape(-1, 3).T
 
     # Map the grid coordinates to the volume
+    # TODO: consider switching mode to constant for zeroing out-of-bounds values
     slice_points = map_coordinates(squeezed_volume, normalized_grid, mode="nearest")
 
     return slice_points.reshape(len(grids), height, width)
