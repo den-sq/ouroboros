@@ -3,28 +3,30 @@ import numpy as np
 from cloudvolume import Bbox
 from dataclasses import dataclass
 
-DEFAULT_MIN_SLICES_PER_BOX = 5
 DEFAULT_SPLIT_THRESHOLD = 0.9
-DEFAULT_MAX_DEPTH = 4
+DEFAULT_MAX_DEPTH = 10
+DEFAULT_TARGET_SLICES_PER_BOX = 128
 
 
 @dataclass
 class BoundingBoxParams:
     max_depth: int = DEFAULT_MAX_DEPTH
-    min_slices_per_box: int = DEFAULT_MIN_SLICES_PER_BOX
+    target_slices_per_box: int = DEFAULT_TARGET_SLICES_PER_BOX
 
     def to_dict(self):
         return {
             "max_depth": self.max_depth,
-            "min_slices_per_box": self.min_slices_per_box,
+            "target_slices_per_box": self.target_slices_per_box,
         }
 
     @staticmethod
     def from_dict(data: dict):
         max_depth = data.get("max_depth", DEFAULT_MAX_DEPTH)
-        min_slices_per_box = data.get("min_slices_per_box", DEFAULT_MIN_SLICES_PER_BOX)
+        target_slices_per_box = data.get(
+            "target_slices_per_box", DEFAULT_TARGET_SLICES_PER_BOX
+        )
 
-        return BoundingBoxParams(max_depth, min_slices_per_box)
+        return BoundingBoxParams(max_depth, target_slices_per_box)
 
 
 class BoundingBox:
@@ -274,7 +276,7 @@ class BoundingBox:
 
 def calculate_bounding_boxes_bsp_link_rects(
     rects: np.ndarray,
-    min_slices_per_box=DEFAULT_MIN_SLICES_PER_BOX,
+    target_slices_per_box=DEFAULT_TARGET_SLICES_PER_BOX,
     max_depth=DEFAULT_MAX_DEPTH,
 ):
     """
@@ -310,7 +312,7 @@ def calculate_bounding_boxes_bsp_link_rects(
         current_rects = rects[current_indices]
 
         # Determine if further division is necessary or efficient
-        if len(current_rects) <= min_slices_per_box or depth == 0:
+        if len(current_rects) <= target_slices_per_box or depth == 0:
             bounding_boxes.append(current_bounding_box)
             for idx in current_indices:
                 rect_to_box_map[idx] = len(bounding_boxes) - 1

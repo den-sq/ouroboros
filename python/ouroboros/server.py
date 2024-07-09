@@ -272,7 +272,7 @@ async def check_status(task_id: str):
 
 
 @app.get("/slice_status_stream/")
-async def status_stream(request: Request, task_id: str, update_freq: int = 2000):
+async def status_stream(request: Request, task_id: str, update_freq: int = 1000):
     async def event_generator():
         while True:
             if await request.is_disconnected():

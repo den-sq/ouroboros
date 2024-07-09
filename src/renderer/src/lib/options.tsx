@@ -103,8 +103,8 @@ export class OptionsFile extends CompoundEntry {
 			new Entry('backproject_min_bounding_box', 'Output Min Bounding Box', false, 'boolean'),
 			new Entry('make_backprojection_binary', 'Binary Backprojection', false, 'boolean'),
 			new CompoundEntry('bounding_box_params', 'Bounding Box Parameters', [
-				new Entry('max_depth', 'Max Depth', 4, 'number'),
-				new Entry('min_slices_per_box', 'Min Slices per Box', 5, 'number')
+				new Entry('max_depth', 'Max Depth', 10, 'number'),
+				new Entry('target_slices_per_box', 'Target Slices per Box', 128, 'number')
 			]),
 			new Entry('backprojection_compression', 'Backprojection Compression', 'zstd', 'string'),
 			new Entry('make_single_file', 'Output Single File', true, 'boolean')
