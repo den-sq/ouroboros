@@ -1,3 +1,4 @@
+from ouroboros.helpers.memory_usage import calculate_gigabytes_from_dimensions
 from ouroboros.helpers.slice import (
     generate_coordinate_grid_for_rect,
     make_volume_binary,
@@ -17,7 +18,7 @@ import time
 import numpy as np
 import shutil
 
-CHUNK_SIZE = 128
+DEFAULT_CHUNK_SIZE = 128
 
 
 class BackprojectPipelineStep(PipelineStep):
@@ -104,8 +105,17 @@ class BackprojectPipelineStep(PipelineStep):
         start = time.perf_counter()
 
         # Divide the backprojected volume into chunks
+        chunk_size = (
+            DEFAULT_CHUNK_SIZE
+            if config.max_ram_gb == 0
+            else int(
+                (config.max_ram_gb * 1024**3)
+                / calculate_chunk_size(config, volume_cache)
+            )
+        )
+
         chunks_and_boxes = create_volume_chunks(
-            volume_cache, CHUNK_SIZE, config.backproject_min_bounding_box
+            volume_cache, chunk_size, config.backproject_min_bounding_box
         )
 
         # Save the offset of the minimum bounding box, if that option is enabled
@@ -300,6 +310,28 @@ def make_tiff_memmap(file_name, mode):
     return tifffile.memmap(file_name, mode=mode)
 
 
+def calculate_min_bounding_box(volume_cache):
+    return BoundingBox.bound_boxes(volume_cache.bounding_boxes)
+
+
+def calculate_chunk_size(config, volume_cache):
+    if config.max_ram_gb == 0:
+        return DEFAULT_CHUNK_SIZE
+
+    bounding_box_shape = (
+        calculate_min_bounding_box(volume_cache).get_shape()[1:]
+        if config.backproject_min_bounding_box
+        else volume_cache.get_volume_shape()[1:]
+    )
+
+    bounding_box_memory_usage = calculate_gigabytes_from_dimensions(
+        bounding_box_shape,
+        volume_cache.get_volume_dtype(),
+    )
+
+    return int((config.max_ram_gb * 1024**3) / bounding_box_memory_usage)
+
+
 def create_volume_chunks(
     volume_cache, chunk_size=128, backproject_min_bounding_box=False
 ):
@@ -317,7 +349,7 @@ def create_volume_chunks(
     volume_end = volume_shape[0]
 
     if backproject_min_bounding_box:
-        min_bounding_box = BoundingBox.bound_boxes(volume_cache.bounding_boxes)
+        min_bounding_box = calculate_min_bounding_box(volume_cache)
         min_x_min, min_x_max, _, _, _, _ = min_bounding_box.approx_bounds()
         process_range = range(min_x_min, min_x_max + 1, chunk_size)
         volume_end = min_x_max + 1

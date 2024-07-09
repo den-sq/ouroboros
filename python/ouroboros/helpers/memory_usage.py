@@ -1,5 +1,7 @@
 import numpy as np
 
+GIGABYTE = 1024**3
+
 
 def calculate_gigabytes_in_array(array: np.ndarray) -> float:
     """
@@ -14,7 +16,7 @@ def calculate_gigabytes_in_array(array: np.ndarray) -> float:
         float: The number of gigabytes in the numpy array.
     """
 
-    return array.nbytes // 1e9
+    return array.nbytes / GIGABYTE
 
 
 def calculate_gigabytes_from_dimensions(shape: tuple[int], dtype: np.dtype) -> float:
@@ -40,4 +42,4 @@ def calculate_gigabytes_from_dimensions(shape: tuple[int], dtype: np.dtype) -> f
     # Calculate the total number of bytes
     num_bytes = num_elements * dtype_size
 
-    return num_bytes // 1e9
+    return num_bytes / GIGABYTE

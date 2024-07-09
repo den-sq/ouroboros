@@ -23,7 +23,7 @@ class Config:
         False  # Whether to connect the start and end of the given annotation points
     )
     backproject_min_bounding_box: bool = (
-        False  # Whether to backproject to a minimum bounding box or the entire volume
+        True  # Whether to backproject to a minimum bounding box or the entire volume
     )
     make_backprojection_binary: bool = (
         False  # Whether to make the backprojection binary (values of 0 or 1)
@@ -35,6 +35,7 @@ class Config:
         "zstd"  # Compression type for the backprojected file
     )
     make_single_file: bool = True  # Whether to save the output to a single file
+    max_ram_gb: int = 0  # Maximum amount of RAM to use in GB (0 means no limit)
 
     @property
     def output_file_path(self):
@@ -57,6 +58,7 @@ class Config:
             "bounding_box_params": self.bounding_box_params.to_dict(),
             "backprojection_compression": self.backprojection_compression,
             "make_single_file": self.make_single_file,
+            "max_ram_gb": self.max_ram_gb,
         }
 
     @staticmethod
@@ -71,11 +73,12 @@ class Config:
         dist_between_slices = data.get("dist_between_slices", 1)
         flush_cache = data.get("flush_cache", False)
         connect_start_and_end = data.get("connect_start_and_end", False)
-        backproject_min_bounding_box = data.get("backproject_min_bounding_box", False)
+        backproject_min_bounding_box = data.get("backproject_min_bounding_box", True)
         make_backprojection_binary = data.get("make_backprojection_binary", False)
         bounding_box_params = BoundingBoxParams.from_dict(data["bounding_box_params"])
         backprojection_compression = data.get("backprojection_compression", "zstd")
         make_single_file = data.get("make_single_file", True)
+        max_ram_gb = data.get("max_ram", 0)
 
         return Config(
             slice_width=slice_width,
@@ -90,6 +93,7 @@ class Config:
             bounding_box_params=bounding_box_params,
             backprojection_compression=backprojection_compression,
             make_single_file=make_single_file,
+            max_ram_gb=max_ram_gb,
         )
 
     def save_to_json(self, json_path):

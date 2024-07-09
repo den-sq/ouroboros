@@ -8,7 +8,7 @@ import numpy as np
 
 def test_calculate_gigabytes_in_array():
     # Create a numpy array with 1 GB size
-    array = np.zeros(int(1e9 / np.dtype(np.float64).itemsize))
+    array = np.zeros(int((1024**3) / np.dtype(np.float64).itemsize), dtype=np.float64)
 
     # Calculate the expected result
     expected_result = 1.0
@@ -23,7 +23,7 @@ def test_calculate_gigabytes_from_dimensions():
     dtype = np.float64
 
     # Calculate the expected result
-    expected_result = 80.0
+    expected_result = 74.50580596923828
 
     # Call the function and check the result
     assert calculate_gigabytes_from_dimensions(shape, dtype) == expected_result

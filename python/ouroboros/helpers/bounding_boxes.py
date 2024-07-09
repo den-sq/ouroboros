@@ -193,6 +193,10 @@ class BoundingBox:
 
         return self.approx_bounds_memo
 
+    def get_shape(self):
+        x_min, x_max, y_min, y_max, z_min, z_max = self.approx_bounds()
+        return (x_max - x_min + 1, y_max - y_min + 1, z_max - z_min + 1)
+
     def intersects(self, other):
         x_min, x_max, y_min, y_max, z_min, z_max = self.approx_bounds()
         other_x_min, other_x_max, other_y_min, other_y_max, other_z_min, other_z_max = (
@@ -223,11 +227,7 @@ class BoundingBox:
         )
 
     def to_empty_volume(self, dtype=np.float32):
-        x_min, x_max, y_min, y_max, z_min, z_max = self.approx_bounds()
-
-        return np.zeros(
-            (x_max - x_min + 1, y_max - y_min + 1, z_max - z_min + 1), dtype=dtype
-        )
+        return np.zeros(self.get_shape(), dtype=dtype)
 
     def calculate_volume(self):
         return (
