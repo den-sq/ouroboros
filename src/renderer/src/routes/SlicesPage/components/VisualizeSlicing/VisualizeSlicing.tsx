@@ -135,7 +135,14 @@ function VisualizeSlicing({
 
 				{sliceElements}
 				{boundingBoxes.map((boundingBox, i) => {
-					return <BoundingBox key={i} boundingBox={boundingBox} color={'white'} />
+					return (
+						<BoundingBox
+							key={i}
+							boundingBox={boundingBox}
+							color={'white'}
+							opacity={0.5}
+						/>
+					)
 				})}
 			</Canvas>
 		</div>
@@ -144,10 +151,12 @@ function VisualizeSlicing({
 
 function BoundingBox({
 	boundingBox,
-	color
+	color,
+	opacity
 }: {
 	boundingBox: BoundingBoxType
 	color: string
+	opacity: number
 }): JSX.Element {
 	const { min, max } = boundingBox
 	const width = max[0] - min[0]
@@ -165,7 +174,7 @@ function BoundingBox({
 		<mesh position={position}>
 			<lineSegments>
 				<edgesGeometry attach="geometry" args={[geometry]} />
-				<lineBasicMaterial color={color} linewidth={3} />
+				<lineBasicMaterial opacity={opacity} color={color} linewidth={3} />
 			</lineSegments>
 		</mesh>
 	)
