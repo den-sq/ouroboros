@@ -1,0 +1,25 @@
+.visualizeIconsArea {
+	position: absolute;
+	top: 1rem;
+	right: 1rem;
+	display: flex;
+	flex-direction: row-reverse;
+	align-items: center;
+	height: 1.25rem;
+	z-index: 1000;
+}
+
+.visualizeIcon {
+	margin-left: 1rem;
+	cursor: pointer;
+	color: #4a4a4a;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: 0.3s;
+	height: 100%;
+}
+
+.visualizeIcon:hover {
+	color: var(--primary-text);
+}

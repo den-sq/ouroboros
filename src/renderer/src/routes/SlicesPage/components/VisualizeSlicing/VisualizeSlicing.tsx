@@ -1,15 +1,17 @@
 import styles from './VisualizeSlicing.module.css'
 
-import { Canvas, Vector3 } from '@react-three/fiber'
+import { Canvas, Vector3, useThree } from '@react-three/fiber'
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
 	BoxGeometry,
 	BufferAttribute,
 	BufferGeometry,
 	DoubleSide,
-	Float32BufferAttribute
+	Float32BufferAttribute,
+	WebGLRenderer
 } from 'three'
+import VisualizeIcons from './components/VisualizeIcons/VisualizeIcons'
 
 export type Point = number[]
 
@@ -121,9 +123,13 @@ function VisualizeSlicing({
 		})
 	}, [rects, useEveryNthRect, colors, boundingBoxIndicesBySliceOrder, linkRects])
 
+	const [gl, setGL] = useState<WebGLRenderer | null>(null)
+
 	return (
 		<div className={styles.visualizeSlicing}>
-			<Canvas>
+			<VisualizeIcons gl={gl} />
+			<Canvas gl={{ preserveDrawingBuffer: true }}>
+				<GLSaver setGL={setGL} />
 				<PerspectiveCamera
 					fov={FOV}
 					makeDefault
@@ -147,6 +153,16 @@ function VisualizeSlicing({
 			</Canvas>
 		</div>
 	)
+}
+
+function GLSaver({ setGL }) {
+	const gl = useThree((state) => state.gl)
+
+	useEffect(() => {
+		setGL(gl)
+	}, [gl])
+
+	return <></>
 }
 
 function BoundingBox({
