@@ -8,19 +8,90 @@ import { useContext, useEffect, useState } from 'react'
 import { DirectoryContext } from '@renderer/contexts/DirectoryContext'
 import { join, writeFile } from '@renderer/lib/file'
 import { AlertContext } from '@renderer/contexts/AlertContext'
+import { safeParse } from 'valibot'
+import BackprojectResultSchema from '@renderer/schemas/backproject-result-schema'
+import BackprojectStatusResultSchema from '@renderer/schemas/backproject-status-result-schema'
 
 const BACKPROJECT_STREAM = '/backproject_status_stream/'
 
 function BackprojectPage(): JSX.Element {
-	const { connected, performFetch, performStream, useFetchListener, useStreamListener } =
-		useContext(ServerContext)
+	const { progress, connected, entries, onSubmit } = useBackprojectPageState()
+
+	return (
+		<div className={styles.backprojectPage}>
+			<VisualizePanel></VisualizePanel>
+			<ProgressPanel progress={progress} connected={connected} />
+			<OptionsPanel entries={entries} onSubmit={onSubmit} />
+		</div>
+	)
+}
+
+function useBackprojectPageState() {
+	const {
+		connected,
+		performFetch,
+		performStream,
+		useFetchListener,
+		useStreamListener,
+		clearFetch,
+		clearStream
+	} = useContext(ServerContext)
 	const { directoryPath, refreshDirectory } = useContext(DirectoryContext)
 
 	const [entries] = useState<(Entry | CompoundEntry)[]>([new BackprojectOptionsFile()])
 
+	const { addAlert } = useContext(AlertContext)
+
+	const [progress, setProgress] = useState<any>([])
+
+	const { results: backprojectResults } = useFetchListener('/backproject/')
+	const {
+		results: streamResults,
+		error: streamError,
+		done: streamDone
+	} = useStreamListener(BACKPROJECT_STREAM)
+
+	// Listen to the status stream for the active task
+	useEffect(() => {
+		const results = safeParse(BackprojectResultSchema, backprojectResults)
+
+		if (results.success) {
+			performStream(BACKPROJECT_STREAM, results.output)
+		}
+	}, [backprojectResults])
+
+	// Update the progress state when new data is received
+	useEffect(() => {
+		const results = safeParse(BackprojectStatusResultSchema, streamResults)
+
+		if (results.success && !results.output.error) {
+			setProgress(results.output.progress)
+		}
+	}, [streamResults])
+
+	// Refresh the file list when the task is done
+	useEffect(() => {
+		refreshDirectory()
+
+		if (streamError?.status) {
+			addAlert(streamError.message, 'error')
+		}
+	}, [streamDone, streamError])
+
 	const onSubmit = async () => {
 		if (!connected) {
 			return
+		}
+
+		const results = safeParse(BackprojectResultSchema, backprojectResults)
+
+		// Delete the previous task if it exists
+		if (results.success) {
+			performFetch('/delete/', results.output, { method: 'POST' }).then(() => {
+				// Clear the task once it has been deleted
+				clearFetch('/slice/')
+				clearStream(BACKPROJECT_STREAM)
+			})
 		}
 
 		const optionsObject = entries[0].toObject()
@@ -72,67 +143,7 @@ function BackprojectPage(): JSX.Element {
 		)
 	}
 
-	const { addAlert } = useContext(AlertContext)
-
-	const [progress, setProgress] = useState<any>([])
-
-	const { results: fetchResults } = useFetchListener('/backproject/')
-	const {
-		results: streamResults,
-		error: streamError,
-		done: streamDone
-	} = useStreamListener(BACKPROJECT_STREAM)
-
-	// Listen to the status stream for the active task
-	useEffect(() => {
-		if (fetchResults && 'task_id' in fetchResults) {
-			performStream(BACKPROJECT_STREAM, fetchResults)
-		}
-	}, [fetchResults])
-
-	// Update the progress state when new data is received
-	useEffect(() => {
-		if (streamResults && 'progress' in streamResults) {
-			if (!('error' in streamResults && streamResults.error)) {
-				setProgress(streamResults.progress)
-			}
-		}
-	}, [streamResults])
-
-	// Refresh the file list when the task is done
-	useEffect(() => {
-		refreshDirectory()
-
-		if (streamError?.status) {
-			addAlert(streamError.message, 'error')
-		}
-
-		// if (streamDone && !streamError?.status) {
-		// 	addAlert('Task completed successfully!', 'success')
-		// 	refreshDirectory()
-
-		// 	// Delete the task from the server
-		// 	if (fetchResults && 'task_id' in fetchResults) {
-		// 		performFetch('/delete/', fetchResults, { method: 'POST' })
-		// 	}
-		// } else if (streamError?.status) {
-		// 	addAlert(streamError.message, 'error')
-		// 	refreshDirectory()
-
-		// 	// Delete the task from the server
-		// 	if (fetchResults && 'task_id' in fetchResults) {
-		// 		performFetch('/delete/', fetchResults, { method: 'POST' })
-		// 	}
-		// }
-	}, [streamDone, streamError])
-
-	return (
-		<div className={styles.backprojectPage}>
-			<VisualizePanel></VisualizePanel>
-			<ProgressPanel progress={progress} connected={connected} />
-			<OptionsPanel entries={entries} onSubmit={onSubmit} />
-		</div>
-	)
+	return { progress, connected, entries, onSubmit }
 }
 
 export default BackprojectPage
