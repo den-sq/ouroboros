@@ -1,8 +1,8 @@
 import MenuPanel from '@renderer/components/MenuPanel/MenuPanel'
-import AlertProvider from '@renderer/contexts/AlertContext/AlertContext'
-import DirectoryProvider from '@renderer/contexts/DirectoryContext/DirectoryContext'
-import DragProvider from '@renderer/contexts/DragContext/DragContext'
-import ServerProvider from '@renderer/contexts/ServerContext/ServerContext'
+import AlertProvider from '@renderer/contexts/AlertContext'
+import DirectoryProvider from '@renderer/contexts/DirectoryContext'
+import DragProvider from '@renderer/contexts/DragContext'
+import ServerProvider from '@renderer/contexts/ServerContext'
 import { Outlet } from 'react-router-dom'
 
 function Root(): JSX.Element {

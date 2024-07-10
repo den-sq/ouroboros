@@ -3,7 +3,7 @@ import styles from './VisualizeIcons.module.css'
 
 import Camera from './assets/camera.svg?react'
 import Information from './assets/information.svg?react'
-import { AlertContext } from '@renderer/contexts/AlertContext/AlertContext'
+import { AlertContext } from '@renderer/contexts/AlertContext'
 
 function VisualizeIcons({ gl }): JSX.Element {
 	const { addAlert } = useContext(AlertContext)

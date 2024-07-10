@@ -1,4 +1,4 @@
-import { AlertMessageType } from '@renderer/contexts/AlertContext/AlertContext'
+import { AlertMessageType } from '@renderer/contexts/AlertContext'
 import styles from './AlertArea.module.css'
 import Alert from './components/Alert/Alert'
 
