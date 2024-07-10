@@ -2,7 +2,7 @@ from multiprocessing import freeze_support
 
 import argparse
 
-from ouroboros.helpers.config import Config
+from ouroboros.helpers.options import BackprojectOptions, SliceOptions
 from ouroboros.pipeline import (
     Pipeline,
     PipelineInput,
@@ -75,7 +75,7 @@ def main():
     # Create the parser for the sample-options command
     subparsers.add_parser(
         "sample-options",
-        help="Export a sample options file into the current folder.",
+        help="Export sample options files into the current folder.",
     )
 
     # Parse the arguments
@@ -94,7 +94,7 @@ def main():
 
 
 def handle_slice(args):
-    config = Config.load_from_json(args.options)
+    slice_options = SliceOptions.load_from_json(args.options)
 
     pipeline = Pipeline(
         [
@@ -106,7 +106,9 @@ def handle_slice(args):
         ]
     )
 
-    input_data = PipelineInput(config=config, json_path=args.neuroglancer_json)
+    input_data = PipelineInput(
+        slice_options=slice_options, json_path=args.neuroglancer_json
+    )
 
     _, error = pipeline.process(input_data)
 
@@ -121,16 +123,16 @@ def handle_slice(args):
 
 
 def handle_backproject(args):
-    config = None
+    backproject_options = None
 
     if args.options:
-        config = Config.load_from_json(args.options)
+        backproject_options = BackprojectOptions.load_from_json(args.options)
 
     pipeline = Pipeline(
         [
             LoadConfigPipelineStep()
             .with_custom_output_file_path(args.straightened_volume)
-            .with_custom_options(config),
+            .with_custom_options(backproject_options),
             BackprojectPipelineStep().with_progress_bar(),
             SaveConfigPipelineStep(),
         ]
@@ -151,9 +153,23 @@ def handle_backproject(args):
 
 
 def handle_sample_options():
-    sample_options = Config(100, 100, "./output/", "sample")
+    sample_options = SliceOptions(
+        slice_width=100,
+        slice_height=100,
+        output_file_folder="./output/",
+        output_file_name="sample",
+    )
 
-    sample_options.save_to_json("./sample-options.json")
+    sample_options.save_to_json("./sample-slice-options.json")
+
+    sample_options = BackprojectOptions(
+        slice_width=100,
+        slice_height=100,
+        output_file_folder="./output/",
+        output_file_name="sample",
+    )
+
+    sample_options.save_to_json("./sample-backproject-options.json")
 
 
 if __name__ == "__main__":

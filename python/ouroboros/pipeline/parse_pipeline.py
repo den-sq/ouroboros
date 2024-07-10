@@ -4,21 +4,21 @@ from ouroboros.helpers.parse import (
     neuroglancer_config_to_source,
 )
 from .pipeline import PipelineStep
-from ouroboros.helpers.config import Config
+from ouroboros.helpers.options import SliceOptions
 import numpy as np
 
 
 # TODO: Consider making an abstract parse step
 class ParseJSONPipelineStep(PipelineStep):
     def __init__(self) -> None:
-        super().__init__(inputs=("config", "json_path"))
+        super().__init__(inputs=("slice_options", "json_path"))
 
     def _process(self, input_data: tuple[any]) -> None | str:
         config, json_path, pipeline_input = input_data
 
         # Verify that a config object is provided
-        if not isinstance(config, Config):
-            return "Input data must contain a Config object."
+        if not isinstance(config, SliceOptions):
+            return "Input data must contain a SliceOptions object."
 
         # Verify that input_data is a string containing a path to a JSON file
         if not isinstance(json_path, str):

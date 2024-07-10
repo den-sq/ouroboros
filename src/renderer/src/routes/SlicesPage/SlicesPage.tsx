@@ -3,7 +3,7 @@ import styles from './SlicesPage.module.css'
 import VisualizePanel from '@renderer/components/VisualizePanel/VisualizePanel'
 import ProgressPanel from '@renderer/components/ProgressPanel/Progress'
 import { ServerContext } from '@renderer/contexts/ServerContext'
-import { CompoundEntry, Entry, OptionsFile } from '@renderer/lib/options'
+import { CompoundEntry, Entry, SliceOptionsFile } from '@renderer/lib/options'
 import { useContext, useEffect, useState } from 'react'
 import { DirectoryContext } from '@renderer/contexts/DirectoryContext'
 import { join, writeFile } from '@renderer/lib/file'
@@ -83,7 +83,7 @@ function useSlicePageState() {
 
 	const [entries] = useState<(Entry | CompoundEntry)[]>([
 		new Entry('neuroglancer_json', 'Neuroglancer JSON', '', 'filePath'),
-		new OptionsFile()
+		new SliceOptionsFile()
 	])
 
 	const { addAlert } = useContext(AlertContext)

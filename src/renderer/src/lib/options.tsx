@@ -90,7 +90,29 @@ export class CompoundEntry {
 	}
 }
 
-export class OptionsFile extends CompoundEntry {
+export class SliceOptionsFile extends CompoundEntry {
+	constructor(values: CompoundValueType = {}) {
+		super('options', 'Options File', [
+			new Entry('slice_width', 'Slice Width', 120, 'number'),
+			new Entry('slice_height', 'Slice Height', 120, 'number'),
+			new Entry('output_file_folder', 'Output File Folder', './', 'filePath'),
+			new Entry('output_file_name', 'Output File Name', 'sample', 'string'),
+			new Entry('dist_between_slices', 'Distance Between Slices', 1, 'number'),
+			new Entry('flush_cache', 'Flush CloudVolume Cache', false, 'boolean'),
+			new Entry('connect_start_and_end', 'Connect Endpoints', false, 'boolean'),
+			new CompoundEntry('bounding_box_params', 'Bounding Box Parameters', [
+				new Entry('max_depth', 'Max Depth', 10, 'number'),
+				new Entry('target_slices_per_box', 'Target Slices per Box', 128, 'number')
+			]),
+			new Entry('make_single_file', 'Output Single File', true, 'boolean'),
+			new Entry('max_ram_gb', 'Max RAM (GB) (0 = no limit)', 0, 'number')
+		])
+
+		this.setValue(values)
+	}
+}
+
+export class BackprojectOptionsFile extends CompoundEntry {
 	constructor(values: CompoundValueType = {}) {
 		super('options', 'Options File', [
 			new Entry('slice_width', 'Slice Width', 120, 'number'),
@@ -102,10 +124,6 @@ export class OptionsFile extends CompoundEntry {
 			new Entry('connect_start_and_end', 'Connect Endpoints', false, 'boolean'),
 			new Entry('backproject_min_bounding_box', 'Output Min Bounding Box', true, 'boolean'),
 			new Entry('make_backprojection_binary', 'Binary Backprojection', false, 'boolean'),
-			new CompoundEntry('bounding_box_params', 'Bounding Box Parameters', [
-				new Entry('max_depth', 'Max Depth', 10, 'number'),
-				new Entry('target_slices_per_box', 'Target Slices per Box', 128, 'number')
-			]),
 			new Entry('backprojection_compression', 'Backprojection Compression', 'zstd', 'string'),
 			new Entry('make_single_file', 'Output Single File', true, 'boolean'),
 			new Entry('max_ram_gb', 'Max RAM (GB) (0 = no limit)', 0, 'number')

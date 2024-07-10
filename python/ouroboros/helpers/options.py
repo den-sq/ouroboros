@@ -8,9 +8,8 @@ from ouroboros.helpers.dataclasses import dataclass_with_json
 # Still need to detect color based on channels and other data
 
 
-@dataclass_with_json
-@dataclass
-class Config:
+@dataclass(kw_only=True)
+class CommonOptions:
     slice_width: int  # Width of the slice
     slice_height: int  # Height of the slice
     output_file_folder: str  # Folder to save the output file
@@ -20,21 +19,31 @@ class Config:
     connect_start_and_end: bool = (
         False  # Whether to connect the start and end of the given annotation points
     )
-    backproject_min_bounding_box: bool = (
-        True  # Whether to backproject to a minimum bounding box or the entire volume
-    )
-    make_backprojection_binary: bool = (
-        False  # Whether to make the backprojection binary (values of 0 or 1)
-    )
-    bounding_box_params: BoundingBoxParams = (
-        BoundingBoxParams()
-    )  # Parameters for generating bounding boxes
-    backprojection_compression: str = (
-        "zstd"  # Compression type for the backprojected file
-    )
     make_single_file: bool = True  # Whether to save the output to a single file
     max_ram_gb: int = 0  # Maximum amount of RAM to use in GB (0 means no limit)
 
     @property
     def output_file_path(self):
         return os.path.join(self.output_file_folder, self.output_file_name + ".tif")
+
+
+@dataclass_with_json
+@dataclass(kw_only=True)
+class SliceOptions(CommonOptions):
+    bounding_box_params: BoundingBoxParams = (
+        BoundingBoxParams()
+    )  # Parameters for generating bounding boxes
+
+
+@dataclass_with_json
+@dataclass(kw_only=True)
+class BackprojectOptions(CommonOptions):
+    backproject_min_bounding_box: bool = (
+        True  # Whether to backproject to a minimum bounding box or the entire volume
+    )
+    make_backprojection_binary: bool = (
+        False  # Whether to make the backprojection binary (values of 0 or 1)
+    )
+    backprojection_compression: str = (
+        "zstd"  # Compression type for the backprojected file
+    )

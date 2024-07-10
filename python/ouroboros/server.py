@@ -1,6 +1,5 @@
 import json
 from multiprocessing import freeze_support
-from unittest import result
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,7 +12,7 @@ import asyncio
 import uvicorn
 import uuid
 
-from ouroboros.helpers.config import Config
+from ouroboros.helpers.options import BackprojectOptions, SliceOptions
 from ouroboros.pipeline import (
     BackprojectPipelineStep,
     LoadConfigPipelineStep,
@@ -52,14 +51,14 @@ class SliceTask(Task):
 class BackProjectTask(Task):
     straightened_volume_path: str
     config: str
-    options: str | None = None
+    options: str
 
 
 def handle_slice(task: SliceTask):
     neuroglancer_json_path = task.neuroglancer_json
     options_path = task.options
 
-    config = Config.load_from_json(options_path)
+    slice_options = SliceOptions.load_from_json(options_path)
 
     pipeline = Pipeline(
         [
@@ -74,7 +73,9 @@ def handle_slice(task: SliceTask):
     # Store the pipeline in the task
     task.pipeline = pipeline
 
-    input_data = PipelineInput(config=config, json_path=neuroglancer_json_path)
+    input_data = PipelineInput(
+        slice_options=slice_options, json_path=neuroglancer_json_path
+    )
 
     # Store the input data in the task
     task.pipeline_input = input_data
@@ -93,10 +94,7 @@ def handle_backproject(task: BackProjectTask):
     config_path = task.config
     options_path = task.options
 
-    options = None
-
-    if options_path:
-        options = Config.load_from_json(options_path)
+    options = BackprojectOptions.load_from_json(options_path)
 
     pipeline = Pipeline(
         [
@@ -222,7 +220,7 @@ async def add_backproject_task(
     request: Request,
     straightened_volume_path: str,
     config: str,
-    options: str | None = None,
+    options: str,
 ):
     task_id = str(uuid.uuid4())
     task = BackProjectTask(
@@ -272,7 +270,7 @@ async def check_status(task_id: str):
 
 
 @app.get("/slice_status_stream/")
-async def status_stream(request: Request, task_id: str, update_freq: int = 1000):
+async def slice_status_stream(request: Request, task_id: str, update_freq: int = 1000):
     async def event_generator():
         while True:
             if await request.is_disconnected():
@@ -306,7 +304,9 @@ async def status_stream(request: Request, task_id: str, update_freq: int = 1000)
 
 
 @app.get("/backproject_status_stream/")
-async def status_stream(request: Request, task_id: str, update_freq: int = 2000):
+async def backproject_status_stream(
+    request: Request, task_id: str, update_freq: int = 2000
+):
     async def event_generator():
         while True:
             if await request.is_disconnected():

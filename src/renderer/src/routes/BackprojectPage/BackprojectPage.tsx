@@ -3,7 +3,7 @@ import styles from './BackprojectPage.module.css'
 import VisualizePanel from '@renderer/components/VisualizePanel/VisualizePanel'
 import ProgressPanel from '@renderer/components/ProgressPanel/Progress'
 import { ServerContext } from '@renderer/contexts/ServerContext'
-import { CompoundEntry, Entry, OptionsFile } from '@renderer/lib/options'
+import { CompoundEntry, Entry, BackprojectOptionsFile } from '@renderer/lib/options'
 import { useContext, useEffect, useState } from 'react'
 import { DirectoryContext } from '@renderer/contexts/DirectoryContext'
 import { join, writeFile } from '@renderer/lib/file'
@@ -19,7 +19,7 @@ function BackprojectPage(): JSX.Element {
 	const [entries] = useState<(Entry | CompoundEntry)[]>([
 		new Entry('straightened_volume_path', 'Straightened Volume File', '', 'filePath'),
 		new Entry('config', 'Slice Configuration File', '', 'filePath'),
-		new OptionsFile()
+		new BackprojectOptionsFile()
 	])
 
 	const onSubmit = async () => {

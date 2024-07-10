@@ -8,7 +8,7 @@ from ouroboros.helpers.slice import (
 from ouroboros.helpers.volume_cache import VolumeCache
 from ouroboros.helpers.bounding_boxes import BoundingBox
 from .pipeline import PipelineStep
-from ouroboros.helpers.config import Config
+from ouroboros.helpers.options import BackprojectOptions
 from ouroboros.helpers.files import load_and_save_tiff_from_slices
 
 import concurrent.futures
@@ -25,7 +25,12 @@ DEFAULT_CHUNK_SIZE = 128
 class BackprojectPipelineStep(PipelineStep):
     def __init__(self, processes=multiprocessing.cpu_count()) -> None:
         super().__init__(
-            inputs=("config", "output_file_path", "volume_cache", "slice_rects")
+            inputs=(
+                "backproject_options",
+                "output_file_path",
+                "volume_cache",
+                "slice_rects",
+            )
         )
 
         self.num_processes = processes
@@ -34,8 +39,8 @@ class BackprojectPipelineStep(PipelineStep):
         config, input_tiff_path, volume_cache, slice_rects, pipeline_input = input_data
 
         # Verify that a config object is provided
-        if not isinstance(config, Config):
-            return "Input data must contain a Config object."
+        if not isinstance(config, BackprojectOptions):
+            return "Input data must contain a BackprojectOptions object."
 
         # Verify that input_data is a string containing a path to a tif file
         if not isinstance(input_tiff_path, str):

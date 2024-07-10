@@ -1,20 +1,20 @@
 from ouroboros.helpers.bounding_boxes import calculate_bounding_boxes_bsp_link_rects
 from ouroboros.helpers.volume_cache import VolumeCache
 from .pipeline import PipelineStep
-from ouroboros.helpers.config import Config
+from ouroboros.helpers.options import SliceOptions
 import numpy as np
 
 
 class VolumeCachePipelineStep(PipelineStep):
     def __init__(self) -> None:
-        super().__init__(inputs=("config", "slice_rects", "source_url"))
+        super().__init__(inputs=("slice_options", "slice_rects", "source_url"))
 
     def _process(self, input_data: tuple[any]) -> None | str:
         config, slice_rects, source_url, pipeline_input = input_data
 
         # Verify that a config object is provided
-        if not isinstance(config, Config):
-            return "Input data must contain a Config object."
+        if not isinstance(config, SliceOptions):
+            return "Input data must contain a SliceOptions object."
 
         # Verify that slice rects is given
         if not isinstance(slice_rects, np.ndarray):

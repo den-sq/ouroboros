@@ -1,20 +1,20 @@
 from ouroboros.helpers.slice import calculate_slice_rects
 from ouroboros.helpers.spline import Spline
 from .pipeline import PipelineStep
-from ouroboros.helpers.config import Config
+from ouroboros.helpers.options import SliceOptions
 import numpy as np
 
 
 class SlicesGeometryPipelineStep(PipelineStep):
     def __init__(self) -> None:
-        super().__init__(inputs=("config", "sample_points"))
+        super().__init__(inputs=("slice_options", "sample_points"))
 
     def _process(self, input_data: tuple[any]) -> None | str:
         config, sample_points, pipeline_input = input_data
 
         # Verify that a config object is provided
-        if not isinstance(config, Config):
-            return "Input data must contain a Config object."
+        if not isinstance(config, SliceOptions):
+            return "Input data must contain a SliceOptions object."
 
         # Verify that sample points is given
         if not isinstance(sample_points, np.ndarray):

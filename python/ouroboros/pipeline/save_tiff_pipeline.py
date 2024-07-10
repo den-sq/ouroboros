@@ -4,7 +4,7 @@ from ouroboros.helpers.slice import (
 )
 from ouroboros.helpers.volume_cache import VolumeCache
 from .pipeline import PipelineStep
-from ouroboros.helpers.config import Config
+from ouroboros.helpers.options import SliceOptions
 import numpy as np
 
 import os
@@ -13,14 +13,14 @@ from tifffile import TiffWriter
 
 class SaveTiffPipelineStep(PipelineStep):
     def __init__(self) -> None:
-        super().__init__(inputs=("config", "volume_cache", "slice_rects"))
+        super().__init__(inputs=("slice_options", "volume_cache", "slice_rects"))
 
     def _process(self, input_data: tuple[any]) -> None | str:
         config, volume_cache, slice_rects, pipeline_input = input_data
 
         # Verify that a config object is provided
-        if not isinstance(config, Config):
-            return "Input data must contain a Config object."
+        if not isinstance(config, SliceOptions):
+            return "Input data must contain a SliceOptions object."
 
         # Verify that a volume cache is given
         if not isinstance(volume_cache, VolumeCache):

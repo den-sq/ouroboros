@@ -1,6 +1,6 @@
 from dataclasses import astuple, dataclass
 import numpy as np
-from ouroboros.helpers.config import Config
+from ouroboros.helpers.options import BackprojectOptions, SliceOptions
 from ouroboros.helpers.volume_cache import VolumeCache
 import json
 
@@ -12,7 +12,8 @@ class PipelineInput:
     """
 
     json_path: str = None
-    config: Config = None
+    slice_options: SliceOptions = None
+    backproject_options: BackprojectOptions = None
     source_url: str = None
     sample_points: np.ndarray = None
     slice_rects: np.ndarray = None
@@ -40,8 +41,15 @@ class PipelineInput:
         """
         return {
             "json_path": self.json_path,
-            "config": self.config.to_dict() if self.config is not None else None,
             "source_url": self.source_url,
+            "slice_options": (
+                self.slice_options.to_dict() if self.slice_options is not None else None
+            ),
+            "backproject_options": (
+                self.backproject_options.to_dict()
+                if self.backproject_options is not None
+                else None
+            ),
             "sample_points": (
                 self.sample_points.tolist() if self.sample_points is not None else None
             ),
@@ -63,8 +71,15 @@ class PipelineInput:
         Create a pipeline input from a dictionary.
         """
         json_path = data["json_path"]
-        config = (
-            Config.from_dict(data["config"]) if data["config"] is not None else None
+        slice_options = (
+            SliceOptions.from_dict(data["slice_options"])
+            if data["slice_options"] is not None
+            else None
+        )
+        backproject_options = (
+            BackprojectOptions.from_dict(data["backproject_options"])
+            if data["backproject_options"] is not None
+            else None
         )
         source_url = data["source_url"]
         sample_points = (
@@ -86,16 +101,17 @@ class PipelineInput:
         backprojection_offset = data["backprojection_offset"]
 
         return PipelineInput(
-            json_path,
-            config,
-            source_url,
-            sample_points,
-            slice_rects,
-            volume_cache,
-            output_file_path,
-            backprojected_folder_path,
-            config_file_path,
-            backprojection_offset,
+            json_path=json_path,
+            slice_options=slice_options,
+            backproject_options=backproject_options,
+            source_url=source_url,
+            sample_points=sample_points,
+            slice_rects=slice_rects,
+            volume_cache=volume_cache,
+            output_file_path=output_file_path,
+            backprojected_folder_path=backprojected_folder_path,
+            config_file_path=config_file_path,
+            backprojection_offset=backprojection_offset,
         )
 
     def copy_values_from_input(self, pipeline_input):
@@ -103,7 +119,8 @@ class PipelineInput:
         Copy the values from another pipeline input.
         """
         self.json_path = pipeline_input.json_path
-        self.config = pipeline_input.config
+        self.slice_options = pipeline_input.slice_options
+        self.backproject_options = pipeline_input.backproject_options
         self.source_url = pipeline_input.source_url
         self.sample_points = pipeline_input.sample_points
         self.slice_rects = pipeline_input.slice_rects

@@ -1,4 +1,4 @@
-from ouroboros.helpers.config import Config
+from ouroboros.helpers.options import BackprojectOptions
 from .pipeline import PipelineStep
 from .pipeline_input import PipelineInput
 
@@ -14,7 +14,7 @@ class LoadConfigPipelineStep(PipelineStep):
         self.custom_output_file_path = path
         return self
 
-    def with_custom_options(self, options: Config):
+    def with_custom_options(self, options: BackprojectOptions):
         self.custom_options = options
         return self
 
@@ -28,6 +28,6 @@ class LoadConfigPipelineStep(PipelineStep):
             currrent_pipeline_input.output_file_path = self.custom_output_file_path
 
         if self.custom_options is not None:
-            currrent_pipeline_input.config = self.custom_options
+            currrent_pipeline_input.backproject_options = self.custom_options
 
         return None
