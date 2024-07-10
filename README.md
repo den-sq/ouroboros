@@ -21,13 +21,17 @@ The Python package and the Electron app have separate setup steps which are list
 
 VScode Setup: [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) & [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
 
-#### 1. Install Dependencies
+#### 1. Install Node.js and NPM
+
+If you don't already have them installed, follow the instructions at the following link: https://nodejs.org/en/download/
+
+#### 2. Install Dependencies
 
 ```bash
 $ npm install
 ```
 
-#### 2. Run Electron App In Development Mode
+#### 3. Run Electron App In Development Mode
 
 ```bash
 $ npm run dev
