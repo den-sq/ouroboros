@@ -13,25 +13,15 @@ import SliceResultSchema from '@renderer/schemas/slice-result-schema'
 import { safeParse } from 'valibot'
 import SliceStatusResultSchema from '@renderer/schemas/slice-status-result-schema'
 import NeuroglancerJSONSchema from '@renderer/schemas/neuroglancer-json-schema'
+import SliceVisualizationResultSchema from '@renderer/schemas/slice-visualization-result-schema'
 
 const SLICE_RENDER_PROPORTION = 0.01
 
 const SLICE_STREAM = '/slice_status_stream/'
 
 function SlicesPage(): JSX.Element {
-	const { progress, connected, entries, onSubmit, visualizationResults, onEntryChange } =
+	const { progress, connected, entries, onSubmit, visualizationData, onEntryChange } =
 		useSlicePageState()
-
-	const visualizationData =
-		visualizationResults && 'data' in visualizationResults
-			? visualizationDataToProps(
-					visualizationResults.data as {
-						rects: number[][][]
-						bounding_boxes: { min: number[]; max: number[] }[]
-						link_rects: number[]
-					}
-				)
-			: null
 
 	return (
 		<div className={styles.slicePage}>
@@ -49,26 +39,6 @@ function SlicesPage(): JSX.Element {
 			<OptionsPanel entries={entries} onSubmit={onSubmit} onEntryChange={onEntryChange} />
 		</div>
 	)
-}
-
-function visualizationDataToProps(
-	visualizationData: {
-		rects: number[][][]
-		bounding_boxes: { min: number[]; max: number[] }[]
-		link_rects: number[]
-	} | null
-) {
-	if (!visualizationData) {
-		return null
-	}
-
-	const rects = visualizationData.rects.map((rect) => {
-		return { topLeft: rect[0], topRight: rect[1], bottomRight: rect[2], bottomLeft: rect[3] }
-	})
-	const boundingBoxes = visualizationData.bounding_boxes
-	const linkRects = visualizationData.link_rects
-
-	return { rects, boundingBoxes, linkRects }
 }
 
 function useSlicePageState() {
@@ -97,6 +67,27 @@ function useSlicePageState() {
 	} = useStreamListener(SLICE_STREAM)
 
 	const { results: visualizationResults } = useFetchListener('/slice_visualization/')
+	const [visualizationData, setVisualizationData] = useState<{
+		rects: {
+			topLeft: number[]
+			topRight: number[]
+			bottomRight: number[]
+			bottomLeft: number[]
+		}[]
+		boundingBoxes: { min: number[]; max: number[] }[]
+		linkRects: number[]
+	} | null>(null)
+
+	useEffect(() => {
+		const visualizationDataResult = safeParse(
+			SliceVisualizationResultSchema,
+			visualizationResults
+		)
+
+		if (visualizationDataResult.success) {
+			setVisualizationData(visualizationDataToProps(visualizationDataResult.output.data))
+		}
+	}, [visualizationResults])
 
 	// Listen to the status stream for the active task
 	useEffect(() => {
@@ -240,7 +231,31 @@ function useSlicePageState() {
 		performFetch('/slice/', { options: outputOptions }, { method: 'POST' })
 	}
 
-	return { progress, connected, entries, onSubmit, visualizationResults, onEntryChange }
+	return { progress, connected, entries, onSubmit, visualizationData, onEntryChange }
+}
+
+function visualizationDataToProps(
+	visualizationData: {
+		rects: number[][][]
+		bounding_boxes: { min: number[]; max: number[] }[]
+		link_rects: number[]
+	} | null
+): {
+	rects: { topLeft: number[]; topRight: number[]; bottomRight: number[]; bottomLeft: number[] }[]
+	boundingBoxes: { min: number[]; max: number[] }[]
+	linkRects: number[]
+} | null {
+	if (!visualizationData) {
+		return null
+	}
+
+	const rects = visualizationData.rects.map((rect) => {
+		return { topLeft: rect[0], topRight: rect[1], bottomRight: rect[2], bottomLeft: rect[3] }
+	})
+	const boundingBoxes = visualizationData.bounding_boxes
+	const linkRects = visualizationData.link_rects
+
+	return { rects, boundingBoxes, linkRects }
 }
 
 export default SlicesPage
