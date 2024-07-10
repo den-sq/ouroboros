@@ -59,7 +59,7 @@ def handle_slice(task: SliceTask):
     neuroglancer_json_path = task.neuroglancer_json
     options_path = task.options
 
-    config = Config.from_json(options_path)
+    config = Config.load_from_json(options_path)
 
     pipeline = Pipeline(
         [
@@ -96,7 +96,7 @@ def handle_backproject(task: BackProjectTask):
     options = None
 
     if options_path:
-        options = Config.from_json(options_path)
+        options = Config.load_from_json(options_path)
 
     pipeline = Pipeline(
         [

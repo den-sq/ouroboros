@@ -94,7 +94,7 @@ def main():
 
 
 def handle_slice(args):
-    config = Config.from_json(args.options)
+    config = Config.load_from_json(args.options)
 
     pipeline = Pipeline(
         [
@@ -124,7 +124,7 @@ def handle_backproject(args):
     config = None
 
     if args.options:
-        config = Config.from_json(args.options)
+        config = Config.load_from_json(args.options)
 
     pipeline = Pipeline(
         [
