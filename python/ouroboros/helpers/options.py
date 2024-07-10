@@ -31,6 +31,12 @@ class CommonOptions:
 @dataclass(kw_only=True)
 class SliceOptions(CommonOptions):
     neuroglancer_json: str  # Path to the neuroglancer JSON file
+    neuroglancer_image_layer: (
+        str  # Name of the image layer in the neuroglancer JSON file
+    )
+    neuroglancer_annotation_layer: (
+        str  # Name of the annotation layer in the neuroglancer JSON file
+    )
     bounding_box_params: BoundingBoxParams = (
         BoundingBoxParams()
     )  # Parameters for generating bounding boxes

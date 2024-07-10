@@ -1,6 +1,8 @@
 import json
 import numpy as np
 
+from ouroboros.helpers.options import SliceOptions
+
 Result = tuple[any, None] | tuple[None, str]
 
 ParseResult = tuple[dict, None | str]
@@ -33,7 +35,7 @@ def parse_neuroglancer_json(json_path) -> ParseResult:
         return {}, f"An error occurred while opening the given JSON file: {str(e)}"
 
 
-def neuroglancer_config_to_annotation(config) -> Result:
+def neuroglancer_config_to_annotation(config, options: SliceOptions) -> Result:
     """
     Extract the first annotation from a neuroglancer state JSON dictionary as a numpy array.
 
@@ -50,7 +52,10 @@ def neuroglancer_config_to_annotation(config) -> Result:
 
     try:
         for layer in config["layers"]:
-            if layer["type"] == "annotation":
+            if (
+                layer["type"] == "annotation"
+                and layer["name"] == options.neuroglancer_annotation_layer
+            ):
                 annotations = layer["annotations"]
 
                 result = [
@@ -64,7 +69,7 @@ def neuroglancer_config_to_annotation(config) -> Result:
     return None, "No annotations found in the file."
 
 
-def neuroglancer_config_to_source(config) -> Result:
+def neuroglancer_config_to_source(config, options: SliceOptions) -> Result:
     """
     Extract the source URL from a neuroglancer state JSON dictionary.
 
@@ -80,7 +85,10 @@ def neuroglancer_config_to_source(config) -> Result:
     """
     try:
         for layer in config["layers"]:
-            if layer["type"] == "image":
+            if (
+                layer["type"] == "image"
+                and layer["name"] == options.neuroglancer_image_layer
+            ):
                 if isinstance(layer["source"], dict):
                     return layer["source"]["url"], None
                 elif isinstance(layer["source"], str):

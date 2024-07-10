@@ -158,6 +158,7 @@ function useSlicePageState() {
 				const imageLayers: { type: string; name: string }[] = []
 				const annotationLayers: { type: string; name: string }[] = []
 
+				// Read all image and annotation layers from the Neuroglancer JSON
 				for (const layer of jsonResult.output['layers']) {
 					if (layer.type === 'image' && layer.name !== '') {
 						imageLayers.push(layer)
@@ -166,15 +167,20 @@ function useSlicePageState() {
 					}
 				}
 
+				// Update the options for the image and annotation layer entries
 				if (entries[0] instanceof CompoundEntry) {
 					entries[0].getEntries().forEach((entry) => {
 						if (entry.name === 'neuroglancer_image_layer' && entry instanceof Entry) {
 							entry.options = imageLayers.map((layer) => layer.name)
+
+							if (imageLayers.length > 0) entry.value = imageLayers[0].name
 						} else if (
 							entry.name === 'neuroglancer_annotation_layer' &&
 							entry instanceof Entry
 						) {
 							entry.options = annotationLayers.map((layer) => layer.name)
+
+							if (annotationLayers.length > 0) entry.value = annotationLayers[0].name
 						}
 					})
 
