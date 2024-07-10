@@ -7,12 +7,20 @@ export class Entry {
 	label: string
 	value: ValueType
 	type: EntryValueType
+	options?: string[]
 
-	constructor(name: string, label: string, value: ValueType, type: EntryValueType) {
+	constructor(
+		name: string,
+		label: string,
+		value: ValueType,
+		type: EntryValueType,
+		options?: string[]
+	) {
 		this.name = name
 		this.label = label
 		this.value = value
 		this.type = type
+		this.options = options
 	}
 
 	setValue(value: CompoundValueType) {
@@ -94,6 +102,13 @@ export class SliceOptionsFile extends CompoundEntry {
 	constructor(values: CompoundValueType = {}) {
 		super('options', 'Options File', [
 			new Entry('neuroglancer_json', 'Neuroglancer JSON', '', 'filePath'),
+			new Entry('neuroglancer_image_layer', 'Neuroglancer Image Layer', '', 'string'),
+			new Entry(
+				'neuroglancer_annotation_layer',
+				'Neuroglancer Annotation Layer',
+				'',
+				'string'
+			),
 			new Entry('slice_width', 'Slice Width', 120, 'number'),
 			new Entry('slice_height', 'Slice Height', 120, 'number'),
 			new Entry('output_file_folder', 'Output File Folder', './', 'filePath'),

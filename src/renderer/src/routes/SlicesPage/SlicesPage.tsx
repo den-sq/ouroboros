@@ -83,7 +83,7 @@ function useSlicePageState() {
 	} = useContext(ServerContext)
 	const { directoryPath, refreshDirectory } = useContext(DirectoryContext)
 
-	const [entries] = useState<(Entry | CompoundEntry)[]>([new SliceOptionsFile()])
+	const [entries, setEntries] = useState<(Entry | CompoundEntry)[]>([new SliceOptionsFile()])
 
 	const { addAlert } = useContext(AlertContext)
 
@@ -140,6 +140,7 @@ function useSlicePageState() {
 
 			if (!neuroglancerJSONContent || neuroglancerJSONContent === '') {
 				addAlert('Invalid Neuroglancer JSON', 'error')
+				return
 			}
 
 			let json = ''
@@ -148,6 +149,7 @@ function useSlicePageState() {
 				json = JSON.parse(neuroglancerJSONContent)
 			} catch (e) {
 				addAlert('Invalid Neuroglancer JSON', 'error')
+				return
 			}
 
 			const jsonResult = safeParse(NeuroglancerJSONSchema, json)
@@ -164,7 +166,22 @@ function useSlicePageState() {
 					}
 				}
 
-				console.log(imageLayers, annotationLayers)
+				if (entries[0] instanceof CompoundEntry) {
+					entries[0].getEntries().forEach((entry) => {
+						if (entry.name === 'neuroglancer_image_layer' && entry instanceof Entry) {
+							entry.options = imageLayers.map((layer) => layer.name)
+						} else if (
+							entry.name === 'neuroglancer_annotation_layer' &&
+							entry instanceof Entry
+						) {
+							entry.options = annotationLayers.map((layer) => layer.name)
+						}
+					})
+
+					setEntries([...entries])
+				}
+			} else {
+				addAlert('Invalid Neuroglancer JSON', 'error')
 			}
 		}
 	}

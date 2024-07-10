@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useContext, ChangeEvent } from 'react'
+import { useRef, useEffect, useState, useContext, ChangeEvent, FormEventHandler } from 'react'
 import styles from './OptionEntry.module.css'
 import { useDroppable } from '@dnd-kit/core'
 import { ValueType, Entry } from '@renderer/lib/options'
@@ -20,6 +20,7 @@ function OptionEntry({
 	const initialValue = entry.value
 	const inputType = entry.type
 	const inputName = entry.name
+	const inputOptions = entry.options
 
 	const inputRef = useRef<HTMLInputElement>(null)
 	const labelRef = useRef<HTMLDivElement>(null)
@@ -44,7 +45,9 @@ function OptionEntry({
 			htmlInputType = 'number'
 			break
 		case 'string':
-			htmlInputType = 'text'
+			if (inputOptions) {
+				htmlInputType = 'select'
+			} else htmlInputType = 'text'
 			break
 		case 'boolean':
 			htmlInputType = 'checkbox'
@@ -72,7 +75,7 @@ function OptionEntry({
 	}, [parentChildData])
 
 	function resizeInput(value: ValueType) {
-		if (inputType === 'boolean') return
+		if (inputType === 'boolean' || htmlInputType === 'select') return
 
 		if (labelRef.current) {
 			const label = labelRef.current
@@ -126,7 +129,7 @@ function OptionEntry({
 	const onChange = (e: ChangeEvent<HTMLInputElement>) => {
 		updateValue(e.target.value)
 
-		if (inputType === 'boolean') return
+		if (inputType === 'boolean' || htmlInputType === 'select') return
 		if (!inputRef.current) return
 
 		const target = e.target
@@ -135,6 +138,10 @@ function OptionEntry({
 
 		target.style.width = `${minWidth}px` // Reset width to minimum before calculating new width
 		target.style.width = `${Math.min(target.scrollWidth, maxWidth)}px`
+	}
+
+	const onInput: FormEventHandler<HTMLSelectElement> = (e) => {
+		updateValue(e.currentTarget.value)
 	}
 
 	return (
@@ -146,19 +153,34 @@ function OptionEntry({
 				>
 					{label}
 				</div>
-				<input
-					name={inputName}
-					ref={inputRef}
-					type={htmlInputType}
-					className={styles.optionInput}
-					checked={
-						inputType == 'boolean'
-							? inputValue === 'true' || inputValue === true
-							: undefined
-					}
-					value={inputValue as string}
-					onChange={onChange}
-				/>
+				{htmlInputType === 'select' ? (
+					<select
+						name={inputName}
+						className={`${styles.optionInput} ${styles.optionSelect}`}
+						value={inputValue as string}
+						onInput={onInput}
+					>
+						{inputOptions?.map((option) => (
+							<option key={option} value={option}>
+								{option}
+							</option>
+						))}
+					</select>
+				) : (
+					<input
+						name={inputName}
+						ref={inputRef}
+						type={htmlInputType}
+						className={styles.optionInput}
+						checked={
+							inputType == 'boolean'
+								? inputValue === 'true' || inputValue === true
+								: undefined
+						}
+						value={inputValue as string}
+						onChange={onChange}
+					/>
+				)}
 			</div>
 		</div>
 	)

@@ -27,6 +27,10 @@
 	background-color: transparent;
 }
 
+.optionSelect {
+	max-width: 50%;
+}
+
 .optionInput::-webkit-outer-spin-button,
 .optionInput::-webkit-inner-spin-button {
 	-webkit-appearance: none;
