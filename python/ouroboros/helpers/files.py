@@ -5,7 +5,11 @@ import shutil
 
 
 def load_and_save_tiff_from_slices(
-    folder_name: str, output_file_path: str, delete_intermediate=True, compression=None
+    folder_name: str,
+    output_file_path: str,
+    delete_intermediate=True,
+    compression=None,
+    metadata={},
 ):
     # Load the saved tifs in numerical order
     tif_files = get_sorted_tif_files(folder_name)
@@ -22,7 +26,12 @@ def load_and_save_tiff_from_slices(
     with TiffWriter(output_file_path, bigtiff=bigtiff) as tif:
         for filename in tif_files:
             tif_file = imread(f"{folder_name}/{filename}")
-            tif.write(tif_file, contiguous=contiguous, compression=compression)
+            tif.write(
+                tif_file,
+                contiguous=contiguous,
+                compression=compression,
+                metadata=metadata,
+            )
 
     # Delete slices folder
     if delete_intermediate:

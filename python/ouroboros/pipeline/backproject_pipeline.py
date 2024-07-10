@@ -1,3 +1,4 @@
+from curses import meta
 from ouroboros.helpers.memory_usage import calculate_gigabytes_from_dimensions
 from ouroboros.helpers.slice import (
     generate_coordinate_grid_for_rect,
@@ -230,11 +231,19 @@ class BackprojectPipelineStep(PipelineStep):
         # Save the backprojected volume to a single tif file
         if config.make_single_file:
             try:
+                metadata = {}
+
+                if config.backproject_min_bounding_box:
+                    metadata["backprojection_offset_min_xyz"] = (
+                        pipeline_input.backprojection_offset
+                    )
+
                 load_and_save_tiff_from_slices(
                     folder_path,
                     folder_path + ".tif",
                     delete_intermediate=False,
                     compression=config.backprojection_compression,
+                    metadata=metadata,
                 )
             except Exception as e:
                 return f"Error creating single tif file: {e}"
