@@ -36,7 +36,7 @@ function useBackprojectPageState() {
 		clearFetch,
 		clearStream
 	} = useContext(ServerContext)
-	const { directoryPath, refreshDirectory } = useContext(DirectoryContext)
+	const { directoryPath } = useContext(DirectoryContext)
 
 	const [entries] = useState<(Entry | CompoundEntry)[]>([new BackprojectOptionsFile()])
 
@@ -71,15 +71,13 @@ function useBackprojectPageState() {
 
 	// Refresh the file list when the task is done
 	useEffect(() => {
-		refreshDirectory()
-
 		if (streamError?.status) {
 			addAlert(streamError.message, 'error')
 		}
 	}, [streamDone, streamError])
 
 	const onSubmit = async () => {
-		if (!connected) {
+		if (!connected || !directoryPath) {
 			return
 		}
 
@@ -128,8 +126,6 @@ function useBackprojectPageState() {
 
 		// Save options to file
 		await writeFile(outputFolder, modifiedName, JSON.stringify(optionsObject, null, 4))
-
-		refreshDirectory()
 
 		const outputOptions = await join(outputFolder, modifiedName)
 

@@ -1,6 +1,13 @@
 import { createContext, useCallback, useEffect, useState } from 'react'
 
-export const DirectoryContext = createContext(null as any)
+export type DirectoryContextValue = {
+	files: string[]
+	isFolder: boolean[]
+	directoryPath: string | null
+	directoryName: string | null
+}
+
+export const DirectoryContext = createContext<DirectoryContextValue>(null as any)
 
 function DirectoryProvider({ children }) {
 	const [directoryName, setDirectoryName] = useState(null)
@@ -19,8 +26,14 @@ function DirectoryProvider({ children }) {
 			setDirectoryName(directorySplit[directorySplit.length - 1])
 		})
 
+		window.electron.ipcRenderer.on('folder-contents-update', (_, { files, isFolder }) => {
+			setFiles(files)
+			setIsFolder(isFolder)
+		})
+
 		return () => {
 			window.electron.ipcRenderer.removeAllListeners('selected-folder')
+			window.electron.ipcRenderer.removeAllListeners('folder-contents-update')
 		}
 	}, [])
 
@@ -38,9 +51,7 @@ function DirectoryProvider({ children }) {
 	}, [directoryPath])
 
 	return (
-		<DirectoryContext.Provider
-			value={{ files, isFolder, directoryPath, directoryName, refreshDirectory }}
-		>
+		<DirectoryContext.Provider value={{ files, isFolder, directoryPath, directoryName }}>
 			{children}
 		</DirectoryContext.Provider>
 	)

@@ -81,7 +81,7 @@ function useSlicePageState() {
 		clearFetch,
 		clearStream
 	} = useContext(ServerContext)
-	const { directoryPath, refreshDirectory } = useContext(DirectoryContext)
+	const { directoryPath } = useContext(DirectoryContext)
 
 	const [entries, setEntries] = useState<(Entry | CompoundEntry)[]>([new SliceOptionsFile()])
 
@@ -118,8 +118,6 @@ function useSlicePageState() {
 
 	// Refresh the file list when the task is done
 	useEffect(() => {
-		refreshDirectory()
-
 		if (streamError?.status) {
 			addAlert(streamError.message, 'error')
 		}
@@ -133,7 +131,7 @@ function useSlicePageState() {
 	}, [streamDone, streamError])
 
 	const onEntryChange = async (entry: Entry) => {
-		if (entry.name === 'neuroglancer_json') {
+		if (entry.name === 'neuroglancer_json' && directoryPath) {
 			if (entry.value === '') return
 
 			const neuroglancerJSONContent = await readFile(directoryPath, entry.value as string)
@@ -193,7 +191,7 @@ function useSlicePageState() {
 	}
 
 	const onSubmit = async () => {
-		if (!connected) {
+		if (!connected || !directoryPath) {
 			return
 		}
 
@@ -235,8 +233,6 @@ function useSlicePageState() {
 
 		// Save options to file
 		await writeFile(outputFolder, modifiedName, JSON.stringify(optionsObject, null, 4))
-
-		refreshDirectory()
 
 		const outputOptions = await join(outputFolder, modifiedName)
 

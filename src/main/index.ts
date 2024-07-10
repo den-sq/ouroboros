@@ -12,9 +12,13 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
 import fs from 'fs/promises'
+import { AsyncSubscription } from '@parcel/watcher'
+const watcher = require('@parcel/watcher') // TODO use this with import
+
+let mainWindow: Electron.BrowserWindow
 
 function createWindow(): void {
-	const mainWindow = new BrowserWindow({
+	mainWindow = new BrowserWindow({
 		show: false,
 		autoHideMenuBar: true,
 		...(process.platform === 'linux' ? { icon } : {}),
@@ -168,8 +172,7 @@ app.whenReady().then(() => {
 		optimizer.watchWindowShortcuts(window)
 	})
 
-	// Fetch the contents of the given folder
-	ipcMain.handle('fetch-folder-contents', async (_, folderPath: string) => {
+	async function fetchFolderContents(folderPath: string) {
 		try {
 			// https://nodejs.org/api/fs.html#fspromisesreaddirpath-options
 			const files = await fs.readdir(folderPath)
@@ -194,6 +197,27 @@ app.whenReady().then(() => {
 		} catch (error) {
 			return { files: [], isFolder: [] }
 		}
+	}
+
+	let subscription: AsyncSubscription | null = null
+
+	// Fetch the contents of the given folder
+	ipcMain.handle('fetch-folder-contents', async (_, folderPath: string) => {
+		if (folderPath === '' || folderPath === undefined || folderPath === null)
+			return { files: [], isFolder: [] }
+
+		if (subscription) {
+			await subscription.unsubscribe()
+			subscription = null
+		}
+
+		// Send updates to the renderer when the folder contents change
+		subscription = await watcher.subscribe(folderPath, async () => {
+			const result = await fetchFolderContents(folderPath)
+			mainWindow?.webContents.send('folder-contents-update', result)
+		})
+
+		return await fetchFolderContents(folderPath)
 	})
 
 	// Save a string to a file

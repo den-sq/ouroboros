@@ -31,6 +31,7 @@
 		"@electron-toolkit/eslint-config-prettier": "^2.0.0",
 		"@electron-toolkit/eslint-config-ts": "^2.0.0",
 		"@electron-toolkit/tsconfig": "^1.0.1",
+		"@parcel/watcher": "^2.4.1",
 		"@react-three/drei": "^9.108.3",
 		"@react-three/fiber": "^8.16.8",
 		"@types/node": "^20.14.8",
