@@ -34,7 +34,7 @@ PORT = 8000
 # which is required for the parent dataclass to have default values
 @dataclass(kw_only=True)
 class Task:
-    task_id: int
+    task_id: str
     pipeline_input: PipelineInput = None
     pipeline: Pipeline = None
     last_progress: list[tuple[str, float]] = field(default_factory=list)

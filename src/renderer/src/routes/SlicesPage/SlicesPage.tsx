@@ -9,6 +9,9 @@ import { DirectoryContext } from '@renderer/contexts/DirectoryContext'
 import { join, writeFile } from '@renderer/lib/file'
 import { AlertContext } from '@renderer/contexts/AlertContext'
 import VisualizeSlicing from './components/VisualizeSlicing/VisualizeSlicing'
+import SliceResultSchema from '@renderer/schemas/slice-result-schema'
+import { safeParse } from 'valibot'
+import SliceStatusResultSchema from '@renderer/schemas/slice-status-result-schema'
 
 const SLICE_RENDER_PROPORTION = 0.01
 
@@ -87,7 +90,7 @@ function useSlicePageState() {
 
 	const [progress, setProgress] = useState<any>([])
 
-	const { results: fetchResults } = useFetchListener('/slice/')
+	const { results: sliceResults } = useFetchListener('/slice/')
 	const {
 		results: streamResults,
 		error: streamError,
@@ -98,17 +101,19 @@ function useSlicePageState() {
 
 	// Listen to the status stream for the active task
 	useEffect(() => {
-		if (fetchResults && 'task_id' in fetchResults) {
-			performStream(SLICE_STREAM, fetchResults)
+		const results = safeParse(SliceResultSchema, sliceResults)
+
+		if (results.success) {
+			performStream(SLICE_STREAM, results.output)
 		}
-	}, [fetchResults])
+	}, [sliceResults])
 
 	// Update the progress state when new data is received
 	useEffect(() => {
-		if (streamResults && 'progress' in streamResults) {
-			if (!('error' in streamResults && streamResults.error)) {
-				setProgress(streamResults.progress)
-			}
+		const results = safeParse(SliceStatusResultSchema, streamResults)
+
+		if (results.success && !results.output.error) {
+			setProgress(results.output.progress)
 		}
 	}, [streamResults])
 
@@ -120,9 +125,11 @@ function useSlicePageState() {
 			addAlert(streamError.message, 'error')
 		}
 
-		if (streamDone && fetchResults && 'task_id' in fetchResults) {
+		const results = safeParse(SliceResultSchema, sliceResults)
+
+		if (streamDone && results.success) {
 			// Get the visualization data
-			performFetch('/slice_visualization/', fetchResults)
+			performFetch('/slice_visualization/', results.output)
 		}
 	}, [streamDone, streamError])
 
@@ -131,9 +138,11 @@ function useSlicePageState() {
 			return
 		}
 
+		const results = safeParse(SliceResultSchema, sliceResults)
+
 		// Delete the previous task if it exists
-		if (fetchResults && 'task_id' in fetchResults) {
-			performFetch('/delete/', fetchResults, { method: 'POST' }).then(() => {
+		if (results.success) {
+			performFetch('/delete/', results.output, { method: 'POST' }).then(() => {
 				// Clear the task once it has been deleted
 				clearFetch('/slice/')
 				clearStream(SLICE_STREAM)

@@ -7,6 +7,17 @@ export type ServerError = {
 	message: string
 }
 
+export type FetchResult = {
+	results: object | null
+	error: ServerError
+}
+
+export type StreamResult = {
+	results: object | null
+	error: ServerError
+	done: boolean
+}
+
 export type ServerContextValue = {
 	baseURL: string
 	connected: boolean
@@ -18,23 +29,15 @@ export type ServerContextValue = {
 	performStream: (relativeURL: string, query?: Record<string, any>) => void
 	clearFetch: (relativeURL: string) => void
 	clearStream: (relativeURL: string) => void
-	useFetchListener: (relativeURL: string) => { results: object | null; error: ServerError }
-	useStreamListener: (relativeURL: string) => {
-		results: object | null
-		error: ServerError
-		done: boolean
-	}
+	useFetchListener: (relativeURL: string) => FetchResult
+	useStreamListener: (relativeURL: string) => StreamResult
 }
 
 export const ServerContext = createContext<ServerContextValue>(null as any)
 
 function useServerContextProvider(baseURL = DEFAULT_SERVER_URL) {
-	const [fetchStates, setFetchStates] = useState<
-		Map<string, { results: object | null; error: ServerError }>
-	>(new Map())
-	const [streamStates, setStreamStates] = useState<
-		Map<string, { results: object | null; error: ServerError; done: boolean }>
-	>(new Map())
+	const [fetchStates, setFetchStates] = useState<Map<string, FetchResult>>(new Map())
+	const [streamStates, setStreamStates] = useState<Map<string, StreamResult>>(new Map())
 
 	const setFetchStatesHelper = useCallback(
 		({
