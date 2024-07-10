@@ -16,18 +16,14 @@ function BackprojectPage(): JSX.Element {
 		useContext(ServerContext)
 	const { directoryPath, refreshDirectory } = useContext(DirectoryContext)
 
-	const [entries] = useState<(Entry | CompoundEntry)[]>([
-		new Entry('straightened_volume_path', 'Straightened Volume File', '', 'filePath'),
-		new Entry('config', 'Slice Configuration File', '', 'filePath'),
-		new BackprojectOptionsFile()
-	])
+	const [entries] = useState<(Entry | CompoundEntry)[]>([new BackprojectOptionsFile()])
 
 	const onSubmit = async () => {
 		if (!connected) {
 			return
 		}
 
-		const optionsObject = entries[2].toObject()
+		const optionsObject = entries[0].toObject()
 
 		const outputFolder = await join(directoryPath, optionsObject['output_file_folder'])
 
@@ -35,24 +31,29 @@ function BackprojectPage(): JSX.Element {
 		optionsObject['output_file_folder'] = outputFolder
 
 		const outputName = optionsObject['output_file_name']
-		const straightenedVolumePath = await join(directoryPath, entries[0].toObject() as string)
-		const config = await join(directoryPath, entries[1].toObject() as string)
+		const straightenedVolumePath = await join(
+			directoryPath,
+			optionsObject['straightened_volume_path']
+		)
+		optionsObject['straightened_volume_path'] = straightenedVolumePath
+		const configPath = await join(directoryPath, optionsObject['config_path'])
+		optionsObject['config_path'] = configPath
 
 		// Validate options
 		if (
 			!optionsObject['output_file_folder'] ||
 			!outputName ||
-			!entries[0].toObject() ||
-			!entries[1].toObject() ||
+			!optionsObject['straightened_volume_path'] ||
+			!optionsObject['config_path'] ||
 			optionsObject['output_file_folder'] === '' ||
 			outputName === '' ||
-			entries[0].toObject() === '' ||
-			entries[1].toObject() === ''
+			optionsObject['straightened_volume_path'] === '' ||
+			optionsObject['config_path'] === ''
 		) {
 			return
 		}
 
-		const modifiedName = `${outputName}-options-backproject.json`
+		const modifiedName = `${outputName}-backproject-options.json`
 
 		// Save options to file
 		await writeFile(outputFolder, modifiedName, JSON.stringify(optionsObject, null, 4))
@@ -65,8 +66,6 @@ function BackprojectPage(): JSX.Element {
 		performFetch(
 			'/backproject/',
 			{
-				straightened_volume_path: straightenedVolumePath,
-				config: config,
 				options: outputOptions
 			},
 			{ method: 'POST' }

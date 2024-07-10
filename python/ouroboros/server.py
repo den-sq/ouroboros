@@ -43,19 +43,15 @@ class Task:
 
 @dataclass(kw_only=True)
 class SliceTask(Task):
-    neuroglancer_json: str
     options: str
 
 
 @dataclass(kw_only=True)
 class BackProjectTask(Task):
-    straightened_volume_path: str
-    config: str
     options: str
 
 
 def handle_slice(task: SliceTask):
-    neuroglancer_json_path = task.neuroglancer_json
     options_path = task.options
 
     slice_options = SliceOptions.load_from_json(options_path)
@@ -74,7 +70,7 @@ def handle_slice(task: SliceTask):
     task.pipeline = pipeline
 
     input_data = PipelineInput(
-        slice_options=slice_options, json_path=neuroglancer_json_path
+        slice_options=slice_options, json_path=slice_options.neuroglancer_json
     )
 
     # Store the input data in the task
@@ -90,8 +86,6 @@ def handle_slice(task: SliceTask):
 
 
 def handle_backproject(task: BackProjectTask):
-    straightened_volume_path = task.straightened_volume_path
-    config_path = task.config
     options_path = task.options
 
     options = BackprojectOptions.load_from_json(options_path)
@@ -99,7 +93,7 @@ def handle_backproject(task: BackProjectTask):
     pipeline = Pipeline(
         [
             LoadConfigPipelineStep()
-            .with_custom_output_file_path(straightened_volume_path)
+            .with_custom_output_file_path(options.straightened_volume_path)
             .with_custom_options(options),
             BackprojectPipelineStep(),
             SaveConfigPipelineStep(),
@@ -109,7 +103,7 @@ def handle_backproject(task: BackProjectTask):
     # Store the pipeline in the task
     task.pipeline = pipeline
 
-    input_data = PipelineInput(config_file_path=config_path)
+    input_data = PipelineInput(config_file_path=options.config_path)
 
     # Store the input data in the task
     task.pipeline_input = input_data
@@ -173,11 +167,9 @@ async def server_active():
 
 
 @app.post("/slice/")
-async def add_slice_task(neuroglancer_json: str, options: str, request: Request):
+async def add_slice_task(options: str, request: Request):
     task_id = str(uuid.uuid4())
-    task = SliceTask(
-        task_id=task_id, neuroglancer_json=neuroglancer_json, options=options
-    )
+    task = SliceTask(task_id=task_id, options=options)
     tasks[task_id] = task
     request.state.queue.put_nowait(task)  # Add request to the queue
     return {"task_id": task_id}
@@ -218,15 +210,11 @@ async def get_slice_visualization(task_id: str):
 @app.post("/backproject/")
 async def add_backproject_task(
     request: Request,
-    straightened_volume_path: str,
-    config: str,
     options: str,
 ):
     task_id = str(uuid.uuid4())
     task = BackProjectTask(
         task_id=task_id,
-        straightened_volume_path=straightened_volume_path,
-        config=config,
         options=options,
     )
     tasks[task_id] = task

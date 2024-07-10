@@ -30,11 +30,6 @@ def main():
         "slice", help="Slice the original volume along a path and save to a tiff file."
     )
     parser_slice.add_argument(
-        "neuroglancer_json",
-        type=str,
-        help="The path to the neuroglancer json file with the source and annotation path.",
-    )
-    parser_slice.add_argument(
         "options",
         type=str,
         help="The path to the options json file.",
@@ -51,20 +46,9 @@ def main():
         help="Project the straightened slices back into the space of the original volume.",
     )
     parser_backproject.add_argument(
-        "straightened_volume",
+        "options",
         type=str,
-        help="The tiff file representing the straightened (possibly segmented) volume.",
-    )
-    parser_backproject.add_argument(
-        "config",
-        type=str,
-        help="The configuration file exported from the slicing process.",
-    )
-    parser_backproject.add_argument(
-        "--options",
-        type=str,
-        help="By default, this command uses the config file to find options. Override those options with a path to another options json file.",
-        default=None,
+        help="The path to the options json file.",
     )
     parser_backproject.add_argument(
         "--verbose",
@@ -107,7 +91,7 @@ def handle_slice(args):
     )
 
     input_data = PipelineInput(
-        slice_options=slice_options, json_path=args.neuroglancer_json
+        slice_options=slice_options, json_path=slice_options.neuroglancer_json
     )
 
     _, error = pipeline.process(input_data)
@@ -123,22 +107,19 @@ def handle_slice(args):
 
 
 def handle_backproject(args):
-    backproject_options = None
-
-    if args.options:
-        backproject_options = BackprojectOptions.load_from_json(args.options)
+    backproject_options = BackprojectOptions.load_from_json(args.options)
 
     pipeline = Pipeline(
         [
             LoadConfigPipelineStep()
-            .with_custom_output_file_path(args.straightened_volume)
+            .with_custom_output_file_path(backproject_options.straightened_volume_path)
             .with_custom_options(backproject_options),
             BackprojectPipelineStep().with_progress_bar(),
             SaveConfigPipelineStep(),
         ]
     )
 
-    input_data = PipelineInput(config_file_path=args.config)
+    input_data = PipelineInput(config_file_path=backproject_options.config_path)
 
     _, error = pipeline.process(input_data)
 
@@ -158,6 +139,7 @@ def handle_sample_options():
         slice_height=100,
         output_file_folder="./output/",
         output_file_name="sample",
+        neuroglancer_json="",
     )
 
     sample_options.save_to_json("./sample-slice-options.json")
@@ -167,6 +149,8 @@ def handle_sample_options():
         slice_height=100,
         output_file_folder="./output/",
         output_file_name="sample",
+        straightened_volume_path="./sample.tif",
+        config_path="./sample-configuration.json",
     )
 
     sample_options.save_to_json("./sample-backproject-options.json")

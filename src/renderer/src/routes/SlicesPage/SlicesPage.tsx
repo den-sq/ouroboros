@@ -81,10 +81,7 @@ function useSlicePageState() {
 	} = useContext(ServerContext)
 	const { directoryPath, refreshDirectory } = useContext(DirectoryContext)
 
-	const [entries] = useState<(Entry | CompoundEntry)[]>([
-		new Entry('neuroglancer_json', 'Neuroglancer JSON', '', 'filePath'),
-		new SliceOptionsFile()
-	])
+	const [entries] = useState<(Entry | CompoundEntry)[]>([new SliceOptionsFile()])
 
 	const { addAlert } = useContext(AlertContext)
 
@@ -149,7 +146,7 @@ function useSlicePageState() {
 			})
 		}
 
-		const optionsObject = entries[1].toObject()
+		const optionsObject = entries[0].toObject()
 
 		const outputFolder = await join(directoryPath, optionsObject['output_file_folder'])
 
@@ -157,21 +154,22 @@ function useSlicePageState() {
 		optionsObject['output_file_folder'] = outputFolder
 
 		const outputName = optionsObject['output_file_name']
-		const neuroglancerJSON = await join(directoryPath, entries[0].toObject() as string)
+		const neuroglancerJSON = await join(directoryPath, optionsObject['neuroglancer_json'])
+		optionsObject['neuroglancer_json'] = neuroglancerJSON
 
 		// Validate options
 		if (
 			!optionsObject['output_file_folder'] ||
 			!outputName ||
-			!entries[0].toObject() ||
+			!optionsObject['neuroglancer_json'] ||
 			optionsObject['output_file_folder'] === '' ||
 			outputName === '' ||
-			entries[0].toObject() === ''
+			optionsObject['neuroglancer_json'] === ''
 		) {
 			return
 		}
 
-		const modifiedName = `${outputName}-options-slice.json`
+		const modifiedName = `${outputName}-slice-options.json`
 
 		// Save options to file
 		await writeFile(outputFolder, modifiedName, JSON.stringify(optionsObject, null, 4))
@@ -181,11 +179,7 @@ function useSlicePageState() {
 		const outputOptions = await join(outputFolder, modifiedName)
 
 		// Run the slice generation
-		performFetch(
-			'/slice/',
-			{ neuroglancer_json: neuroglancerJSON, options: outputOptions },
-			{ method: 'POST' }
-		)
+		performFetch('/slice/', { options: outputOptions }, { method: 'POST' })
 	}
 
 	return { progress, connected, entries, onSubmit, visualizationResults }

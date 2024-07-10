@@ -93,6 +93,7 @@ export class CompoundEntry {
 export class SliceOptionsFile extends CompoundEntry {
 	constructor(values: CompoundValueType = {}) {
 		super('options', 'Options File', [
+			new Entry('neuroglancer_json', 'Neuroglancer JSON', '', 'filePath'),
 			new Entry('slice_width', 'Slice Width', 120, 'number'),
 			new Entry('slice_height', 'Slice Height', 120, 'number'),
 			new Entry('output_file_folder', 'Output File Folder', './', 'filePath'),
@@ -115,6 +116,8 @@ export class SliceOptionsFile extends CompoundEntry {
 export class BackprojectOptionsFile extends CompoundEntry {
 	constructor(values: CompoundValueType = {}) {
 		super('options', 'Options File', [
+			new Entry('straightened_volume_path', 'Straightened Volume File', '', 'filePath'),
+			new Entry('config_path', 'Slice Configuration File', '', 'filePath'),
 			new Entry('slice_width', 'Slice Width', 120, 'number'),
 			new Entry('slice_height', 'Slice Height', 120, 'number'),
 			new Entry('output_file_folder', 'Output File Folder', './', 'filePath'),

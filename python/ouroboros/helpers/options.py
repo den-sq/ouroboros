@@ -30,6 +30,7 @@ class CommonOptions:
 @dataclass_with_json
 @dataclass(kw_only=True)
 class SliceOptions(CommonOptions):
+    neuroglancer_json: str  # Path to the neuroglancer JSON file
     bounding_box_params: BoundingBoxParams = (
         BoundingBoxParams()
     )  # Parameters for generating bounding boxes
@@ -38,6 +39,8 @@ class SliceOptions(CommonOptions):
 @dataclass_with_json
 @dataclass(kw_only=True)
 class BackprojectOptions(CommonOptions):
+    straightened_volume_path: str  # Path to the straightened volume
+    config_path: str  # Path to the config file
     backproject_min_bounding_box: bool = (
         True  # Whether to backproject to a minimum bounding box or the entire volume
     )
