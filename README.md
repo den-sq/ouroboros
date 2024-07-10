@@ -4,7 +4,7 @@ Quickly extract ROIs from cloud-hosted medical scans.
 
 This repository is a monorepo containing the code for the Ouroboros app and the Ouroboros Python package (`python` folder). 
 
-## Development Quick Start
+# Development Quick Start
 
 Ouroboros has two main components:
 
@@ -17,31 +17,31 @@ The Python package and the Electron app have separate setup steps which are list
 
 **Before you begin, `git clone` the project locally.**
 
-### Electron Setup
+## Electron Setup
 
 VScode Setup: [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) & [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
 
-#### 1. Install Node.js and NPM
+### 1. Install Node.js and NPM
 
 If you don't already have them installed, follow the instructions at the following link: https://nodejs.org/en/download/
 
-#### 2. Install Dependencies
+### 2. Install Dependencies
 
 ```bash
 $ npm install
 ```
 
-#### 3. Run Electron App In Development Mode
+### 3. Run Electron App In Development Mode
 
 ```bash
 $ npm run dev
 ```
 
-### Python Setup
+## Python Setup
 
 The following steps are here to streamline the setup process for Python. For more advanced development, like testing PyInstaller, or if you encounter any issues, you may need to follow the instructions available in the [Python README](./python/README.md).
 
-#### 1. Install Python
+### 1. Install Python
 
 Due to some Python dependencies, it is highly recommended that the default Python installation for the system is `3.10`.
 
@@ -66,7 +66,7 @@ I recommend following the instructions below first if you want to be able to com
 
 https://stackoverflow.com/questions/60917013/how-to-build-python-with-enable-framework-enable-shared-on-macos
 
-#### 2. Install Poetry and Dependencies
+### 2. Install Poetry and Dependencies
 
 [Poetry](https://python-poetry.org/) is the Python project and dependency manager used for the Ouroboros Python package.
 
@@ -97,7 +97,7 @@ Poetry makes it easier to run the built-in CLI or server with the following comm
 - `ouroboros-server` - Runs the server that communicates with the Electron app.
 
 
-### Running the App in Development Mode
+## Running the App in Development Mode
 
 In the Electron VSCode window, run `npm run dev` to start the Electron app. 
 
