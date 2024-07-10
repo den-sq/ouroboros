@@ -214,6 +214,16 @@ app.whenReady().then(() => {
 		return join(folder, name)
 	})
 
+	// Read the contents of a file as a string
+	ipcMain.handle('read-file', async (_, { folder, name }) => {
+		try {
+			const data = await fs.readFile(join(folder, name), 'utf-8')
+			return data
+		} catch (error) {
+			return ''
+		}
+	})
+
 	createWindow()
 
 	app.on('activate', function () {

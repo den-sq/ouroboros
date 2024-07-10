@@ -7,14 +7,20 @@ import CompoundEntryElement from './components/CompoundEntry/CompoundEntry'
 
 function OptionsPanel({
 	entries,
-	onSubmit
+	onSubmit,
+	onEntryChange
 }: {
 	entries: (Entry | CompoundEntry)[]
 	onSubmit: () => Promise<void>
+	onEntryChange?: (entry: Entry) => void
 }): JSX.Element {
+	if (onEntryChange === undefined) {
+		onEntryChange = () => {}
+	}
+
 	const entryElement = entries.flatMap((entryObject) => {
-		if (entryObject instanceof Entry) return entryToElement(entryObject)
-		else return compoundEntryToElement(entryObject, false, false)
+		if (entryObject instanceof Entry) return entryToElement(entryObject, onEntryChange)
+		else return compoundEntryToElement(entryObject, onEntryChange, false, false)
 	})
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -34,7 +40,12 @@ function OptionsPanel({
 	)
 }
 
-function compoundEntryToElement(compoundEntry: CompoundEntry, indent = true, title = true) {
+function compoundEntryToElement(
+	compoundEntry: CompoundEntry,
+	onEntryChange: (entry: Entry) => void,
+	indent = true,
+	title = true
+) {
 	return (
 		<CompoundEntryElement
 			key={compoundEntry.name}
@@ -43,15 +54,15 @@ function compoundEntryToElement(compoundEntry: CompoundEntry, indent = true, tit
 			title={title}
 		>
 			{compoundEntry.entries.map((entry) => {
-				if (entry instanceof Entry) return entryToElement(entry)
-				else return compoundEntryToElement(entry)
+				if (entry instanceof Entry) return entryToElement(entry, onEntryChange)
+				else return compoundEntryToElement(entry, onEntryChange)
 			})}
 		</CompoundEntryElement>
 	)
 }
 
-function entryToElement(entry: Entry) {
-	return <OptionEntry key={entry.name} entry={entry} />
+function entryToElement(entry: Entry, onEntryChange: (entry: Entry) => void) {
+	return <OptionEntry key={entry.name} entry={entry} onEntryChange={onEntryChange} />
 }
 
 export default OptionsPanel

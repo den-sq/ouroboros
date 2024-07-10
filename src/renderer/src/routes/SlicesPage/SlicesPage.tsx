@@ -6,19 +6,21 @@ import { ServerContext } from '@renderer/contexts/ServerContext'
 import { CompoundEntry, Entry, SliceOptionsFile } from '@renderer/lib/options'
 import { useContext, useEffect, useState } from 'react'
 import { DirectoryContext } from '@renderer/contexts/DirectoryContext'
-import { join, writeFile } from '@renderer/lib/file'
+import { join, readFile, writeFile } from '@renderer/lib/file'
 import { AlertContext } from '@renderer/contexts/AlertContext'
 import VisualizeSlicing from './components/VisualizeSlicing/VisualizeSlicing'
 import SliceResultSchema from '@renderer/schemas/slice-result-schema'
 import { safeParse } from 'valibot'
 import SliceStatusResultSchema from '@renderer/schemas/slice-status-result-schema'
+import NeuroglancerJSONSchema from '@renderer/schemas/neuroglancer-json-schema'
 
 const SLICE_RENDER_PROPORTION = 0.01
 
 const SLICE_STREAM = '/slice_status_stream/'
 
 function SlicesPage(): JSX.Element {
-	const { progress, connected, entries, onSubmit, visualizationResults } = useSlicePageState()
+	const { progress, connected, entries, onSubmit, visualizationResults, onEntryChange } =
+		useSlicePageState()
 
 	const visualizationData =
 		visualizationResults && 'data' in visualizationResults
@@ -44,7 +46,7 @@ function SlicesPage(): JSX.Element {
 				) : null}
 			</VisualizePanel>
 			<ProgressPanel progress={progress} connected={connected} />
-			<OptionsPanel entries={entries} onSubmit={onSubmit} />
+			<OptionsPanel entries={entries} onSubmit={onSubmit} onEntryChange={onEntryChange} />
 		</div>
 	)
 }
@@ -130,6 +132,43 @@ function useSlicePageState() {
 		}
 	}, [streamDone, streamError])
 
+	const onEntryChange = async (entry: Entry) => {
+		if (entry.name === 'neuroglancer_json') {
+			if (entry.value === '') return
+
+			const neuroglancerJSONContent = await readFile(directoryPath, entry.value as string)
+
+			if (!neuroglancerJSONContent || neuroglancerJSONContent === '') {
+				addAlert('Invalid Neuroglancer JSON', 'error')
+			}
+
+			let json = ''
+
+			try {
+				json = JSON.parse(neuroglancerJSONContent)
+			} catch (e) {
+				addAlert('Invalid Neuroglancer JSON', 'error')
+			}
+
+			const jsonResult = safeParse(NeuroglancerJSONSchema, json)
+
+			if (jsonResult.success) {
+				const imageLayers: { type: string; name: string }[] = []
+				const annotationLayers: { type: string; name: string }[] = []
+
+				for (const layer of jsonResult.output['layers']) {
+					if (layer.type === 'image' && layer.name !== '') {
+						imageLayers.push(layer)
+					} else if (layer.type === 'annotation' && layer.name !== '') {
+						annotationLayers.push(layer)
+					}
+				}
+
+				console.log(imageLayers, annotationLayers)
+			}
+		}
+	}
+
 	const onSubmit = async () => {
 		if (!connected) {
 			return
@@ -182,7 +221,7 @@ function useSlicePageState() {
 		performFetch('/slice/', { options: outputOptions }, { method: 'POST' })
 	}
 
-	return { progress, connected, entries, onSubmit, visualizationResults }
+	return { progress, connected, entries, onSubmit, visualizationResults, onEntryChange }
 }
 
 export default SlicesPage

@@ -9,10 +9,12 @@ const LABEL_GAP = 15
 
 function OptionEntry({
 	entry,
-	minWidth = MIN_WIDTH
+	minWidth = MIN_WIDTH,
+	onEntryChange
 }: {
 	entry: Entry
 	minWidth?: number
+	onEntryChange: (entry: Entry) => void
 }): JSX.Element {
 	const label = entry.label
 	const initialValue = entry.value
@@ -113,6 +115,8 @@ function OptionEntry({
 				entry.setValue(value)
 				break
 		}
+
+		onEntryChange(entry)
 	}
 
 	useEffect(() => {
