@@ -1,10 +1,10 @@
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
+import { createHashRouter, Navigate, RouterProvider } from 'react-router-dom'
 
 import SlicesPage from './routes/SlicesPage/SlicesPage'
 import BackprojectPage from './routes/BackprojectPage/BackprojectPage'
 import Root from './routes/Root/Root'
 
-const router = createBrowserRouter([
+const router = createHashRouter([
 	{
 		path: '/',
 		element: <Root />,

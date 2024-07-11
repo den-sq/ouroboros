@@ -12,10 +12,12 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
 import fs from 'fs/promises'
-import { AsyncSubscription } from '@parcel/watcher'
-const watcher = require('@parcel/watcher') // TODO use this with import
+import { ChildProcess, execFile } from 'child_process'
+import { existsSync } from 'fs'
+import Watcher from 'watcher'
 
 let mainWindow: Electron.BrowserWindow
+let mainServer: ChildProcess
 
 function createWindow(): void {
 	mainWindow = new BrowserWindow({
@@ -133,6 +135,12 @@ function createWindow(): void {
 					click: async () => {
 						await shell.openExternal('https://github.com/We-Gold/ouroboros')
 					}
+				},
+				{
+					label: 'Report Issue',
+					click: async () => {
+						await shell.openExternal('https://github.com/We-Gold/ouroboros/issues')
+					}
 				}
 			]
 		}
@@ -158,6 +166,29 @@ function createWindow(): void {
 		mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
 	} else {
 		mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+	}
+
+	// Run the Python Server with execFile
+	if (!is.dev) {
+		const serverPath = join(
+			__dirname,
+			`../../resources/ouroboros-server${process.platform === 'win32' ? '.exe' : ''}`
+		)
+
+		// Check that the server exists
+		if (!existsSync(serverPath)) {
+			console.error('Server not found')
+			return
+		}
+
+		mainServer = execFile(serverPath)
+
+		mainServer.stderr?.on('data', (data) => {
+			console.error(data.toString())
+		})
+		mainServer.stdout?.on('data', (data) => {
+			console.log(data.toString())
+		})
 	}
 }
 
@@ -199,7 +230,7 @@ app.whenReady().then(() => {
 		}
 	}
 
-	let subscription: AsyncSubscription | null = null
+	let subscription: Watcher | null = null
 
 	// Fetch the contents of the given folder
 	ipcMain.handle('fetch-folder-contents', async (_, folderPath: string) => {
@@ -207,12 +238,14 @@ app.whenReady().then(() => {
 			return { files: [], isFolder: [] }
 
 		if (subscription) {
-			await subscription.unsubscribe()
+			subscription.close()
 			subscription = null
 		}
 
 		// Send updates to the renderer when the folder contents change
-		subscription = await watcher.subscribe(folderPath, async () => {
+		subscription = new Watcher(folderPath)
+
+		subscription.on('all', async () => {
 			const result = await fetchFolderContents(folderPath)
 			mainWindow?.webContents.send('folder-contents-update', result)
 		})
@@ -259,4 +292,6 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
 	app.quit()
+
+	mainServer?.kill()
 })
