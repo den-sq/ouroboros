@@ -31,7 +31,7 @@ def parse_neuroglancer_json(json_path) -> ParseResult:
             return parsed_json, None
     except json.JSONDecodeError as e:
         return {}, f"An error occurred while parsing the given JSON file: {str(e)}"
-    except Exception as e:
+    except BaseException as e:
         return {}, f"An error occurred while opening the given JSON file: {str(e)}"
 
 
@@ -63,7 +63,7 @@ def neuroglancer_config_to_annotation(config, options: SliceOptions) -> Result:
                 ]
 
                 return np.array(result), None
-    except Exception as e:
+    except BaseException as e:
         return None, f"An error occurred while extracting the annotations: {str(e)}"
 
     return None, "No annotations found in the file."
@@ -95,7 +95,7 @@ def neuroglancer_config_to_source(config, options: SliceOptions) -> Result:
                     return layer["source"], None
                 else:
                     return None, "Invalid source format in the file."
-    except Exception as e:
+    except BaseException as e:
         return None, f"An error occurred while extracting the source URL: {str(e)}"
 
     return None, "No source URL found in the file."

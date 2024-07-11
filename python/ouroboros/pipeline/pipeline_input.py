@@ -1,30 +1,29 @@
-from dataclasses import astuple, dataclass
 import numpy as np
+from pydantic import BaseModel, ConfigDict, field_serializer, field_validator
+from ouroboros.helpers.dataclasses import dataclass_with_json
 from ouroboros.helpers.options import BackprojectOptions, SliceOptions
 from ouroboros.helpers.volume_cache import VolumeCache
-import json
 
 
-@dataclass
-class PipelineInput:
+@dataclass_with_json
+class PipelineInput(BaseModel):
     """
     Dataclass for the input to the pipeline.
     """
 
-    json_path: str = None
-    slice_options: SliceOptions = None
-    backproject_options: BackprojectOptions = None
-    source_url: str = None
-    sample_points: np.ndarray = None
-    slice_rects: np.ndarray = None
-    volume_cache: VolumeCache = None
-    output_file_path: str = None
-    backprojected_folder_path: str = None
-    config_file_path: str = None
-    backprojection_offset: str = None
+    json_path: str | None = None
+    slice_options: SliceOptions | None = None
+    backproject_options: BackprojectOptions | None = None
+    source_url: str | None = None
+    sample_points: np.ndarray | None = None
+    slice_rects: np.ndarray | None = None
+    volume_cache: VolumeCache | None = None
+    output_file_path: str | None = None
+    backprojected_folder_path: str | None = None
+    config_file_path: str | None = None
+    backprojection_offset: str | None = None
 
-    def __iter__(self):
-        return iter(astuple(self))
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __getitem__(self, keys):
         return iter(getattr(self, k) for k in keys)
@@ -35,127 +34,24 @@ class PipelineInput:
         """
         setattr(self, key, None)
 
-    def to_dict(self):
-        """
-        Convert the pipeline input to a dictionary.
-        """
-        return {
-            "json_path": self.json_path,
-            "source_url": self.source_url,
-            "slice_options": (
-                self.slice_options.to_dict() if self.slice_options is not None else None
-            ),
-            "backproject_options": (
-                self.backproject_options.to_dict()
-                if self.backproject_options is not None
-                else None
-            ),
-            "sample_points": (
-                self.sample_points.tolist() if self.sample_points is not None else None
-            ),
-            "slice_rects": (
-                self.slice_rects.tolist() if self.slice_rects is not None else None
-            ),
-            "volume_cache": (
-                self.volume_cache.to_dict() if self.volume_cache is not None else None
-            ),
-            "output_file_path": self.output_file_path,
-            "backprojected_folder_path": self.backprojected_folder_path,
-            "config_file_path": self.config_file_path,
-            "backprojection_offset": self.backprojection_offset,
-        }
+    @field_serializer("sample_points", "slice_rects")
+    def to_list(self, value):
+        return value.tolist() if value is not None else None
 
-    @staticmethod
-    def from_dict(data):
-        """
-        Create a pipeline input from a dictionary.
-        """
-        json_path = data["json_path"]
-        slice_options = (
-            SliceOptions.from_dict(data["slice_options"])
-            if data["slice_options"] is not None
-            else None
-        )
-        backproject_options = (
-            BackprojectOptions.from_dict(data["backproject_options"])
-            if data["backproject_options"] is not None
-            else None
-        )
-        source_url = data["source_url"]
-        sample_points = (
-            np.array(data["sample_points"])
-            if data["sample_points"] is not None
-            else None
-        )
-        slice_rects = (
-            np.array(data["slice_rects"]) if data["slice_rects"] is not None else None
-        )
-        volume_cache = (
-            VolumeCache.from_dict(data["volume_cache"])
-            if data["volume_cache"] is not None
-            else None
-        )
-        output_file_path = data["output_file_path"]
-        backprojected_folder_path = data["backprojected_folder_path"]
-        config_file_path = data["config_file_path"]
-        backprojection_offset = data["backprojection_offset"]
+    @field_validator("sample_points", "slice_rects", mode="before")
+    @classmethod
+    def validate_list(cls, value: any):
+        if isinstance(value, list):
+            return np.array(value)
+        return value
 
-        return PipelineInput(
-            json_path=json_path,
-            slice_options=slice_options,
-            backproject_options=backproject_options,
-            source_url=source_url,
-            sample_points=sample_points,
-            slice_rects=slice_rects,
-            volume_cache=volume_cache,
-            output_file_path=output_file_path,
-            backprojected_folder_path=backprojected_folder_path,
-            config_file_path=config_file_path,
-            backprojection_offset=backprojection_offset,
-        )
+    @field_serializer("volume_cache")
+    def to_dict(self, value):
+        return value.to_dict() if value is not None else None
 
-    def copy_values_from_input(self, pipeline_input):
-        """
-        Copy the values from another pipeline input.
-        """
-        self.json_path = pipeline_input.json_path
-        self.slice_options = pipeline_input.slice_options
-        self.backproject_options = pipeline_input.backproject_options
-        self.source_url = pipeline_input.source_url
-        self.sample_points = pipeline_input.sample_points
-        self.slice_rects = pipeline_input.slice_rects
-        self.volume_cache = pipeline_input.volume_cache
-        self.output_file_path = pipeline_input.output_file_path
-        self.backprojected_folder_path = pipeline_input.backprojected_folder_path
-        self.config_file_path = pipeline_input.config_file_path
-        self.backprojection_offset = pipeline_input.backprojection_offset
-
-    def to_json(self):
-        """
-        Convert the pipeline input to a JSON string.
-        """
-        return json.dumps(self.to_dict())
-
-    def save_to_json(self, json_path):
-        """
-        Save the pipeline input to a JSON file.
-        """
-        with open(json_path, "w") as f:
-            json.dump(self.to_dict(), f)
-
-    @staticmethod
-    def load_from_json(json_path):
-        """
-        Load the pipeline input from a JSON file.
-        """
-        try:
-            with open(json_path, "r") as f:
-                data = json.load(f)
-        except FileNotFoundError:
-            print(f"Pipeline input file not found at {json_path}")
-            return None
-        except json.JSONDecodeError:
-            print(f"Pipeline input file at {json_path} is not a valid JSON file")
-            return None
-
-        return PipelineInput.from_dict(data)
+    @field_validator("volume_cache", mode="before")
+    @classmethod
+    def validate_volume_cache(cls, value: any):
+        if isinstance(value, dict):
+            return VolumeCache.from_dict(value)
+        return value

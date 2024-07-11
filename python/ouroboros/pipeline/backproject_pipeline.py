@@ -105,7 +105,7 @@ class BackprojectPipelineStep(PipelineStep):
                     volume_paths[index] = volume_file_path
                     volume_memmaps[index] = tifffile.memmap(volume_file_path, mode="r")
 
-        except Exception as e:
+        except BaseException as e:
             return f"An error occurred while processing the bounding boxes: {e}"
 
         start = time.perf_counter()
@@ -250,7 +250,7 @@ class BackprojectPipelineStep(PipelineStep):
                     compression=config.backprojection_compression,
                     metadata=metadata,
                 )
-            except Exception as e:
+            except BaseException as e:
                 return f"Error creating single tif file: {e}"
 
         # Update the pipeline input with the output file path

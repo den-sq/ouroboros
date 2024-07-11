@@ -55,7 +55,9 @@ class SaveParallelPipelineStep(PipelineStep):
             config.output_file_folder, f"{config.output_file_name}-slices"
         )
         os.makedirs(folder_name, exist_ok=True)
-        output_file_path = config.output_file_path
+        output_file_path = os.path.join(
+            config.output_file_folder, config.output_file_name + ".tif"
+        )
 
         # Calculate the number of digits needed to store the number of slices
         num_digits = len(str(len(slice_rects) - 1))
@@ -130,11 +132,11 @@ class SaveParallelPipelineStep(PipelineStep):
                     except multiprocessing.queues.Empty:
                         if downloads_done() and data_queue.empty():
                             break
-                    except Exception as e:
+                    except BaseException as e:
                         download_executor.shutdown(wait=False, cancel_futures=True)
                         process_executor.shutdown(wait=False, cancel_futures=True)
                         return f"Error processing data: {e}"
-        except Exception as e:
+        except BaseException as e:
             return f"Error downloading data: {e}"
 
         # Wait for all processing to complete
@@ -153,7 +155,7 @@ class SaveParallelPipelineStep(PipelineStep):
                     output_file_path,
                     delete_intermediate=self.delete_intermediate,
                 )
-            except Exception as e:
+            except BaseException as e:
                 return f"Error creating single tif file: {e}"
 
         # Update the pipeline input with the output file path

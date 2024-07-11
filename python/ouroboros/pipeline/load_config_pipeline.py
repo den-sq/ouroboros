@@ -22,7 +22,7 @@ class LoadConfigPipelineStep(PipelineStep):
         config_file_path, currrent_pipeline_input = input_data
 
         pipeline_input = PipelineInput.load_from_json(config_file_path)
-        currrent_pipeline_input.copy_values_from_input(pipeline_input)
+        currrent_pipeline_input.copy_values_from_other(pipeline_input)
 
         if self.custom_output_file_path is not None:
             currrent_pipeline_input.output_file_path = self.custom_output_file_path
