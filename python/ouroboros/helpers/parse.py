@@ -100,7 +100,7 @@ def neuroglancer_config_to_annotation(
     except BaseException as e:
         return None, f"Error extracting annotations: {e}"
 
-    return None, "No annotations found in the file."
+    return None, "The selected annotation layer was not found in the file."
 
 
 def neuroglancer_config_to_source(
@@ -134,4 +134,4 @@ def neuroglancer_config_to_source(
     except BaseException as e:
         return None, f"Error extracting source URL: {e}"
 
-    return None, "No source URL found in the file."
+    return None, "The selected image layer was not found in the file."
