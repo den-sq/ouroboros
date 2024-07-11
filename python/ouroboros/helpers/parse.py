@@ -1,14 +1,47 @@
-import json
 import numpy as np
 
+from pydantic import BaseModel
+from ouroboros.helpers.dataclasses import dataclass_with_json
 from ouroboros.helpers.options import SliceOptions
+
+
+class LayerModel(BaseModel):
+    type: str
+    name: str
+
+
+class AnnotationModel(BaseModel):
+    point: list[float]
+    type: str
+
+
+class AnnotationLayerModel(LayerModel):
+    annotations: list[AnnotationModel]
+    type: str
+    name: str
+
+
+class SourceModel(BaseModel):
+    url: str
+
+
+class ImageLayerModel(LayerModel):
+    source: str | SourceModel
+    type: str
+    name: str
+
+
+@dataclass_with_json
+class NeuroglancerJSONModel(BaseModel):
+    layers: list[AnnotationLayerModel | ImageLayerModel | LayerModel]
+
 
 Result = tuple[any, None] | tuple[None, str]
 
-ParseResult = tuple[dict, None | str]
+ParseResult = tuple[NeuroglancerJSONModel | None, None | str]
 
 
-def parse_neuroglancer_json(json_path) -> ParseResult:
+def parse_neuroglancer_json(json_path: str) -> ParseResult:
     """
     Open and parse a neuroglancer state JSON string and return a dictionary of the parsed data.
 
@@ -22,27 +55,27 @@ def parse_neuroglancer_json(json_path) -> ParseResult:
     ParseResult
         A tuple containing the parsed JSON dictionary and an error if one occurred.
     """
-    try:
-        with open(json_path) as f:
-            json_string = f.read()
 
-            parsed_json = json.loads(json_string)
+    neuroglancer_json_or_error = NeuroglancerJSONModel.load_from_json(json_path)
 
-            return parsed_json, None
-    except json.JSONDecodeError as e:
-        return {}, f"An error occurred while parsing the given JSON file: {str(e)}"
-    except BaseException as e:
-        return {}, f"An error occurred while opening the given JSON file: {str(e)}"
+    if isinstance(neuroglancer_json_or_error, str):
+        return None, neuroglancer_json_or_error
+
+    return neuroglancer_json_or_error, None
 
 
-def neuroglancer_config_to_annotation(config, options: SliceOptions) -> Result:
+def neuroglancer_config_to_annotation(
+    config: NeuroglancerJSONModel, options: SliceOptions
+) -> Result:
     """
     Extract the first annotation from a neuroglancer state JSON dictionary as a numpy array.
 
     Parameters
     ----------
-    config : dict
-        The neuroglancer state JSON dictionary.
+    config : NeuroglancerJSONModel
+        The neuroglancer state JSON object.
+    options : SliceOptions
+        The options object containing the annotation layer name.
 
     Returns
     -------
@@ -51,51 +84,54 @@ def neuroglancer_config_to_annotation(config, options: SliceOptions) -> Result:
     """
 
     try:
-        for layer in config["layers"]:
+        for layer in config.layers:
             if (
-                layer["type"] == "annotation"
-                and layer["name"] == options.neuroglancer_annotation_layer
+                layer.type == "annotation"
+                and layer.name == options.neuroglancer_annotation_layer
             ):
-                annotations = layer["annotations"]
+                annotations = layer.annotations
 
-                result = [
-                    data["point"] for data in annotations if data["type"] == "point"
-                ]
-
-                return np.array(result), None
+                return (
+                    np.array(
+                        [data.point for data in annotations if data.type == "point"]
+                    ),
+                    None,
+                )
     except BaseException as e:
-        return None, f"An error occurred while extracting the annotations: {str(e)}"
+        return None, f"Error extracting annotations: {e}"
 
     return None, "No annotations found in the file."
 
 
-def neuroglancer_config_to_source(config, options: SliceOptions) -> Result:
+def neuroglancer_config_to_source(
+    config: NeuroglancerJSONModel, options: SliceOptions
+) -> Result:
     """
     Extract the source URL from a neuroglancer state JSON dictionary.
 
     Parameters
     ----------
-    config : dict
-        The neuroglancer state JSON dictionary.
+    config : NeuroglancerJSONModel
+        The neuroglancer state JSON object.
+    options : SliceOptions
+        The options object containing the annotation layer name.
 
     Returns
     -------
     Result
         A tuple containing the source URL and an error if one occurred.
     """
+
     try:
-        for layer in config["layers"]:
-            if (
-                layer["type"] == "image"
-                and layer["name"] == options.neuroglancer_image_layer
-            ):
-                if isinstance(layer["source"], dict):
-                    return layer["source"]["url"], None
-                elif isinstance(layer["source"], str):
-                    return layer["source"], None
+        for layer in config.layers:
+            if layer.type == "image" and layer.name == options.neuroglancer_image_layer:
+                if isinstance(layer.source, str):
+                    return layer.source, None
+                elif isinstance(layer.source, SourceModel):
+                    return layer.source.url, None
                 else:
                     return None, "Invalid source format in the file."
     except BaseException as e:
-        return None, f"An error occurred while extracting the source URL: {str(e)}"
+        return None, f"Error extracting source URL: {e}"
 
     return None, "No source URL found in the file."

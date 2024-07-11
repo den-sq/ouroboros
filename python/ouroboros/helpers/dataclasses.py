@@ -14,26 +14,29 @@ def dataclass_with_json(cls):
     return cls
 
 
-def save_to_json(self: BaseModel, json_path):
+def save_to_json(self: BaseModel, json_path: str):
     with open(json_path, "w") as f:
         f.write(self.model_dump_json())
 
 
 @classmethod
-def load_from_json(cls: BaseModel, json_path):
+def load_from_json(cls: BaseModel, json_path: str):
     try:
         with open(json_path, "r") as f:
             result = cls.model_validate_json(f.read())
             return result
     except ValidationError as e:
-        print(f"Error loading {cls.__name__} from JSON: {e}")
-        return None
+        err = f"Error loading {cls.__name__} from JSON: {e}"
+        print(err)
+        return err
     except FileNotFoundError:
-        print(f"File not found at {json_path}")
-        return None
+        err = f"File not found at {json_path}"
+        print(err)
+        return err
     except BaseException:
-        print(f"File at {json_path} is not a valid JSON file")
-        return None
+        err = f"File at {json_path} is not a valid JSON file"
+        print(err)
+        return err
 
 
 def copy_values_from_other(self: BaseModel, other: BaseModel):
