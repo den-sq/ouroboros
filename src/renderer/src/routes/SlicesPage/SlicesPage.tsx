@@ -20,8 +20,15 @@ const SLICE_RENDER_PROPORTION = 0.01
 const SLICE_STREAM = '/slice_status_stream/'
 
 function SlicesPage(): JSX.Element {
-	const { progress, connected, entries, onSubmit, visualizationData, onEntryChange } =
-		useSlicePageState()
+	const {
+		progress,
+		connected,
+		entries,
+		onSubmit,
+		visualizationData,
+		onEntryChange,
+		onHeaderDrop
+	} = useSlicePageState()
 
 	return (
 		<div className={styles.slicePage}>
@@ -36,7 +43,12 @@ function SlicesPage(): JSX.Element {
 				) : null}
 			</VisualizePanel>
 			<ProgressPanel progress={progress} connected={connected} />
-			<OptionsPanel entries={entries} onSubmit={onSubmit} onEntryChange={onEntryChange} />
+			<OptionsPanel
+				entries={entries}
+				onSubmit={onSubmit}
+				onEntryChange={onEntryChange}
+				onHeaderDrop={onHeaderDrop}
+			/>
 		</div>
 	)
 }
@@ -125,7 +137,7 @@ function useSlicePageState() {
 		if (entry.name === 'neuroglancer_json' && directoryPath) {
 			if (entry.value === '') return
 
-			const neuroglancerJSONContent = await readFile(directoryPath, entry.value as string)
+			const neuroglancerJSONContent = await readFile('', entry.value as string)
 
 			if (!neuroglancerJSONContent || neuroglancerJSONContent === '') {
 				addAlert('Invalid Neuroglancer JSON', 'error')
@@ -199,14 +211,15 @@ function useSlicePageState() {
 
 		const optionsObject = entries[0].toObject()
 
-		const outputFolder = await join(directoryPath, optionsObject['output_file_folder'])
+		// Convert relative paths to absolute paths if necessary
+		const outputFolder = optionsObject['output_file_folder'].startsWith('.')
+			? await join(directoryPath, optionsObject['output_file_folder'])
+			: optionsObject['output_file_folder']
 
 		// Add the absolute output folder to the options object
 		optionsObject['output_file_folder'] = outputFolder
 
 		const outputName = optionsObject['output_file_name']
-		const neuroglancerJSON = await join(directoryPath, optionsObject['neuroglancer_json'])
-		optionsObject['neuroglancer_json'] = neuroglancerJSON
 
 		// Validate options
 		if (
@@ -231,7 +244,54 @@ function useSlicePageState() {
 		performFetch('/slice/', { options: outputOptions }, { method: 'POST' })
 	}
 
-	return { progress, connected, entries, onSubmit, visualizationData, onEntryChange }
+	const onHeaderDrop = async (content: string) => {
+		if (!directoryPath || !content || content === '') return
+
+		const fileContent = await readFile(directoryPath, content)
+
+		let jsonContent = null
+
+		try {
+			jsonContent = JSON.parse(fileContent)
+		} catch (e) {
+			addAlert('Invalid JSON file', 'error')
+			return
+		}
+
+		const schema = entries[0].toSchema()
+
+		const parseResult = safeParse(schema, jsonContent)
+
+		if (!parseResult.success) {
+			addAlert(
+				'Wrong JSON file format. Make sure you provide a slice options JSON file.',
+				'error'
+			)
+			return
+		}
+
+		// Update the entries with the new values from the file
+		entries[0].setValue(parseResult.output)
+		setEntries([...entries])
+
+		// Update the neuroglancer JSON entry
+		if (entries[0] instanceof CompoundEntry) {
+			const neuroglancerJSONEntry = entries[0].findEntry('neuroglancer_json')
+
+			if (neuroglancerJSONEntry instanceof Entry)
+				onEntryChange(entries[0].findEntry('neuroglancer_json') as Entry)
+		}
+	}
+
+	return {
+		progress,
+		connected,
+		entries,
+		onSubmit,
+		visualizationData,
+		onEntryChange,
+		onHeaderDrop
+	}
 }
 
 function visualizationDataToProps(

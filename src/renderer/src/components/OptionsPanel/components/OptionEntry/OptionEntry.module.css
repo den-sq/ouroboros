@@ -25,6 +25,7 @@
 	font-size: 1.25rem;
 	text-align: right;
 	background-color: transparent;
+	max-width: 50%;
 }
 
 .optionSelect {

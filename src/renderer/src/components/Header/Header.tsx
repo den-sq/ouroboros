@@ -1,8 +1,12 @@
 import styles from './Header.module.css'
 
-function Header({ text }): JSX.Element {
+function Header({ text, highlight = false }): JSX.Element {
 	return (
-		<div className={`${styles.header} header-font-size poppins-bold`}>{text.toUpperCase()}</div>
+		<div
+			className={`${styles.header} header-font-size ${highlight ? 'poppins-extrabold ' + styles.highlight : 'poppins-bold'}`}
+		>
+			{text.toUpperCase()}
+		</div>
 	)
 }
 

@@ -1,22 +1,22 @@
 import { CompoundEntry, Entry } from '@renderer/lib/options'
-import Header from '../Header/Header'
 import OptionEntry from './components/OptionEntry/OptionEntry'
 import OptionSubmit from './components/OptionSubmit/OptionSubmit'
 import styles from './OptionsPanel.module.css'
 import CompoundEntryElement from './components/CompoundEntry/CompoundEntry'
+import OptionsHeader from './components/OptionsHeader/OptionsHeader'
 
 function OptionsPanel({
 	entries,
 	onSubmit,
-	onEntryChange
+	onEntryChange,
+	onHeaderDrop
 }: {
 	entries: (Entry | CompoundEntry)[]
 	onSubmit: () => Promise<void>
 	onEntryChange?: (entry: Entry) => void
+	onHeaderDrop?: (content: string) => void
 }): JSX.Element {
-	if (onEntryChange === undefined) {
-		onEntryChange = () => {}
-	}
+	if (onEntryChange === undefined) onEntryChange = () => {}
 
 	const entryElement = entries.flatMap((entryObject) => {
 		if (entryObject instanceof Entry) return entryToElement(entryObject, onEntryChange)
@@ -32,7 +32,7 @@ function OptionsPanel({
 	return (
 		<div className="panel">
 			<form className={styles.form} method="post" onSubmit={handleSubmit}>
-				<Header text={'Options'} />
+				<OptionsHeader onHeaderDrop={onHeaderDrop} />
 				{entryElement}
 				<OptionSubmit />
 			</form>

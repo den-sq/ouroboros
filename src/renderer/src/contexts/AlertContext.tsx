@@ -1,7 +1,11 @@
 import AlertArea from '@renderer/components/AlertArea/AlertArea'
 import { createContext, useEffect, useRef, useState } from 'react'
 
-export const AlertContext = createContext(null as any)
+export type AlertContextValue = {
+	addAlert: (message: string, type: 'error' | 'info' | 'success' | 'warning') => void
+}
+
+export const AlertContext = createContext<AlertContextValue>(null as any)
 
 export type AlertMessageType = {
 	id: string

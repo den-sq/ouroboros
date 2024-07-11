@@ -1,3 +1,5 @@
+import { any, boolean, number, object, string } from 'valibot'
+
 export type CompoundValueType = { [key: string]: CompoundValueType | ValueType } | ValueType
 export type ValueType = number | string | boolean
 export type EntryValueType = 'number' | 'string' | 'boolean' | 'filePath'
@@ -38,6 +40,20 @@ export class Entry {
 	toObject() {
 		return this.value
 	}
+
+	toSchema() {
+		switch (this.type) {
+			case 'number':
+				return number()
+			case 'string':
+			case 'filePath':
+				return string()
+			case 'boolean':
+				return boolean()
+			default:
+				return any()
+		}
+	}
 }
 
 export class CompoundEntry {
@@ -45,6 +61,7 @@ export class CompoundEntry {
 	label: string
 	entries: (Entry | CompoundEntry)[]
 	entryMap: { [key: string]: Entry | CompoundEntry } = {}
+	schema: any = null
 
 	constructor(name: string, label: string, entries: (Entry | CompoundEntry)[]) {
 		this.name = name
@@ -93,8 +110,36 @@ export class CompoundEntry {
 		return result
 	}
 
+	toSchema() {
+		if (this.schema) return this.schema
+
+		const result = {}
+
+		// Create a schema for each entry
+		for (const entry of this.entries) {
+			result[entry.name] = entry.toSchema()
+		}
+
+		this.schema = object(result)
+
+		return this.schema
+	}
+
 	getEntries() {
 		return this.entries
+	}
+
+	findEntry(name: string): Entry | CompoundEntry | null {
+		if (name in this.entryMap) return this.entryMap[name]
+
+		for (const entry of this.entries) {
+			if (entry instanceof CompoundEntry) {
+				const result = entry.findEntry(name)
+				if (result) return result
+			}
+		}
+
+		return null
 	}
 }
 

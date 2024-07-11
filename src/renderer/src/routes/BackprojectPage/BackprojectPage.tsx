@@ -6,7 +6,7 @@ import { ServerContext } from '@renderer/contexts/ServerContext'
 import { CompoundEntry, Entry, BackprojectOptionsFile } from '@renderer/lib/options'
 import { useContext, useEffect, useState } from 'react'
 import { DirectoryContext } from '@renderer/contexts/DirectoryContext'
-import { join, writeFile } from '@renderer/lib/file'
+import { join, readFile, writeFile } from '@renderer/lib/file'
 import { AlertContext } from '@renderer/contexts/AlertContext'
 import { safeParse } from 'valibot'
 import BackprojectResultSchema from '@renderer/schemas/backproject-result-schema'
@@ -15,13 +15,13 @@ import BackprojectStatusResultSchema from '@renderer/schemas/backproject-status-
 const BACKPROJECT_STREAM = '/backproject_status_stream/'
 
 function BackprojectPage(): JSX.Element {
-	const { progress, connected, entries, onSubmit } = useBackprojectPageState()
+	const { progress, connected, entries, onSubmit, onHeaderDrop } = useBackprojectPageState()
 
 	return (
 		<div className={styles.backprojectPage}>
 			<VisualizePanel></VisualizePanel>
 			<ProgressPanel progress={progress} connected={connected} />
-			<OptionsPanel entries={entries} onSubmit={onSubmit} />
+			<OptionsPanel entries={entries} onSubmit={onSubmit} onHeaderDrop={onHeaderDrop} />
 		</div>
 	)
 }
@@ -38,7 +38,9 @@ function useBackprojectPageState() {
 	} = useContext(ServerContext)
 	const { directoryPath } = useContext(DirectoryContext)
 
-	const [entries] = useState<(Entry | CompoundEntry)[]>([new BackprojectOptionsFile()])
+	const [entries, setEntries] = useState<(Entry | CompoundEntry)[]>([
+		new BackprojectOptionsFile()
+	])
 
 	const { addAlert } = useContext(AlertContext)
 
@@ -94,19 +96,15 @@ function useBackprojectPageState() {
 
 		const optionsObject = entries[0].toObject()
 
-		const outputFolder = await join(directoryPath, optionsObject['output_file_folder'])
+		// Convert relative paths to absolute paths if necessary
+		const outputFolder = optionsObject['output_file_folder'].startsWith('.')
+			? await join(directoryPath, optionsObject['output_file_folder'])
+			: optionsObject['output_file_folder']
 
 		// Add the absolute output folder to the options object
 		optionsObject['output_file_folder'] = outputFolder
 
 		const outputName = optionsObject['output_file_name']
-		const straightenedVolumePath = await join(
-			directoryPath,
-			optionsObject['straightened_volume_path']
-		)
-		optionsObject['straightened_volume_path'] = straightenedVolumePath
-		const configPath = await join(directoryPath, optionsObject['config_path'])
-		optionsObject['config_path'] = configPath
 
 		// Validate options
 		if (
@@ -139,7 +137,38 @@ function useBackprojectPageState() {
 		)
 	}
 
-	return { progress, connected, entries, onSubmit }
+	const onHeaderDrop = async (content: string) => {
+		if (!directoryPath || !content || content === '') return
+
+		const fileContent = await readFile(directoryPath, content)
+
+		let jsonContent = null
+
+		try {
+			jsonContent = JSON.parse(fileContent)
+		} catch (e) {
+			addAlert('Invalid JSON file', 'error')
+			return
+		}
+
+		const schema = entries[0].toSchema()
+
+		const parseResult = safeParse(schema, jsonContent)
+
+		if (!parseResult.success) {
+			addAlert(
+				'Wrong JSON file format. Make sure you provide a backprojection options JSON file.',
+				'error'
+			)
+			return
+		}
+
+		// Update the entries with the new values from the file
+		entries[0].setValue(parseResult.output)
+		setEntries([...entries])
+	}
+
+	return { progress, connected, entries, onSubmit, onHeaderDrop }
 }
 
 export default BackprojectPage

@@ -3,6 +3,8 @@ import styles from './OptionEntry.module.css'
 import { useDroppable } from '@dnd-kit/core'
 import { ValueType, Entry } from '@renderer/lib/options'
 import { DragContext } from '@renderer/contexts/DragContext'
+import { DirectoryContext } from '@renderer/contexts/DirectoryContext'
+import { join } from '@renderer/lib/file'
 
 const MIN_WIDTH = 25
 const LABEL_GAP = 15
@@ -28,7 +30,8 @@ function OptionEntry({
 
 	const [inputValue, setInputValue] = useState(initialValue)
 
-	const { parentChildData } = useContext(DragContext)
+	const { parentChildData, clearDragEvent } = useContext(DragContext)
+	const { directoryPath } = useContext(DirectoryContext)
 
 	const { isOver, setNodeRef } = useDroppable({
 		id: inputName
@@ -61,17 +64,21 @@ function OptionEntry({
 
 	// Receive file paths dropped from FileExplorer
 	useEffect(() => {
-		if (parentChildData && parentChildData[0] === inputName && inputType === 'filePath') {
-			const childData = parentChildData[1]?.data?.current
+		;(async () => {
+			if (parentChildData && parentChildData[0] === inputName && inputType === 'filePath') {
+				const childData = parentChildData[1]?.data?.current
 
-			if (childData && childData.source === 'file-explorer') {
-				if (inputRef.current) {
-					updateValue(childData.path)
+				if (childData && childData.source === 'file-explorer' && directoryPath) {
+					if (inputRef.current) {
+						const path = await join(directoryPath, childData.path)
+						updateValue(path)
+						clearDragEvent()
 
-					resizeInput(childData.path)
+						resizeInput(path)
+					}
 				}
 			}
-		}
+		})()
 	}, [parentChildData])
 
 	function resizeInput(value: ValueType) {
@@ -105,9 +112,8 @@ function OptionEntry({
 	function updateValue(value: any) {
 		switch (inputType) {
 			case 'boolean':
-				const newValue = value !== 'true'
-				setInputValue(newValue)
-				entry.setValue(newValue)
+				setInputValue(value)
+				entry.setValue(value)
 				break
 			case 'number':
 				setInputValue(value)
@@ -123,13 +129,19 @@ function OptionEntry({
 	}
 
 	useEffect(() => {
+		updateValue(initialValue)
 		resizeInput(initialValue)
 	}, [initialValue, minWidth])
 
 	const onChange = (e: ChangeEvent<HTMLInputElement>) => {
+		if (inputType === 'boolean') {
+			updateValue(e.target.checked)
+			return
+		}
+
 		updateValue(e.target.value)
 
-		if (inputType === 'boolean' || htmlInputType === 'select') return
+		if (htmlInputType === 'select') return
 		if (!inputRef.current) return
 
 		const target = e.target
