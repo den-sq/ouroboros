@@ -9,9 +9,14 @@ env:
   GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
   GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
+
+
 jobs:
   release:
     runs-on: ${{ matrix.os }}
+
+    permissions:
+      contents: write
 
     strategy:
       matrix:
