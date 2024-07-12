@@ -4,20 +4,15 @@
 
 Slicing is one of the primary features of Ouroboros, available in the CLI and the desktop app.
 
-### What Does Slicing Mean Here?
+### Using the Slice Page
 
-A user of Ouroboros may have a multi-terabyte (or more) volumetric scan, hosted with the Neuroglancer of tools (e.g. [cloud-volume](https://github.com/seung-lab/cloud-volume)). 
+**Basic Usage Demo**
 
-Perhaps there is a long, relatively sparse structure (ROI), like a nerve or a blood vessel that crosses the entire scan. Even with a well-equipped computer, it would be difficult to segment the entire stucture in one pass due to RAM limitations.
+![Basic Usage Demo](./assets/slicing/Slice%20Page%20Demo.gif)
 
-Ouroboros provides a solution. A user first traces the structure in Neuroglancer with sequential annotation points, and then saves the JSON configuration to a file.
+**Reusing Options from a Previous Run**
 
-Ouroboros opens this configuration file and cuts rectangular slices along the annotation path, producing a straightened volume with the ROI at the center of each slice (usually much smaller than the original scan).
-
-![Circle of Slices](./assets/slicing/circle-slices.png)
-_Every tenth slice in a circular annotation path, rendered in Ouroboros's Slicing Page._
-
-From there, the user segments the much smaller straightened volume with their choice of segmentation system. Then, Ouroboros [backprojects](./backproject.md) the segmented slices into the original volume space (unstraightens it), producing a full segmentation.
+![Reusing Options from a Previous Run](./assets/slicing/Slice%20Page%20Options%20Demo.gif)
 
 ### How Does Slicing Work?
 

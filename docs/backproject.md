@@ -2,6 +2,16 @@
 
 After straightened volume produced by the [slicing step](./slicing.md) is segmented, Ouroboros's Backproject Page can be used to project the segmentation back into the coordinate space of the original volume.
 
+### Using the Backproject Page
+
+**Basic Usage Demo**
+
+![Basic Usage Demo](./assets/backproject/Backproject%20Page%20Demo.gif)
+
+**Reusing Options from a Previous Run**
+
+See the same section under [Slice Page](./slicing.md).
+
 ### How Does Backprojection Work?
 
 A large amount of helpful data is saved in `*-configuration.json` file after the slicing process. This data contains all of the rectangle corners from slicing, and the bounding boxes the slices are associated with. With this data, Ouroboros recalculates the 2D coordinate grids of 3D points for each slice.
