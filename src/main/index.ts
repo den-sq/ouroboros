@@ -59,7 +59,7 @@ function createWindow(): void {
 			submenu: [
 				{
 					label: 'Open Folder',
-					click: async () => {
+					click: async (): Promise<void> => {
 						const result = await dialog.showOpenDialog(mainWindow, {
 							properties: ['openDirectory']
 						})
@@ -132,13 +132,13 @@ function createWindow(): void {
 			submenu: [
 				{
 					label: 'Learn More',
-					click: async () => {
+					click: async (): Promise<void> => {
 						await shell.openExternal('https://github.com/We-Gold/ouroboros')
 					}
 				},
 				{
 					label: 'Report Issue',
-					click: async () => {
+					click: async (): Promise<void> => {
 						await shell.openExternal('https://github.com/We-Gold/ouroboros/issues')
 					}
 				}
@@ -203,7 +203,9 @@ app.whenReady().then(() => {
 		optimizer.watchWindowShortcuts(window)
 	})
 
-	async function fetchFolderContents(folderPath: string) {
+	async function fetchFolderContents(
+		folderPath: string
+	): Promise<{ files: string[]; isFolder: boolean[] }> {
 		try {
 			// https://nodejs.org/api/fs.html#fspromisesreaddirpath-options
 			const files = await fs.readdir(folderPath)
