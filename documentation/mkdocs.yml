@@ -1,0 +1,25 @@
+site_name: Ouroboros Documentation
+site_description: Quickly extract ROIs from cloud-hosted medical scans.
+site_url: https://wegold.me/ouroboros
+copyright: Copyright 2024 Weaver Goldman, All rights reserved
+site_author: We-Gold
+
+nav:
+  - Home: 'index.md'
+  - Guide: 
+    - Download Ouroboros: 'guide/downloading.md'
+    - Slicing: 'guide/slicing.md'
+    - Backprojection: 'guide/backproject.md'
+  - Releases: 'https://github.com/We-Gold/ouroboros/releases'
+  - Repository: https://github.com/We-Gold/ouroboros
+
+theme: 
+  name: terminal
+  palette: dark
+  logo: assets/logo.png
+  favicon: assets/logo.png
+  features:
+    - footer.prev_next
+
+repo_name: We-Gold/ouroboros
+repo_url: https://github.com/We-Gold/ouroboros

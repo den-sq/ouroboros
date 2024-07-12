@@ -6,7 +6,7 @@ After straightened volume produced by the [slicing step](./slicing.md) is segmen
 
 **Basic Usage Demo**
 
-![Basic Usage Demo](./assets/backproject/Backproject%20Page%20Demo.gif)
+![Basic Usage Demo](../assets/backproject/Backproject%20Page%20Demo.gif)
 
 **Reusing Options from a Previous Run**
 

@@ -1,4 +1,4 @@
-# Download and Install Ouroboros
+# Download Ouroboros
 
 There are prebuilt applications available in [Releases](https://github.com/We-Gold/ouroboros/releases).
 

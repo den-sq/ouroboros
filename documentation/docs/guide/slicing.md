@@ -1,6 +1,6 @@
 # Slicing
 
-![Long Sliced Volume](./assets/slicing/long-slice.png)
+![Long Sliced Volume](../assets/slicing/long-slice.png)
 
 Slicing is one of the primary features of Ouroboros, available in the CLI and the desktop app.
 
@@ -8,11 +8,11 @@ Slicing is one of the primary features of Ouroboros, available in the CLI and th
 
 **Basic Usage Demo**
 
-![Basic Usage Demo](./assets/slicing/Slice%20Page%20Demo.gif)
+![Basic Usage Demo](../assets/slicing/Slice%20Page%20Demo.gif)
 
 **Reusing Options from a Previous Run**
 
-![Reusing Options from a Previous Run](./assets/slicing/Slice%20Page%20Options%20Demo.gif)
+![Reusing Options from a Previous Run](../assets/slicing/Slice%20Page%20Options%20Demo.gif)
 
 ### How Does Slicing Work?
 
@@ -37,8 +37,8 @@ Ouroboros calculates the corners of the slice rectangle at using each point and 
 _Pseudocode_
 
 ```python
-width_vector # The 'u' unit vector scaled to slice width / 2 
-height_vector # The 'v' unit vector scaled to slice height / 2
+width_vector # 'u' unit vector scaled to slice width / 2 
+height_vector # 'v' unit vector scaled to slice height / 2
 
 top_left = point - width_vector + height_vector
 top_right = point + width_vector + height_vector

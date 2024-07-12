@@ -12,9 +12,9 @@ If you are interested in using the Python package for its CLI or for a custom us
 
 _It is recommended that you read these pages in order._
 
-- [Download and Install Ouroboros](./downloading.md)
-- [Slicing](./slicing.md)
-- [Backprojection](./backproject.md)
+- [Download and Install Ouroboros](./guide/downloading.md)
+- [Slicing](./guide/slicing.md)
+- [Backprojection](./guide/backproject.md)
 
 ## Basic Ouroboros Usage
 
@@ -29,4 +29,4 @@ Ouroboros opens this configuration file and cuts rectangular slices along the an
 ![Circle of Slices](./assets/slicing/circle-slices.png)
 _Every tenth slice in a circular annotation path, rendered in Ouroboros's Slicing Page._
 
-From there, the user segments the much smaller straightened volume with their choice of segmentation system. Then, Ouroboros [backprojects](./backproject.md) the segmented slices into the original volume space (unstraightens it), producing a full segmentation.
+From there, the user segments the much smaller straightened volume with their choice of segmentation system. Then, Ouroboros [backprojects](./guide/backproject.md) the segmented slices into the original volume space (unstraightens it), producing a full segmentation.

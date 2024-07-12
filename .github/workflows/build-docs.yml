@@ -1,0 +1,40 @@
+name: Build Documentation
+
+on:
+  push:
+    tags:
+      - v*.*.*
+
+env: 
+  GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+  GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+        
+      - name: Install Dependencies
+        working-directory: ./documentation
+        run: pip install -r requirements.txt
+
+      - name: Build Documentation
+        working-directory: ./documentation
+        run: mkdocs build
+
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+            branch: gh-pages
+            folder: documentation/site
