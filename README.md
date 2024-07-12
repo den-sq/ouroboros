@@ -4,6 +4,8 @@ Quickly extract ROIs from cloud-hosted medical scans.
 
 This repository is a monorepo containing the code for the Ouroboros app and the Ouroboros Python package (`python` folder). 
 
+For a usage guide, check out the [Documentation](https://wegold.me/ouroboros/).
+
 # Quick Start
 
 There are prebuilt applications available in [Releases](https://github.com/We-Gold/ouroboros/releases).
