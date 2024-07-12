@@ -4,6 +4,18 @@ Quickly extract ROIs from cloud-hosted medical scans.
 
 This repository is a monorepo containing the code for the Ouroboros app and the Ouroboros Python package (`python` folder). 
 
+# Quick Start
+
+There are prebuilt applications available in [Releases](https://github.com/We-Gold/ouroboros/releases).
+
+- Windows: `*-setup.exe`
+- Mac: `*.dmg`
+- Linux: Multiple options available
+
+Currently, none of the apps are notarized. 
+
+For Mac, if an error occurs when you try to run the app, find the app installation (should be called `ouroboros.app`) and run `xattr -d com.apple.quarantine ouroboros.app`. 
+
 # Development Quick Start
 
 Ouroboros has two main components:
