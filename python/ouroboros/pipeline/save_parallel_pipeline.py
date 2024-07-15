@@ -1,3 +1,4 @@
+from concurrent.futures import process
 from ouroboros.helpers.slice import (
     generate_coordinate_grid_for_rect,
     slice_volume_from_grids,
@@ -136,17 +137,23 @@ class SaveParallelPipelineStep(PipelineStep):
                         download_executor.shutdown(wait=False, cancel_futures=True)
                         process_executor.shutdown(wait=False, cancel_futures=True)
                         return f"Error processing data: {e}"
+
+                # Track the number of completed futures
+                completed = 0
+                total_futures = len(processing_futures)
+
+                for future in concurrent.futures.as_completed(processing_futures):
+                    _, durations = future.result()
+                    for key, value in durations.items():
+                        self.add_timing_list(key, value)
+
+                    # Update the progress bar
+                    completed += 1
+                    self.update_progress(
+                        max(completed / total_futures, self.get_progress())
+                    )
         except BaseException as e:
             return f"Error downloading data: {e}"
-
-        # Wait for all processing to complete
-        concurrent.futures.wait(processing_futures)
-
-        # Log the processing durations
-        for future in processing_futures:
-            _, durations = future.result()
-            for key, value in durations.items():
-                self.add_timing_list(key, value)
 
         if config.make_single_file:
             try:
