@@ -237,4 +237,4 @@ def process_worker_save_parallel(
 
 
 def save_thread(filename, data):
-    imwrite(filename, data)
+    imwrite(filename, data, software="ouroboros")

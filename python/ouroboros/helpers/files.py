@@ -10,6 +10,8 @@ def load_and_save_tiff_from_slices(
     delete_intermediate=True,
     compression=None,
     metadata={},
+    resolution=None,
+    resolutionunit=None,
 ):
     # Load the saved tifs in numerical order
     tif_files = get_sorted_tif_files(folder_name)
@@ -31,6 +33,8 @@ def load_and_save_tiff_from_slices(
                 contiguous=contiguous,
                 compression=compression,
                 metadata=metadata,
+                resolution=resolution,
+                resolutionunit=resolutionunit,
             )
 
     # Delete slices folder

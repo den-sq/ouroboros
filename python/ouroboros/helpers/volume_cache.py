@@ -5,10 +5,6 @@ from cloudvolume import CloudVolume, VolumeCutout
 
 FLUSH_CACHE = False
 
-# TODO: Progress hook of some kind
-
-import logging
-
 
 class VolumeCache:
     def __init__(
@@ -37,19 +33,6 @@ class VolumeCache:
         )
 
         self.init_cloudvolume()
-
-        logger = logging.getLogger("uvicorn")
-        logger.setLevel(logging.INFO)
-        logger.info(f"Available mips: {self.cv.available_mips}")
-        logger.info(f"Shape: {self.cv.shape}")
-        logger.info(f"Volume size: {self.cv.volume_size}")
-        logger.info(f"Num channels: {self.cv.num_channels}")
-        logger.info(f"Dtype: {self.cv.dtype}")
-        logger.info(f"Bounds: {self.cv.bounds}")
-        logger.info(f"Downsample Ratio: {self.cv.downsample_ratio}")
-
-        volume_sizes = [self.cv.mip_volume_size(m) for m in self.cv.available_mips]
-        logger.info(f"Volume Size By Mip {volume_sizes}")
 
     def to_dict(self):
         return {
@@ -89,6 +72,18 @@ class VolumeCache:
 
     def get_volume_dtype(self):
         return self.cv.dtype
+
+    def get_volume_mip(self):
+        return self.mip
+
+    def set_volume_mip(self, mip: int):
+        self.mip = mip
+
+    def get_resolution_nm(self):
+        return self.cv.mip_resolution(self.mip)
+
+    def get_resolution_um(self):
+        return self.get_resolution_nm() / 1000
 
     @staticmethod
     def should_cache_last_volume(link_rects: list[int]):

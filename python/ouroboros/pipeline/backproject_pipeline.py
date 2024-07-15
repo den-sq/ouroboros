@@ -1,5 +1,3 @@
-from curses import meta
-import logging
 from ouroboros.helpers.memory_usage import calculate_gigabytes_from_dimensions
 from ouroboros.helpers.slice import (
     generate_coordinate_grid_for_rect,
@@ -173,6 +171,7 @@ class BackprojectPipelineStep(PipelineStep):
                         np.take(chunk_volume, slice_index, axis=axis),
                         contiguous=True,
                         compression=config.backprojection_compression,
+                        software="ouroboros",
                     )
                     slice_index += 1
                 continue
@@ -232,6 +231,7 @@ class BackprojectPipelineStep(PipelineStep):
                     np.take(chunk_volume, slice_index, axis=axis),
                     contiguous=True,
                     compression=config.backprojection_compression,
+                    software="ouroboros",
                 )
                 slice_index += 1
 
@@ -261,12 +261,17 @@ class BackprojectPipelineStep(PipelineStep):
                         pipeline_input.backprojection_offset
                     )
 
+                resolution = volume_cache.get_resolution_um()[:2]
+                resolutionunit = "MICROMETER"
+
                 load_and_save_tiff_from_slices(
                     folder_path,
                     folder_path + ".tif",
                     delete_intermediate=False,
                     compression=config.backprojection_compression,
                     metadata=metadata,
+                    resolution=resolution,
+                    resolutionunit=resolutionunit,
                 )
             except BaseException as e:
                 return f"Error creating single tif file: {e}"
@@ -333,7 +338,7 @@ def process_bounding_box(
         config.output_file_name + "-tempvolumes",
         f"{index}.tif",
     )
-    tifffile.imwrite(file_path, volume)
+    tifffile.imwrite(file_path, volume, software="ouroboros")
     durations["write_to_tiff"].append(time.perf_counter() - start)
 
     durations["total_process"].append(time.perf_counter() - start_total)
@@ -396,9 +401,6 @@ def create_volume_chunks(
 
         process_range = range(min_dim_min, min_dim_max + 1, chunk_size)
         volume_end = min_dim_max + 1
-
-    logger = logging.getLogger("uvicorn")
-    logger.info(f"min_bounding_box: {min_bounding_box.get_shape()}")
 
     for i in process_range:
         end = min(i + chunk_size, volume_end)
