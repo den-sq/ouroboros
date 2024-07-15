@@ -7,6 +7,8 @@ FLUSH_CACHE = False
 
 # TODO: Progress hook of some kind
 
+import logging
+
 
 class VolumeCache:
     def __init__(
@@ -35,6 +37,19 @@ class VolumeCache:
         )
 
         self.init_cloudvolume()
+
+        logger = logging.getLogger("uvicorn")
+        logger.setLevel(logging.INFO)
+        logger.info(f"Available mips: {self.cv.available_mips}")
+        logger.info(f"Shape: {self.cv.shape}")
+        logger.info(f"Volume size: {self.cv.volume_size}")
+        logger.info(f"Num channels: {self.cv.num_channels}")
+        logger.info(f"Dtype: {self.cv.dtype}")
+        logger.info(f"Bounds: {self.cv.bounds}")
+        logger.info(f"Downsample Ratio: {self.cv.downsample_ratio}")
+
+        volume_sizes = [self.cv.mip_volume_size(m) for m in self.cv.available_mips]
+        logger.info(f"Volume Size By Mip {volume_sizes}")
 
     def to_dict(self):
         return {

@@ -1,4 +1,5 @@
 from curses import meta
+import logging
 from ouroboros.helpers.memory_usage import calculate_gigabytes_from_dimensions
 from ouroboros.helpers.slice import (
     generate_coordinate_grid_for_rect,
@@ -120,8 +121,10 @@ class BackprojectPipelineStep(PipelineStep):
             )
         )
 
+        axis = 0
+
         chunks_and_boxes = create_volume_chunks(
-            volume_cache, chunk_size, config.backproject_min_bounding_box
+            volume_cache, chunk_size, config.backproject_min_bounding_box, axis=axis
         )
 
         # Save the offset of the minimum bounding box, if that option is enabled
@@ -143,12 +146,23 @@ class BackprojectPipelineStep(PipelineStep):
         dtype = volume_cache.get_volume_dtype()
         volume_shape = volume_cache.get_volume_shape()
 
-        num_digits = len(str(volume_shape[0] - 1))
+        num_digits = len(str(volume_shape[axis] - 1))
 
         for i, (chunk_bounding_box, bounding_boxes) in enumerate(chunks_and_boxes):
             chunk_volume = chunk_bounding_box.to_empty_volume(dtype=dtype)
 
-            slice_range = range(chunk_bounding_box.x_min, chunk_bounding_box.x_max + 1)
+            min_dim = (
+                chunk_bounding_box.x_min
+                if axis == 0
+                else chunk_bounding_box.y_min if axis == 1 else chunk_bounding_box.z_min
+            )
+            max_dim = (
+                chunk_bounding_box.x_max
+                if axis == 0
+                else chunk_bounding_box.y_max if axis == 1 else chunk_bounding_box.z_max
+            )
+
+            slice_range = range(min_dim, max_dim + 1)
 
             # If there are no bounding boxes in the chunk, write the empty volume to a series of tif files
             if len(bounding_boxes) == 0:
@@ -156,7 +170,7 @@ class BackprojectPipelineStep(PipelineStep):
                 for j in slice_range:
                     tifffile.imwrite(
                         os.path.join(folder_path, f"{str(j).zfill(num_digits)}.tif"),
-                        chunk_volume[slice_index],
+                        np.take(chunk_volume, slice_index, axis=axis),
                         contiguous=True,
                         compression=config.backprojection_compression,
                     )
@@ -215,7 +229,7 @@ class BackprojectPipelineStep(PipelineStep):
             for j in slice_range:
                 tifffile.imwrite(
                     os.path.join(folder_path, f"{str(j).zfill(num_digits)}.tif"),
-                    chunk_volume[slice_index],
+                    np.take(chunk_volume, slice_index, axis=axis),
                     contiguous=True,
                     compression=config.backprojection_compression,
                 )
@@ -335,14 +349,16 @@ def calculate_min_bounding_box(volume_cache):
     return BoundingBox.bound_boxes(volume_cache.bounding_boxes)
 
 
-def calculate_chunk_size(config, volume_cache):
+def calculate_chunk_size(config, volume_cache, axis=0):
     if config.max_ram_gb == 0:
         return DEFAULT_CHUNK_SIZE
 
     bounding_box_shape = (
-        calculate_min_bounding_box(volume_cache).get_shape()[1:]
+        calculate_min_bounding_box(volume_cache).get_shape()[:axis]
+        + calculate_min_bounding_box(volume_cache).get_shape()[axis + 1 :]
         if config.backproject_min_bounding_box
-        else volume_cache.get_volume_shape()[1:]
+        else volume_cache.get_volume_shape()[:axis]
+        + volume_cache.get_volume_shape()[axis + 1 :]
     )
 
     bounding_box_memory_usage = calculate_gigabytes_from_dimensions(
@@ -354,7 +370,7 @@ def calculate_chunk_size(config, volume_cache):
 
 
 def create_volume_chunks(
-    volume_cache, chunk_size=128, backproject_min_bounding_box=False
+    volume_cache, chunk_size=128, backproject_min_bounding_box=False, axis=0
 ):
     # Find the dimensions of the volume
     volume_shape = volume_cache.get_volume_shape()
@@ -366,22 +382,38 @@ def create_volume_chunks(
     min_bounding_box = None
 
     # Calculate the range of slices to process
-    process_range = range(0, volume_shape[0], chunk_size)
-    volume_end = volume_shape[0]
+    volume_end = volume_shape[axis]
+    process_range = range(0, volume_end, chunk_size)
 
     if backproject_min_bounding_box:
         min_bounding_box = calculate_min_bounding_box(volume_cache)
-        min_x_min, min_x_max, _, _, _, _ = min_bounding_box.approx_bounds()
-        process_range = range(min_x_min, min_x_max + 1, chunk_size)
-        volume_end = min_x_max + 1
+        min_x_min, min_x_max, min_y_min, min_y_max, min_z_min, min_z_max = (
+            min_bounding_box.approx_bounds()
+        )
+
+        min_dim_min = min_x_min if axis == 0 else min_y_min if axis == 1 else min_z_min
+        min_dim_max = min_x_max if axis == 0 else min_y_max if axis == 1 else min_z_max
+
+        process_range = range(min_dim_min, min_dim_max + 1, chunk_size)
+        volume_end = min_dim_max + 1
+
+    logger = logging.getLogger("uvicorn")
+    logger.info(f"min_bounding_box: {min_bounding_box.get_shape()}")
 
     for i in process_range:
         end = min(i + chunk_size, volume_end)
 
+        x_min = i if axis == 0 else 0
+        x_max = end if axis == 0 else volume_shape[0]
+        y_min = i if axis == 1 else 0
+        y_max = end if axis == 1 else volume_shape[1]
+        z_min = i if axis == 2 else 0
+        z_max = end if axis == 2 else volume_shape[2]
+
         # Create a bounding box that contains the chunk of slices
         bounding_box = BoundingBox(
             BoundingBox.bounds_to_rect(
-                i, end - 1, 0, volume_shape[1] - 1, 0, volume_shape[2] - 1
+                x_min, x_max - 1, y_min, y_max - 1, z_min, z_max - 1
             )
         )
 
