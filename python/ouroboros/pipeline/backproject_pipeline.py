@@ -224,6 +224,10 @@ class BackprojectPipelineStep(PipelineStep):
             # Update the progress bar
             self.update_progress(0.5 + i / len(chunks_and_boxes) / 2)
 
+        # Close all the memmaps
+        for volume_memmap in volume_memmaps:
+            del volume_memmap
+
         # Delete the temporary volume files
         shutil.rmtree(
             os.path.join(
@@ -282,6 +286,9 @@ def process_bounding_box(
     start = time.perf_counter()
     slices = np.array([straightened_volume[i] for i in slice_indices])
     durations["get_slices"].append(time.perf_counter() - start)
+
+    # Close the memmap
+    del straightened_volume
 
     # Generate a grid for each slice and stack them along the first axis
     start = time.perf_counter()
