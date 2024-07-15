@@ -2,8 +2,7 @@ from .pipeline import Pipeline
 from .parse_pipeline import ParseJSONPipelineStep
 from .slices_geom_pipeline import SlicesGeometryPipelineStep
 from .volume_cache_pipeline import VolumeCachePipelineStep
-from .save_tiff_pipeline import SaveTiffPipelineStep
-from .save_parallel_pipeline import SaveParallelPipelineStep
+from .slice_parallel_pipeline import SliceParallelPipelineStep
 from .backproject_pipeline import BackprojectPipelineStep
 from .save_config_pipeline import SaveConfigPipelineStep
 from .load_config_pipeline import LoadConfigPipelineStep

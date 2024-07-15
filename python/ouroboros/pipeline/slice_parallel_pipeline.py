@@ -15,7 +15,7 @@ import multiprocessing
 import time
 
 
-class SaveParallelPipelineStep(PipelineStep):
+class SliceParallelPipelineStep(PipelineStep):
     def __init__(
         self,
         threads=1,
@@ -28,11 +28,11 @@ class SaveParallelPipelineStep(PipelineStep):
         self.num_processes = processes
         self.delete_intermediate = delete_intermediate
 
-    def with_delete_intermediate(self) -> "SaveParallelPipelineStep":
+    def with_delete_intermediate(self) -> "SliceParallelPipelineStep":
         self.delete_intermediate = True
         return self
 
-    def with_processes(self, processes: int) -> "SaveParallelPipelineStep":
+    def with_processes(self, processes: int) -> "SliceParallelPipelineStep":
         self.num_processes = processes
         return self
 

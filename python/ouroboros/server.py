@@ -20,7 +20,7 @@ from ouroboros.pipeline import (
     Pipeline,
     PipelineInput,
     SaveConfigPipelineStep,
-    SaveParallelPipelineStep,
+    SliceParallelPipelineStep,
     SlicesGeometryPipelineStep,
     VolumeCachePipelineStep,
 )
@@ -61,7 +61,7 @@ def handle_slice(task: SliceTask):
             ParseJSONPipelineStep(),
             SlicesGeometryPipelineStep(),
             VolumeCachePipelineStep(),
-            SaveParallelPipelineStep(),
+            SliceParallelPipelineStep(),
             SaveConfigPipelineStep(),
         ]
     )
