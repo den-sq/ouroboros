@@ -19,6 +19,7 @@ import numpy as np
 import shutil
 
 DEFAULT_CHUNK_SIZE = 128
+AXIS = 0
 
 
 class BackprojectPipelineStep(PipelineStep):
@@ -71,6 +72,7 @@ class BackprojectPipelineStep(PipelineStep):
             ) as executor:
                 futures = []
 
+                # Process each bounding box in parallel
                 for i in range(len(volume_cache.bounding_boxes)):
                     bounding_box = volume_cache.bounding_boxes[i]
                     slice_indices = volume_cache.get_slice_indices(i)
@@ -119,8 +121,9 @@ class BackprojectPipelineStep(PipelineStep):
             )
         )
 
-        axis = 0
+        axis = AXIS
 
+        # Create the chunks and their associated bounding boxes
         chunks_and_boxes = create_volume_chunks(
             volume_cache, chunk_size, config.backproject_min_bounding_box, axis=axis
         )
@@ -144,10 +147,19 @@ class BackprojectPipelineStep(PipelineStep):
         dtype = volume_cache.get_volume_dtype()
         volume_shape = volume_cache.get_volume_shape()
 
+        # Determine the number of digits needed for the tif file names
         num_digits = len(str(volume_shape[axis] - 1))
 
+        has_multiple_channels = volume_cache.has_color_channels()
+        num_channels = (
+            None if not has_multiple_channels else volume_cache.get_num_channels()
+        )
+
+        # Write the chunks to tif files
         for i, (chunk_bounding_box, bounding_boxes) in enumerate(chunks_and_boxes):
-            chunk_volume = chunk_bounding_box.to_empty_volume(dtype=dtype)
+            chunk_volume = chunk_bounding_box.to_empty_volume(
+                dtype=dtype, num_channels=num_channels
+            )
 
             min_dim = (
                 chunk_bounding_box.x_min
@@ -211,7 +223,11 @@ class BackprojectPipelineStep(PipelineStep):
                 intersection_volume = volume[
                     x_min : x_max + 1, y_min : y_max + 1, z_min : z_max + 1
                 ]
-                non_zero_mask = intersection_volume != 0
+                non_zero_mask = (
+                    np.sum(intersection_volume, axis=-1) != 0
+                    if has_multiple_channels
+                    else intersection_volume != 0
+                )
 
                 chunk_volume[
                     int_x_min : int_x_max + 1,
@@ -300,6 +316,10 @@ def process_bounding_box(
     # Load the straightened volume
     start = time.perf_counter()
     straightened_volume = make_tiff_memmap(straightened_volume_path, mode="r")
+    num_channels = (
+        None if len(straightened_volume.shape) == 3 else straightened_volume.shape[-1]
+    )
+    durations["memmap"].append(time.perf_counter() - start)
 
     # Get the slices from the straightened volume
     start = time.perf_counter()
@@ -323,7 +343,7 @@ def process_bounding_box(
 
     # Create a volume for the bounding box
     start = time.perf_counter()
-    volume = bounding_box.to_empty_volume()
+    volume = bounding_box.to_empty_volume(num_channels=num_channels)
     durations["create_volume"].append(time.perf_counter() - start)
 
     # Backproject the slices into the volume

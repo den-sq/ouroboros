@@ -35,6 +35,7 @@ def load_and_save_tiff_from_slices(
                 metadata=metadata,
                 resolution=resolution,
                 resolutionunit=resolutionunit,
+                software="ouroboros",
             )
 
     # Delete slices folder

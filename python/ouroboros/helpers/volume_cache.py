@@ -70,6 +70,12 @@ class VolumeCache:
         # TODO: Use channel data too
         return self.cv.volume_size
 
+    def has_color_channels(self):
+        return len(self.cv.shape) == 4
+
+    def get_num_channels(self):
+        return self.cv.shape[-1]
+
     def get_volume_dtype(self):
         return self.cv.dtype
 

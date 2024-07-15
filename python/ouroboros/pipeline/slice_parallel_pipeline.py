@@ -156,10 +156,15 @@ class SliceParallelPipelineStep(PipelineStep):
 
         if config.make_single_file:
             try:
+                resolution = volume_cache.get_resolution_um()[:2]
+                resolutionunit = "MICROMETER"
+
                 load_and_save_tiff_from_slices(
                     folder_name,
                     output_file_path,
                     delete_intermediate=self.delete_intermediate,
+                    resolution=resolution,
+                    resolutionunit=resolutionunit,
                 )
             except BaseException as e:
                 return f"Error creating single tif file: {e}"

@@ -120,7 +120,7 @@ def slice_volume_from_grids(
 
     Parameters:
     ----------
-        volume (VolumeCutout): The volume of shape (x, y, z, 1) to slice.
+        volume (VolumeCutout): The volume of shape (x, y, z, c) to slice.
         bounding_box (BoundingBox): The bounding box of the volume.
         grids (numpy.ndarray): The grids of coordinates to slice the volume (n, width, height, 3).
         width (int): The width of the grid.
@@ -130,11 +130,6 @@ def slice_volume_from_grids(
     -------
         numpy.ndarray: The slice of the volume as a 2D array.
     """
-
-    # Remove the last dimension from the volume
-    # TODO: Figure out how to modify this to support multiple channels (maybe add an axis to points?)
-    # Include support for choosing tiff color mode based on this
-    squeezed_volume = np.squeeze(volume, axis=-1)
 
     # Normalize grid coordinates based on bounding box (since volume coordinates are truncated)
     bounding_box_min = np.array(
@@ -147,11 +142,31 @@ def slice_volume_from_grids(
     # Reshape the grids to be (3, n * width * height)
     normalized_grid = normalized_grid.reshape(-1, 3).T
 
-    # Map the grid coordinates to the volume
-    # TODO: consider switching mode to constant for zeroing out-of-bounds values
-    slice_points = map_coordinates(squeezed_volume, normalized_grid, mode="nearest")
+    # Check if volume has color channels
+    has_color_channels = volume.ndim == 4
 
-    return slice_points.reshape(len(grids), height, width)
+    if has_color_channels:
+        # Initialize an empty list to store slices from each channel
+        channel_slices = []
+
+        # Iterate over each color channel
+        for channel in range(volume.shape[-1]):
+            # Extract the current channel
+            current_channel = volume[..., channel]
+
+            # Map the grid coordinates to the current channel volume
+            slice_points = map_coordinates(current_channel, normalized_grid)
+
+            # Reshape and store the result
+            channel_slices.append(slice_points.reshape(len(grids), height, width))
+
+        # Stack the channel slices along the last axis to form the final output
+        return np.stack(channel_slices, axis=-1)
+
+    else:
+        # If no color channels, process as before
+        slice_points = map_coordinates(volume, normalized_grid)
+        return slice_points.reshape(len(grids), height, width)
 
 
 def write_slices_to_volume(
@@ -186,50 +201,56 @@ def write_slices_to_volume(
     coords_ceil = np.ceil(slice_coords).astype(int)
     weights = slice_coords - coords_floor
 
-    # Initialize the accumulation arrays
-    accumulated_volume = volume
-    weight_volume = np.zeros_like(volume)
+    # Check if volume has color channels
+    has_color_channels = volume.ndim == 4
 
-    # Prepare the indices for the 8 corners surrounding each coordinate
-    x0, y0, z0 = coords_floor
-    x1, y1, z1 = coords_ceil
+    num_channels = volume.shape[-1] if has_color_channels else 1
 
-    # Calculate the weights for each corner
-    wx0, wy0, wz0 = 1 - weights[0], 1 - weights[1], 1 - weights[2]
-    wx1, wy1, wz1 = weights[0], weights[1], weights[2]
+    for channel in range(num_channels):
+        # Initialize the accumulation arrays
+        accumulated_volume = volume[:, :, :, channel] if has_color_channels else volume
+        weight_volume = np.zeros_like(accumulated_volume)
 
-    c000 = wx0 * wy0 * wz0
-    c001 = wx0 * wy0 * wz1
-    c010 = wx0 * wy1 * wz0
-    c011 = wx0 * wy1 * wz1
-    c100 = wx1 * wy0 * wz0
-    c101 = wx1 * wy0 * wz1
-    c110 = wx1 * wy1 * wz0
-    c111 = wx1 * wy1 * wz1
+        # Prepare the indices for the 8 corners surrounding each coordinate
+        x0, y0, z0 = coords_floor
+        x1, y1, z1 = coords_ceil
 
-    # Use numpy.add.at to accumulate the values at the correct positions
-    np.add.at(accumulated_volume, (x0, y0, z0), slice_values * c000)
-    np.add.at(accumulated_volume, (x0, y0, z1), slice_values * c001)
-    np.add.at(accumulated_volume, (x0, y1, z0), slice_values * c010)
-    np.add.at(accumulated_volume, (x0, y1, z1), slice_values * c011)
-    np.add.at(accumulated_volume, (x1, y0, z0), slice_values * c100)
-    np.add.at(accumulated_volume, (x1, y0, z1), slice_values * c101)
-    np.add.at(accumulated_volume, (x1, y1, z0), slice_values * c110)
-    np.add.at(accumulated_volume, (x1, y1, z1), slice_values * c111)
+        # Calculate the weights for each corner
+        wx0, wy0, wz0 = 1 - weights[0], 1 - weights[1], 1 - weights[2]
+        wx1, wy1, wz1 = weights[0], weights[1], weights[2]
 
-    # Accumulate the weights similarly
-    np.add.at(weight_volume, (x0, y0, z0), c000)
-    np.add.at(weight_volume, (x0, y0, z1), c001)
-    np.add.at(weight_volume, (x0, y1, z0), c010)
-    np.add.at(weight_volume, (x0, y1, z1), c011)
-    np.add.at(weight_volume, (x1, y0, z0), c100)
-    np.add.at(weight_volume, (x1, y0, z1), c101)
-    np.add.at(weight_volume, (x1, y1, z0), c110)
-    np.add.at(weight_volume, (x1, y1, z1), c111)
+        c000 = wx0 * wy0 * wz0
+        c001 = wx0 * wy0 * wz1
+        c010 = wx0 * wy1 * wz0
+        c011 = wx0 * wy1 * wz1
+        c100 = wx1 * wy0 * wz0
+        c101 = wx1 * wy0 * wz1
+        c110 = wx1 * wy1 * wz0
+        c111 = wx1 * wy1 * wz1
 
-    # Normalize the accumulated volume by the weights
-    nonzero_weights = weight_volume != 0
-    accumulated_volume[nonzero_weights] /= weight_volume[nonzero_weights]
+        # Use numpy.add.at to accumulate the values at the correct positions
+        np.add.at(accumulated_volume, (x0, y0, z0), slice_values * c000)
+        np.add.at(accumulated_volume, (x0, y0, z1), slice_values * c001)
+        np.add.at(accumulated_volume, (x0, y1, z0), slice_values * c010)
+        np.add.at(accumulated_volume, (x0, y1, z1), slice_values * c011)
+        np.add.at(accumulated_volume, (x1, y0, z0), slice_values * c100)
+        np.add.at(accumulated_volume, (x1, y0, z1), slice_values * c101)
+        np.add.at(accumulated_volume, (x1, y1, z0), slice_values * c110)
+        np.add.at(accumulated_volume, (x1, y1, z1), slice_values * c111)
+
+        # Accumulate the weights similarly
+        np.add.at(weight_volume, (x0, y0, z0), c000)
+        np.add.at(weight_volume, (x0, y0, z1), c001)
+        np.add.at(weight_volume, (x0, y1, z0), c010)
+        np.add.at(weight_volume, (x0, y1, z1), c011)
+        np.add.at(weight_volume, (x1, y0, z0), c100)
+        np.add.at(weight_volume, (x1, y0, z1), c101)
+        np.add.at(weight_volume, (x1, y1, z0), c110)
+        np.add.at(weight_volume, (x1, y1, z1), c111)
+
+        # Normalize the accumulated volume by the weights
+        nonzero_weights = weight_volume != 0
+        accumulated_volume[nonzero_weights] /= weight_volume[nonzero_weights]
 
 
 def make_volume_binary(volume: np.ndarray, dtype=np.uint8) -> np.ndarray:

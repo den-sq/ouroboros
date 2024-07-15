@@ -226,8 +226,15 @@ class BoundingBox:
             BoundingBox.bounds_to_rect(x_min, x_max, y_min, y_max, z_min, z_max)
         )
 
-    def to_empty_volume(self, dtype=np.float32):
-        return np.zeros(self.get_shape(), dtype=dtype)
+    def to_empty_volume(self, dtype=np.float32, num_channels=None):
+        # Add an extra dimension for the number of channels
+        shape = (
+            self.get_shape() + (num_channels,)
+            if num_channels is not None
+            else self.get_shape()
+        )
+
+        return np.zeros(shape, dtype=dtype)
 
     def calculate_volume(self):
         return (
