@@ -1,7 +1,7 @@
 from .bounding_boxes import BoundingBox
 from .memory_usage import calculate_gigabytes_from_dimensions
 
-from cloudvolume import CloudVolume, VolumeCutout
+from cloudvolume import CloudVolume, VolumeCutout, Bbox
 
 FLUSH_CACHE = False
 
@@ -54,12 +54,10 @@ class VolumeCache:
         return VolumeCache(bounding_boxes, link_rects, source_url, mip, flush_cache)
 
     def init_cloudvolume(self):
-        self.cv = CloudVolume(self.source_url, parallel=True, cache=True)
-
-        available_mips = self.cv.available_mips
+        self.cv = CloudVolumeInterface(self.source_url)
 
         if self.mip is None:
-            self.mip = min(available_mips)
+            self.mip = min(self.cv.available_mips)
 
     def get_volume_gigabytes(self):
         return calculate_gigabytes_from_dimensions(
@@ -67,14 +65,13 @@ class VolumeCache:
         )
 
     def get_volume_shape(self):
-        # TODO: Use channel data too
-        return self.cv.volume_size
+        return self.cv.get_volume_shape(self.mip)
 
     def has_color_channels(self):
-        return len(self.cv.shape) == 4
+        return self.cv.has_color_channels
 
     def get_num_channels(self):
-        return self.cv.shape[-1]
+        return self.cv.num_channels
 
     def get_volume_dtype(self):
         return self.cv.dtype
@@ -85,11 +82,8 @@ class VolumeCache:
     def set_volume_mip(self, mip: int):
         self.mip = mip
 
-    def get_resolution_nm(self):
-        return self.cv.mip_resolution(self.mip)
-
     def get_resolution_um(self):
-        return self.get_resolution_nm() / 1000
+        return self.cv.get_resolution_um(self.mip)
 
     @staticmethod
     def should_cache_last_volume(link_rects: list[int]):
@@ -147,12 +141,10 @@ class VolumeCache:
     def download_volume(
         self, volume_index: int, bounding_box: BoundingBox, parallel=False
     ) -> VolumeCutout:
-        # TODO: Handle errors that occur here
-
         bbox = bounding_box.to_cloudvolume_bbox()
 
         # Download the bounding box volume
-        volume = self.cv.download(bbox, mip=self.mip, parallel=parallel)
+        volume = self.cv.cv.download(bbox, mip=self.mip, parallel=parallel)
 
         # Store the volume in the cache
         self.volumes[volume_index] = volume
@@ -190,4 +182,34 @@ class VolumeCache:
 
     def __del__(self):
         if self.flush_cache:
-            self.cv.cache.flush()
+            self.cv.flush_cache()
+
+
+class CloudVolumeInterface:
+    def __init__(self, source_url: str):
+        self.source_url = source_url
+
+        self.cv = CloudVolume(self.source_url, parallel=True, cache=True)
+
+        self.available_mips = self.cv.available_mips
+        self.dtype = self.cv.dtype
+
+    @property
+    def has_color_channels(self):
+        return len(self.cv.shape) == 4
+
+    @property
+    def num_channels(self):
+        return self.cv.shape[-1]
+
+    def get_volume_shape(self, mip: int):
+        return self.cv.mip_volume_size(mip)
+
+    def get_resolution_nm(self, mip: int):
+        return self.cv.mip_resolution(mip)
+
+    def get_resolution_um(self, mip: int):
+        return self.get_resolution_nm(mip) / 1000
+
+    def flush_cache(self):
+        self.cv.cache.flush()
