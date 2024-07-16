@@ -1,0 +1,21 @@
+.pluginItem {
+	display: flex;
+	align-items: center;
+	border-bottom: 1px solid #747474;
+	color: var(--primary-text);
+	margin-left: 1rem;
+	margin-right: 1rem;
+	margin-top: 0.5rem;
+	margin-bottom: 0.5rem;
+	font-size: 1.5rem;
+	cursor: pointer;
+	--selected-color: #efefef;
+}
+
+.pluginItem:hover {
+	border-bottom: 1px solid var(--selected-color);
+}
+
+.pluginItem.active {
+	border-bottom: 1px solid var(--selected-color);
+}

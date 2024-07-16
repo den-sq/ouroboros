@@ -11,10 +11,24 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
-import fs from 'fs/promises'
 import { ChildProcess, execFile } from 'child_process'
 import { existsSync } from 'fs'
 import Watcher from 'watcher'
+
+import {
+	fetchFolderContents,
+	getPluginFolder,
+	makeExtraWindow,
+	readFile,
+	saveFile
+} from '../main/helpers'
+
+const PLUGIN_WINDOW = {
+	name: 'Manage Plugins',
+	width: 500,
+	height: 400,
+	path: '#/extras/plugins'
+}
 
 let mainWindow: Electron.BrowserWindow
 let mainServer: ChildProcess
@@ -41,6 +55,13 @@ function createWindow(): void {
 						label: app.name,
 						submenu: [
 							{ role: 'about' },
+							{ type: 'separator' },
+							{
+								label: 'Manage Plugins',
+								click: () => {
+									ipcMain.emit('manage-plugins')
+								}
+							},
 							{ type: 'separator' },
 							{ role: 'services' },
 							{ type: 'separator' },
@@ -203,35 +224,6 @@ app.whenReady().then(() => {
 		optimizer.watchWindowShortcuts(window)
 	})
 
-	async function fetchFolderContents(
-		folderPath: string
-	): Promise<{ files: string[]; isFolder: boolean[] }> {
-		try {
-			// https://nodejs.org/api/fs.html#fspromisesreaddirpath-options
-			const files = await fs.readdir(folderPath)
-
-			// Filter out hidden files
-			// https://stackoverflow.com/questions/18973655/how-to-ignore-hidden-files-in-fs-readdir-result
-			const noHidden = files.filter((item) => !/(^|\/)\.[^\/\.]/g.test(item))
-
-			// Determine if each file is a folder or a file
-			const isFolder = await Promise.all(
-				noHidden.map(async (file) => {
-					try {
-						const stats = await fs.stat(join(folderPath, file))
-						return stats.isDirectory()
-					} catch (error) {
-						return false
-					}
-				})
-			)
-
-			return { files: noHidden, isFolder: isFolder }
-		} catch (error) {
-			return { files: [], isFolder: [] }
-		}
-	}
-
 	let subscription: Watcher | null = null
 
 	// Fetch the contents of the given folder
@@ -256,16 +248,8 @@ app.whenReady().then(() => {
 	})
 
 	// Save a string to a file
-	ipcMain.handle('save-file', async (_, { folder, name, data }) => {
-		try {
-			// Create the folder if it doesn't exist
-			await fs.mkdir(folder, { recursive: true })
-
-			await fs.writeFile(join(folder, name), data)
-			return true
-		} catch (error) {
-			return false
-		}
+	ipcMain.handle('save-file', async (_, args) => {
+		return await saveFile(args)
 	})
 
 	// Join two paths
@@ -274,13 +258,52 @@ app.whenReady().then(() => {
 	})
 
 	// Read the contents of a file as a string
-	ipcMain.handle('read-file', async (_, { folder, name }) => {
-		try {
-			const data = await fs.readFile(join(folder, name), 'utf-8')
-			return data
-		} catch (error) {
-			return ''
+	ipcMain.handle('read-file', async (_, args) => {
+		return await readFile(args)
+	})
+
+	let pluginSubscription: Watcher | null = null
+	let pluginWindow: BrowserWindow | null = null
+
+	ipcMain.on('manage-plugins', async () => {
+		// Make new window for mananging plugins
+		pluginWindow = makeExtraWindow(PLUGIN_WINDOW)
+
+		pluginWindow.on('close', () => {
+			if (pluginSubscription) {
+				pluginSubscription.close()
+				pluginSubscription = null
+			}
+		})
+	})
+
+	ipcMain.on('get-plugin-folder-contents', async () => {
+		// Get the path to the plugin folder
+		const pluginFolder = await getPluginFolder()
+
+		if (pluginFolder === '') {
+			dialog.showErrorBox('Plugin Folder Not Found', 'The plugin folder was not found.')
+			return
 		}
+
+		if (pluginSubscription) {
+			pluginSubscription.close()
+			pluginSubscription = null
+		}
+
+		pluginSubscription = new Watcher(pluginFolder)
+
+		// Send updates to the renderer when the folder contents change
+		pluginSubscription.on('all', async () => {
+			const result = await fetchFolderContents(pluginFolder)
+			pluginWindow?.webContents.send('plugin-folder-contents', result.files)
+		})
+
+		// Send the contents of the plugin folder to the renderer
+		pluginWindow?.webContents.send(
+			'plugin-folder-contents',
+			(await fetchFolderContents(pluginFolder)).files
+		)
 	})
 
 	createWindow()

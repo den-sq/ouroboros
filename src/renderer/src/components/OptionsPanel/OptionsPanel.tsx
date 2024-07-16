@@ -1,4 +1,4 @@
-import { CompoundEntry, Entry } from '@renderer/lib/options'
+import { CompoundEntry, Entry } from '@renderer/interfaces/options'
 import OptionEntry from './components/OptionEntry/OptionEntry'
 import OptionSubmit from './components/OptionSubmit/OptionSubmit'
 import styles from './OptionsPanel.module.css'

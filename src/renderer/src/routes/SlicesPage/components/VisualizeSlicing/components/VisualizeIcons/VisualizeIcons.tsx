@@ -4,8 +4,9 @@ import styles from './VisualizeIcons.module.css'
 import Camera from './assets/camera.svg?react'
 import Information from './assets/information.svg?react'
 import { AlertContext } from '@renderer/contexts/AlertContext'
+import { WebGLRenderer } from 'three'
 
-function VisualizeIcons({ gl }): JSX.Element {
+function VisualizeIcons({ gl }: { gl: WebGLRenderer | null }): JSX.Element {
 	const { addAlert } = useContext(AlertContext)
 
 	return (
@@ -22,6 +23,11 @@ function VisualizeIcons({ gl }): JSX.Element {
 			<VisualizeIcon
 				icon={<Camera />}
 				onClick={() => {
+					if (!gl) {
+						addAlert('No rendering to save.', 'error')
+						return
+					}
+
 					const link = document.createElement('a')
 					link.setAttribute('download', 'ouroboros-slice-visualization.png')
 					link.setAttribute(
@@ -39,7 +45,7 @@ function VisualizeIcons({ gl }): JSX.Element {
 
 export default VisualizeIcons
 
-function VisualizeIcon({ icon, onClick }): JSX.Element {
+function VisualizeIcon({ icon, onClick }: { icon: JSX.Element; onClick: () => void }): JSX.Element {
 	return (
 		<a className={styles.visualizeIcon} onClick={onClick}>
 			{icon}

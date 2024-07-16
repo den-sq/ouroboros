@@ -5,6 +5,8 @@ import DragProvider from '@renderer/contexts/DragContext'
 import ServerProvider from '@renderer/contexts/ServerContext'
 import { Outlet } from 'react-router-dom'
 
+import styles from './Root.module.css'
+
 function Root(): JSX.Element {
 	return (
 		<>
@@ -12,8 +14,10 @@ function Root(): JSX.Element {
 				<ServerProvider>
 					<DirectoryProvider>
 						<DragProvider>
-							<MenuPanel />
-							<Outlet />
+							<div className={styles.rootArea}>
+								<MenuPanel />
+								<Outlet />
+							</div>
 						</DragProvider>
 					</DirectoryProvider>
 				</ServerProvider>

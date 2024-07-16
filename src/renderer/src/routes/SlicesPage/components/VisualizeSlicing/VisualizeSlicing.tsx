@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unknown-property */
+
 import styles from './VisualizeSlicing.module.css'
 
 import { Canvas, Vector3, useThree } from '@react-three/fiber'
@@ -155,7 +157,7 @@ function VisualizeSlicing({
 	)
 }
 
-function GLSaver({ setGL }) {
+function GLSaver({ setGL }: { setGL: (gl: WebGLRenderer) => void }): JSX.Element {
 	const gl = useThree((state) => state.gl)
 
 	useEffect(() => {
@@ -241,7 +243,7 @@ function Slice({
 	)
 }
 
-function makeRainbowGradient(numColors = 10) {
+function makeRainbowGradient(numColors = 10): string[] {
 	const gradient: string[] = []
 
 	// Make a rainbow gradient with HSL

@@ -1,0 +1,14 @@
+.pluginMenuButton {
+	margin-left: 1rem;
+	cursor: pointer;
+	color: #848484;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: 0.3s;
+	height: 100%;
+}
+
+.pluginMenuButton:hover {
+	color: var(--primary-text);
+}

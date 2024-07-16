@@ -1,10 +1,10 @@
 import { useRef, useEffect, useState, useContext, ChangeEvent, FormEventHandler } from 'react'
 import styles from './OptionEntry.module.css'
 import { useDroppable } from '@dnd-kit/core'
-import { ValueType, Entry } from '@renderer/lib/options'
+import { ValueType, Entry } from '@renderer/interfaces/options'
 import { DragContext } from '@renderer/contexts/DragContext'
 import { DirectoryContext } from '@renderer/contexts/DirectoryContext'
-import { join } from '@renderer/lib/file'
+import { join } from '@renderer/interfaces/file'
 
 const MIN_WIDTH = 25
 const LABEL_GAP = 15

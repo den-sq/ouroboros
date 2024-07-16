@@ -10,8 +10,6 @@ body {
 }
 
 #root {
-	display: grid;
-	grid-template-columns: 350px 1fr;
 	overflow: hidden;
 	user-select: none;
 	width: 100vw;
