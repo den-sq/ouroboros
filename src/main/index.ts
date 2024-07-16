@@ -16,6 +16,9 @@ import { existsSync } from 'fs'
 import Watcher from 'watcher'
 
 import {
+	addLocalPlugin,
+	deletePlugin,
+	downloadPlugin,
 	fetchFolderContents,
 	getPluginFolder,
 	makeExtraWindow,
@@ -26,7 +29,7 @@ import {
 
 const PLUGIN_WINDOW = {
 	name: 'Manage Plugins',
-	width: 500,
+	width: 550,
 	height: 400,
 	path: '#/extras/plugins'
 }
@@ -301,6 +304,20 @@ app.whenReady().then(() => {
 
 		// Send the contents of the plugin folder to the renderer
 		sendPluginFolderContents(pluginWindow, pluginFolder)
+	})
+
+	ipcMain.on('download-plugin', async (_, url: string) => {
+		// Download the plugin from the given github URL
+		downloadPlugin(url)
+	})
+
+	ipcMain.on('add-local-plugin', async (_, folderPath: string) => {
+		// Copy the plugin from the given folder
+		addLocalPlugin(folderPath)
+	})
+
+	ipcMain.on('delete-plugin', async (_, pluginFolder: string) => {
+		deletePlugin(pluginFolder)
 	})
 
 	createWindow()

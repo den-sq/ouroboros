@@ -1,0 +1,64 @@
+.addPlugin {
+	display: flex;
+	flex-direction: column;
+	padding-top: 0.25rem;
+	padding-bottom: 0.25rem;
+	border-top: 1px solid #747474;
+	border-bottom: 1px solid #747474;
+	color: var(--primary-text);
+	margin-left: 1rem;
+	margin-right: 1rem;
+	margin-top: 0.5rem;
+	margin-bottom: 0.5rem;
+	font-size: 1.125rem;
+	--selected-color: #efefef;
+	width: calc(100% - 2rem);
+}
+
+.addPluginOption {
+	display: grid;
+	grid-template-columns: 1fr 200px 150px;
+	font-size: 1.125rem;
+	width: 100%;
+	margin-top: 0.2rem;
+	margin-bottom: 0.2rem;
+}
+
+.addPluginButton {
+	text-align: center;
+	margin-left: 0.5rem;
+	color: #848484;
+	padding: 0.1rem 0.2rem;
+	background-color: #524d86;
+	cursor: pointer;
+	border-radius: 0.25rem;
+	transition: 0.3s;
+}
+
+.addPluginInput {
+	padding: 0.25rem 0.25rem;
+	padding-left: 0.1rem;
+	border-bottom: 2px solid #524d86;
+	border-top: none;
+	border-left: none;
+	border-right: none;
+	color: var(--primary-text);
+	outline: none;
+	font-size: 1.125rem;
+	text-align: right;
+	background-color: transparent;
+}
+
+.addPluginInput::placeholder {
+	color: rgb(176, 176, 176);
+}
+
+.addPluginInput.label {
+	cursor: pointer;
+	padding-bottom: 0;
+	color: rgb(176, 176, 176);
+}
+
+.addPluginButton:hover {
+	color: var(--primary-text);
+}
