@@ -6,6 +6,8 @@ import { join } from 'path'
 import { parsePluginPackageJSON } from './schemas'
 import { downloadRelease } from '@terascope/fetch-github-release'
 
+export const BACKGROUND_COLOR = '#2d2e3c'
+
 export async function fetchFolderContents(
 	folderPath: string
 ): Promise<{ files: string[]; isFolder: boolean[] }> {
@@ -78,14 +80,16 @@ export function makeExtraWindow({
 			preload: join(__dirname, '../preload/index.js'),
 			sandbox: false
 		},
-		title: name
+		title: name,
+		backgroundColor: BACKGROUND_COLOR
 	})
 
 	// Open the plugin page in a new window
 	if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
 		managePluginsWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + path)
 	} else {
-		managePluginsWindow.loadFile(join(__dirname, '../renderer/index.html' + path))
+		const fullPath = `file://${join(__dirname, '../renderer/index.html' + path)}`
+		managePluginsWindow.loadURL(fullPath)
 	}
 
 	return managePluginsWindow

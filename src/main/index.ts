@@ -17,6 +17,7 @@ import Watcher from 'watcher'
 
 import {
 	addLocalPlugin,
+	BACKGROUND_COLOR,
 	deletePlugin,
 	downloadPlugin,
 	fetchFolderContents,
@@ -46,7 +47,8 @@ function createWindow(): void {
 			preload: join(__dirname, '../preload/index.js'),
 			sandbox: false
 		},
-		title: 'Ouroboros'
+		title: 'Ouroboros',
+		backgroundColor: BACKGROUND_COLOR
 	})
 
 	const isMac = process.platform === 'darwin'
