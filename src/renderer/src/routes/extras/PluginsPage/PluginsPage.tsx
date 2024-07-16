@@ -11,7 +11,9 @@ import { useEffect, useState } from 'react'
 function PluginsPage(): JSX.Element {
 	const [selectedPlugins, setSelectedPlugins] = useState<Set<string>>(new Set())
 
-	const [pluginFolderContents, setPluginFolderContents] = useState<string[]>([])
+	const [pluginFolderContents, setPluginFolderContents] = useState<
+		{ name: string; id: string }[]
+	>([])
 
 	useEffect(() => {
 		window.electron.ipcRenderer.send('get-plugin-folder-contents')
@@ -36,9 +38,9 @@ function PluginsPage(): JSX.Element {
 				{pluginFolderContents.map((plugin) => {
 					return (
 						<PluginItem
-							name={plugin}
-							id={plugin}
-							key={plugin}
+							name={plugin.name}
+							id={plugin.id}
+							key={plugin.id}
 							selectedPlugins={selectedPlugins}
 							setSelectedPlugins={setSelectedPlugins}
 						/>

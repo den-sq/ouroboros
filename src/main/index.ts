@@ -20,7 +20,8 @@ import {
 	getPluginFolder,
 	makeExtraWindow,
 	readFile,
-	saveFile
+	saveFile,
+	sendPluginFolderContents
 } from '../main/helpers'
 
 const PLUGIN_WINDOW = {
@@ -295,15 +296,11 @@ app.whenReady().then(() => {
 
 		// Send updates to the renderer when the folder contents change
 		pluginSubscription.on('all', async () => {
-			const result = await fetchFolderContents(pluginFolder)
-			pluginWindow?.webContents.send('plugin-folder-contents', result.files)
+			sendPluginFolderContents(pluginWindow, pluginFolder)
 		})
 
 		// Send the contents of the plugin folder to the renderer
-		pluginWindow?.webContents.send(
-			'plugin-folder-contents',
-			(await fetchFolderContents(pluginFolder)).files
-		)
+		sendPluginFolderContents(pluginWindow, pluginFolder)
 	})
 
 	createWindow()

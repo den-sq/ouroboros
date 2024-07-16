@@ -1,7 +1,9 @@
 import { is } from '@electron-toolkit/utils'
 import { app, BrowserWindow } from 'electron'
+import { existsSync } from 'fs'
 import fs from 'fs/promises'
 import { join } from 'path'
+import { parsePluginPackageJSON } from './schemas'
 
 export async function fetchFolderContents(
 	folderPath: string
@@ -96,4 +98,72 @@ export async function getPluginFolder(): Promise<string> {
 	await fs.mkdir(pluginFolder, { recursive: true })
 
 	return pluginFolder
+}
+
+export async function getPluginList(pluginFolder: string): Promise<{ name: string; id: string }[]> {
+	const result = await fetchFolderContents(pluginFolder)
+	const folders = result.files.filter((_, i) => result.isFolder[i])
+
+	const pluginFolderContents: { name: string; id: string }[] = []
+
+	for (const folder of folders) {
+		const parentFolder = join(pluginFolder, folder)
+		const pathToPackageJSON = join(parentFolder, 'package.json')
+
+		// Check if the folder contains a package.json file
+		if (!existsSync(pathToPackageJSON)) {
+			continue
+		}
+
+		const packageJSON = await readFile({ folder: parentFolder, name: 'package.json' })
+
+		// Check if the package.json file is valid
+		const parsedJSON = parsePluginPackageJSON(packageJSON)
+
+		if (typeof parsedJSON === 'string') {
+			console.error(parsedJSON)
+			continue
+		}
+
+		// Check if the main script file exists
+		const pathToMain = join(parentFolder, parsedJSON.main)
+
+		if (!existsSync(pathToMain)) {
+			console.error(`Main script file not found: ${pathToMain}`)
+			continue
+		}
+
+		// Check if the styles file exists
+		if (parsedJSON.styles) {
+			const pathToStyles = join(parentFolder, parsedJSON.styles)
+
+			if (!existsSync(pathToStyles)) {
+				console.error(`Styles file not found: ${pathToStyles}`)
+				continue
+			}
+		}
+
+		// Check if the Dockerfile exists
+		if (parsedJSON.dockerfile) {
+			const pathToDockerfile = join(parentFolder, parsedJSON.dockerfile)
+
+			if (!existsSync(pathToDockerfile)) {
+				console.error(`Dockerfile not found: ${pathToDockerfile}`)
+				continue
+			}
+		}
+
+		pluginFolderContents.push({ name: parsedJSON.pluginName, id: parsedJSON.name })
+	}
+
+	return pluginFolderContents
+}
+
+export async function sendPluginFolderContents(
+	pluginWindow: BrowserWindow | null,
+	pluginFolder: string
+): Promise<void> {
+	const pluginFolderContents = await getPluginList(pluginFolder)
+
+	pluginWindow?.webContents.send('plugin-folder-contents', pluginFolderContents)
 }
