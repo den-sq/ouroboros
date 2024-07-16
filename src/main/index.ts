@@ -18,6 +18,7 @@ import Watcher from 'watcher'
 import {
 	addLocalPlugin,
 	BACKGROUND_COLOR,
+	checkDocker,
 	deletePlugin,
 	downloadPlugin,
 	fetchFolderContents,
@@ -64,7 +65,7 @@ function createWindow(): void {
 							{ type: 'separator' },
 							{
 								label: 'Manage Plugins',
-								click: () => {
+								click: (): void => {
 									ipcMain.emit('manage-plugins')
 								}
 							},
@@ -328,6 +329,16 @@ app.whenReady().then(() => {
 		// On macOS it's common to re-create a window in the app when the
 		// dock icon is clicked and there are no other windows open.
 		if (BrowserWindow.getAllWindows().length === 0) createWindow()
+	})
+
+	checkDocker().then((isDockerAvailable) => {
+		console.log('Docker is available:', isDockerAvailable)
+		// if (!isDockerAvailable) {
+		// 	dialog.showErrorBox(
+		// 		'Docker Not Found',
+		// 		'Docker was not found on your system. Please install Docker to use Ouroboros.'
+		// 	)
+		// }
 	})
 })
 

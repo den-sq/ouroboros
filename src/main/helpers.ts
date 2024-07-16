@@ -5,6 +5,7 @@ import fs from 'fs/promises'
 import { join } from 'path'
 import { parsePluginPackageJSON } from './schemas'
 import { downloadRelease } from '@terascope/fetch-github-release'
+import { exec } from 'child_process'
 
 export const BACKGROUND_COLOR = '#2d2e3c'
 
@@ -248,4 +249,44 @@ export async function downloadPlugin(url: string): Promise<void> {
 		// Delete the downloaded release
 		await fs.rm(outputDir, { recursive: true })
 	}
+}
+
+function execPromise(cmd: string): Promise<string> {
+	return new Promise(function (resolve, reject) {
+		exec(cmd, function (err, stdout) {
+			if (err) return reject(err)
+			resolve(stdout)
+		})
+	})
+}
+
+export async function checkDocker(): Promise<{ available: boolean; error: string | null }> {
+	const commands = [
+		{
+			cmd: 'docker --version',
+			successMsg: 'Docker is installed',
+			failureMsg: 'Docker is not installed'
+		},
+		{ cmd: 'docker info', successMsg: 'Docker is running', failureMsg: 'Docker is not running' }
+	]
+
+	const results = await commands.reduce(async function (p, command) {
+		const results: { success: boolean; message: string }[] = await p
+		try {
+			const stdout = await execPromise(command.cmd)
+			results.push({ success: true, message: command.successMsg + ': ' + stdout.trim() })
+		} catch (err) {
+			results.push({ success: false, message: command.failureMsg })
+		}
+		return results
+	}, Promise.resolve<{ success: boolean; message: string }[]>([]))
+
+	// If any of the commands failed, return the error message
+	const failed = results.filter((result) => !result.success)
+
+	if (failed.length > 0) {
+		return { available: false, error: failed[0].message }
+	}
+
+	return { available: true, error: null }
 }
