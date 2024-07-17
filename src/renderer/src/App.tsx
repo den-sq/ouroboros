@@ -1,41 +1,13 @@
-import { createHashRouter, Navigate, RouterProvider } from 'react-router-dom'
+import { RouterProvider } from 'react-router-dom'
 
-import SlicesPage from './routes/SlicesPage/SlicesPage'
-import BackprojectPage from './routes/BackprojectPage/BackprojectPage'
-import Root from './routes/Root/Root'
-import PluginsPage from './routes/extras/PluginsPage/PluginsPage'
-
-const router = createHashRouter([
-	{
-		path: '/',
-		element: <Root />,
-		children: [
-			{
-				path: '/',
-				element: <Navigate to="/slice" />
-			},
-			{
-				path: '/slice',
-				element: <SlicesPage />
-			},
-			{
-				path: '/backproject',
-				element: <BackprojectPage />
-			}
-		]
-	},
-	{
-		path: '/extras',
-		children: [
-			{
-				path: 'plugins',
-				element: <PluginsPage />
-			}
-		]
-	}
-])
+import { router } from './router'
+import { useEffect } from 'react'
 
 function App(): JSX.Element {
+	useEffect(() => {
+		window.electron.ipcRenderer.send('get-plugin-paths')
+	}, [])
+
 	return (
 		<>
 			<RouterProvider router={router} />

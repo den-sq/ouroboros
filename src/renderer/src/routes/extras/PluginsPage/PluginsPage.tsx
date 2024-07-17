@@ -21,12 +21,15 @@ function PluginsPage(): JSX.Element {
 	useEffect(() => {
 		window.electron.ipcRenderer.send('get-plugin-folder-contents')
 
-		window.electron.ipcRenderer.on('plugin-folder-contents', (_, arg) => {
-			setPluginFolderContents(arg)
-		})
+		const clearPluginFolderContentsListener = window.electron.ipcRenderer.on(
+			'plugin-folder-contents',
+			(_, arg) => {
+				setPluginFolderContents(arg)
+			}
+		)
 
 		return (): void => {
-			window.electron.ipcRenderer.removeAllListeners('plugin-folder-contents')
+			clearPluginFolderContentsListener()
 		}
 	}, [])
 

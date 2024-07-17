@@ -3,14 +3,15 @@ import { InferOutput, object, optional, safeParse, string } from 'valibot'
 export const PluginPackageJSONSchema = object({
 	name: string('Plugin name is required'),
 	pluginName: string('Readable plugin name is required'),
+	icon: optional(string()),
 	main: string('Plugin main frontend script file is required'),
 	styles: optional(string()),
 	dockerfile: optional(string())
 })
 
-export const parsePluginPackageJSON = (
-	data: string
-): InferOutput<typeof PluginPackageJSONSchema> | string => {
+export type PluginPackageJSON = InferOutput<typeof PluginPackageJSONSchema>
+
+export const parsePluginPackageJSON = (data: string): PluginPackageJSON | string => {
 	try {
 		const result = JSON.parse(data)
 

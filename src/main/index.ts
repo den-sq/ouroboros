@@ -16,18 +16,23 @@ import { existsSync } from 'fs'
 import Watcher from 'watcher'
 
 import {
-	addLocalPlugin,
 	BACKGROUND_COLOR,
-	checkDocker,
-	deletePlugin,
-	downloadPlugin,
 	fetchFolderContents,
-	getPluginFolder,
 	makeExtraWindow,
 	readFile,
-	saveFile,
-	sendPluginFolderContents
+	saveFile
 } from '../main/helpers'
+import {
+	addLocalPlugin,
+	deletePlugin,
+	downloadPlugin,
+	getPluginFolder,
+	sendPluginFolderContents,
+	startAllPlugins,
+	startPluginFileServer,
+	stopAllPlugins,
+	stopPluginFileServer
+} from './plugins'
 
 const PLUGIN_WINDOW = {
 	name: 'Manage Plugins',
@@ -38,6 +43,14 @@ const PLUGIN_WINDOW = {
 
 let mainWindow: Electron.BrowserWindow
 let mainServer: ChildProcess
+
+const pluginDetails: {
+	id: string
+	name: string
+	mainPath: string
+	stylesPath?: string
+	iconPath?: string
+}[] = []
 
 function createWindow(): void {
 	mainWindow = new BrowserWindow({
@@ -206,18 +219,30 @@ function createWindow(): void {
 		// Check that the server exists
 		if (!existsSync(serverPath)) {
 			console.error('Server not found')
-			return
+		} else {
+			mainServer = execFile(serverPath)
+
+			mainServer.stderr?.on('data', (data) => {
+				console.error(data.toString())
+			})
+			mainServer.stdout?.on('data', (data) => {
+				console.log(data.toString())
+			})
 		}
-
-		mainServer = execFile(serverPath)
-
-		mainServer.stderr?.on('data', (data) => {
-			console.error(data.toString())
-		})
-		mainServer.stdout?.on('data', (data) => {
-			console.log(data.toString())
-		})
 	}
+
+	// Start all plugins
+	startAllPlugins()
+		.then((result) => {
+			// Clear the plugin paths
+			pluginDetails.length = 0
+
+			// Add the plugin paths to the pluginPaths array
+			pluginDetails.push(...result)
+		})
+		.then(() => {
+			startPluginFileServer()
+		})
 }
 
 app.whenReady().then(() => {
@@ -323,6 +348,10 @@ app.whenReady().then(() => {
 		deletePlugin(pluginFolder)
 	})
 
+	ipcMain.on('get-plugin-paths', () => {
+		mainWindow.webContents.send('plugin-paths', pluginDetails)
+	})
+
 	createWindow()
 
 	app.on('activate', function () {
@@ -330,20 +359,14 @@ app.whenReady().then(() => {
 		// dock icon is clicked and there are no other windows open.
 		if (BrowserWindow.getAllWindows().length === 0) createWindow()
 	})
-
-	checkDocker().then((isDockerAvailable) => {
-		console.log('Docker is available:', isDockerAvailable)
-		// if (!isDockerAvailable) {
-		// 	dialog.showErrorBox(
-		// 		'Docker Not Found',
-		// 		'Docker was not found on your system. Please install Docker to use Ouroboros.'
-		// 	)
-		// }
-	})
 })
 
 app.on('window-all-closed', () => {
 	app.quit()
 
 	mainServer?.kill()
+
+	stopAllPlugins()
+
+	stopPluginFileServer()
 })

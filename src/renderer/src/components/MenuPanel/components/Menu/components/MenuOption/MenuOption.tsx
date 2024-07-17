@@ -1,7 +1,19 @@
 import { Link } from 'react-router-dom'
 import styles from './MenuOption.module.css'
 
-function MenuOption({ path, optionName, icon, location }): JSX.Element {
+import { Location } from 'react-router-dom'
+
+function MenuOption({
+	path,
+	optionName,
+	icon,
+	location
+}: {
+	path: string
+	optionName: string
+	icon: JSX.Element
+	location: Location
+}): JSX.Element {
 	const active = location.pathname ? location.pathname.includes(path) : false
 	const activeStyle = active ? styles.menuOptionActive : ''
 

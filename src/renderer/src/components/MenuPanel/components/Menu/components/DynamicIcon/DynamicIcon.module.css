@@ -1,0 +1,9 @@
+.dynamicIcon {
+	height: 100%;
+	width: 100%;
+	background-color: var(--inactive-menu-text);
+}
+
+.dynamicIcon.dynamicIconActive {
+	background-color: var(--active-menu-text);
+}

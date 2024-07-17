@@ -7,33 +7,39 @@ export type DirectoryContextValue = {
 	directoryName: string | null
 }
 
-export const DirectoryContext = createContext<DirectoryContextValue>(null as any)
+export const DirectoryContext = createContext<DirectoryContextValue>(null as never)
 
-function DirectoryProvider({ children }) {
+function DirectoryProvider({ children }: { children: React.ReactNode }): JSX.Element {
 	const [directoryName, setDirectoryName] = useState(null)
 	const [directoryPath, setDirectoryPath] = useState(null)
 	const [files, setFiles] = useState<string[]>([])
 	const [isFolder, setIsFolder] = useState<boolean[]>([])
 
 	useEffect(() => {
-		window.electron.ipcRenderer.on('selected-folder', (_, directory) => {
-			if (!directory || directory.length === 0) return
+		const clearSelectedFolderListener = window.electron.ipcRenderer.on(
+			'selected-folder',
+			(_, directory) => {
+				if (!directory || directory.length === 0) return
 
-			setDirectoryPath(directory)
+				setDirectoryPath(directory)
 
-			// Clean up the directory name
-			const directorySplit = directory.split('/')
-			setDirectoryName(directorySplit[directorySplit.length - 1])
-		})
+				// Clean up the directory name
+				const directorySplit = directory.split('/')
+				setDirectoryName(directorySplit[directorySplit.length - 1])
+			}
+		)
 
-		window.electron.ipcRenderer.on('folder-contents-update', (_, { files, isFolder }) => {
-			setFiles(files)
-			setIsFolder(isFolder)
-		})
+		const clearFolderUpdateListener = window.electron.ipcRenderer.on(
+			'folder-contents-update',
+			(_, { files, isFolder }) => {
+				setFiles(files)
+				setIsFolder(isFolder)
+			}
+		)
 
-		return () => {
-			window.electron.ipcRenderer.removeAllListeners('selected-folder')
-			window.electron.ipcRenderer.removeAllListeners('folder-contents-update')
+		return (): void => {
+			clearSelectedFolderListener()
+			clearFolderUpdateListener()
 		}
 	}, [])
 
