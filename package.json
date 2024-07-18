@@ -42,6 +42,7 @@
 		"@types/three": "^0.166.0",
 		"@vitejs/plugin-react": "^4.3.1",
 		"cors": "^2.8.5",
+		"docker-compose": "^0.24.8",
 		"electron": "^31.0.2",
 		"electron-builder": "^24.13.3",
 		"electron-vite": "^2.3.0",

@@ -10,6 +10,7 @@ import express from 'express'
 import cors from 'cors'
 import { Express } from 'express'
 import serveStatic from 'serve-static'
+import { upAll, downAll } from 'docker-compose/dist/v2'
 
 export async function getPluginFolder(): Promise<string> {
 	const userData = app.getPath('userData')
@@ -245,22 +246,20 @@ export async function startAllPlugins(): Promise<PluginDetail[]> {
 				if (!alerted) {
 					dialog.showErrorBox(
 						'Docker Not Found',
-						`Docker was not found on your system. Please install Docker to use Ouroboros with plugin "${json.pluginName}".`
+						`Docker was not found on your system. Start Docker if it is installed, otherwise please install Docker to use Ouroboros with plugin "${json.pluginName}".`
 					)
 					alerted = true
 				}
 			} else {
-				const pathToDockerfile = join(plugin.folder, json.dockerfile)
-
-				const dockerCmd = `docker build -t ${json.name} -f ${pathToDockerfile} ${plugin.folder}`
-				const dockerRunCmd = `docker run -d ${json.name}`
-
-				try {
-					await execPromise(dockerCmd)
-					await execPromise(dockerRunCmd)
-				} catch (error) {
-					console.error(error)
-				}
+				upAll({ cwd: join(plugin.folder), log: false }).then(
+					() => {},
+					(err) => {
+						console.log(
+							`An error occurred while starting plugin ${json.pluginName}'s Dockerfile:`,
+							(err as Error).message
+						)
+					}
+				)
 			}
 		}
 
@@ -286,24 +285,26 @@ export async function stopAllPlugins(): Promise<void> {
 	const pluginFolder = await getPluginFolder()
 	const plugins = await getPluginList(pluginFolder, true)
 
-	plugins.forEach(async (plugin) => {
-		const json = plugin.json
+	// Stop all plugins at the same time
+	await Promise.all(
+		plugins.map(async (plugin) => {
+			const json = plugin.json
 
-		if (!json) return
+			if (!json) return
 
-		// Try to stop the docker container
-		if (json.dockerfile) {
-			const dockerStopCmd = `docker stop ${json.name}`
-			const dockerRemoveCmd = `docker rm ${json.name}`
-
-			try {
-				await execPromise(dockerStopCmd)
-				await execPromise(dockerRemoveCmd)
-			} catch (error) {
-				console.error(error)
+			// Try to stop the docker container
+			if (json.dockerfile) {
+				try {
+					await downAll({ cwd: join(plugin.folder), log: false })
+				} catch (err) {
+					console.log(
+						`An error occurred while stopping plugin ${json.pluginName}'s Dockerfile:`,
+						(err as Error).message
+					)
+				}
 			}
-		}
-	})
+		})
+	)
 }
 
 let pluginFileServer: Express

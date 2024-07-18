@@ -12,6 +12,10 @@ export default defineConfig({
 				{
 					src: 'package.json',
 					dest: '.'
+				},
+				{
+					src: 'backend/*',
+					dest: '.'
 				}
 			]
 		})

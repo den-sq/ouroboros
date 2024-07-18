@@ -3,6 +3,7 @@
 	"pluginName": "Plugin Template",
 	"icon": "./icon.svg",
 	"index": "./index.html",
+	"dockerfile": "./Dockerfile",
 	"private": true,
 	"version": "0.0.0",
 	"type": "module",

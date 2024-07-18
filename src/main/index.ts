@@ -359,12 +359,12 @@ app.whenReady().then(() => {
 	})
 })
 
-app.on('window-all-closed', () => {
-	app.quit()
-
+app.on('window-all-closed', async () => {
 	mainServer?.kill()
 
-	stopAllPlugins()
+	// Stop all plugins before quitting the app
+	await stopAllPlugins()
+	await stopPluginFileServer()
 
-	stopPluginFileServer()
+	app.quit()
 })
