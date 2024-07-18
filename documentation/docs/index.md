@@ -8,6 +8,8 @@ The desktop app comes with a pre-compiled Python server (from the Python package
 
 If you are interested in using the Python package for its CLI or for a custom usecase, check out the [python](https://github.com/We-Gold/ouroboros/tree/main/python) folder in the main repository.
 
+Ouroboros also supports a plugin system. A plugin usage guide is forthcoming.
+
 ## Usage Guide
 
 _It is recommended that you read these pages in order._
