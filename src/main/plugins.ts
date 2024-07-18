@@ -272,7 +272,7 @@ export async function startAllPlugins(): Promise<PluginDetail[]> {
 					(err) => {
 						console.log(
 							`An error occurred while starting plugin ${json.pluginName}'s Dockerfile:`,
-							(err as Error).message
+							err
 						)
 					}
 				)
@@ -315,7 +315,7 @@ export async function stopAllPlugins(): Promise<void> {
 				} catch (err) {
 					console.log(
 						`An error occurred while stopping plugin ${json.pluginName}'s Dockerfile:`,
-						(err as Error).message
+						err
 					)
 				}
 			}
