@@ -1,6 +1,8 @@
 # Ouroboros
 
-Quickly extract ROIs from cloud-hosted medical scans.
+![](./assets/slicing/long-slice.png)
+
+Extract ROIs from cloud-hosted medical scans.
 
 Ouroboros is a desktop app (built with Electron) and a Python package (with a CLI). 
 
