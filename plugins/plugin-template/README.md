@@ -44,7 +44,9 @@ The first lines of the package.json are important to identifying your plugin.
 
 ### Plugin Development
 
-A plugin page (React website) is hosted by the main app and lives in an iframe, in a completely separate context from the main app. 
+A plugin page (React website) is hosted by the main app and lives in an `iframe`, in a completely separate context from the main app. 
+
+Running `npm run dev` starts a development server for the React website and starts the included Docker container via Docker compose (see `backend` folder).
 
 If you want to avoid reinventing the wheel (in this case the common components of the main app), then feel free to copy them over to your app. They should work immediately. If not, you may need to copy one of the context providers from the main app and wrap it around your `App` component in a similar way to the `Root` component of the main app.
 
