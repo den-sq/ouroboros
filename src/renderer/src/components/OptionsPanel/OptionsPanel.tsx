@@ -31,11 +31,13 @@ function OptionsPanel({
 
 	return (
 		<div className="panel">
-			<form className={styles.form} method="post" onSubmit={handleSubmit}>
-				<OptionsHeader onHeaderDrop={onHeaderDrop} />
-				{entryElement}
-				<OptionSubmit />
-			</form>
+			<div className="inner-panel">
+				<form className={styles.form} method="post" onSubmit={handleSubmit}>
+					<OptionsHeader onHeaderDrop={onHeaderDrop} />
+					{entryElement}
+					<OptionSubmit />
+				</form>
+			</div>
 		</div>
 	)
 }

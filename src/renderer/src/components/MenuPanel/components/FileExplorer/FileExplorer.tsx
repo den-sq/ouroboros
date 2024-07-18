@@ -23,19 +23,21 @@ function FileExplorer(): JSX.Element {
 	return (
 		<>
 			<div className={styles.fileExplorerPanel}>
-				{directoryName ? (
-					<>
-						<Header text={directoryName} />
-						<div>{fileEntries}</div>
-					</>
-				) : (
-					<>
-						<Header text={'Files'} />
-						<div className={`poppins-medium ${styles.helpText}`}>
-							File &gt; Open Folder
-						</div>
-					</>
-				)}
+				<div className={styles.fileExplorerInnerPanel}>
+					{directoryName ? (
+						<>
+							<Header text={directoryName} />
+							<div>{fileEntries}</div>
+						</>
+					) : (
+						<>
+							<Header text={'Files'} />
+							<div className={`poppins-medium ${styles.helpText}`}>
+								File &gt; Open Folder
+							</div>
+						</>
+					)}
+				</div>
 			</div>
 			<DragOverlay>
 				{active ? (

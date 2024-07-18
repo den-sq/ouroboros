@@ -12,9 +12,11 @@ function ProgressPanel({ progress, connected }): JSX.Element {
 
 	return (
 		<div className="panel">
-			<Header text={'Progress'} />
-			<ServerConnectedIndicator connected={connected} />
-			{progressBars}
+			<div className="inner-panel">
+				<Header text={'Progress'} />
+				<ServerConnectedIndicator connected={connected} />
+				{progressBars}
+			</div>
 		</div>
 	)
 }
