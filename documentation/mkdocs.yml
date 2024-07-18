@@ -1,15 +1,19 @@
 site_name: Ouroboros Documentation
-site_description: Quickly extract ROIs from cloud-hosted medical scans.
+site_description: Quickly extract long ROIs (e.g. blood vessels, nerves) from cloud-hosted medical scans.
 site_url: https://wegold.me/ouroboros
 copyright: Copyright 2024 Weaver Goldman, All rights reserved
-site_author: We-Gold
+site_author: Weaver Goldman
 
 nav:
   - Home: 'index.md'
-  - Guide: 
+  - Usage Guide: 
     - Download Ouroboros: 'guide/downloading.md'
     - Slicing: 'guide/slicing.md'
     - Backprojection: 'guide/backproject.md'
+  - Development:
+    - App: https://github.com/We-Gold/ouroboros/blob/main/README.md
+    - Python: https://github.com/We-Gold/ouroboros/blob/main/python/README.md
+    - Plugins: https://github.com/We-Gold/ouroboros/blob/main/plugins/plugin-template/README.md
   - Releases: 'https://github.com/We-Gold/ouroboros/releases'
   - Repository: https://github.com/We-Gold/ouroboros
 

@@ -8,7 +8,7 @@ The desktop app comes with a pre-compiled Python server (from the Python package
 
 If you are interested in using the Python package for its CLI or for a custom usecase, check out the [python](https://github.com/We-Gold/ouroboros/tree/main/python) folder in the main repository.
 
-## Documentation
+## Usage Guide
 
 _It is recommended that you read these pages in order._
 
@@ -16,7 +16,7 @@ _It is recommended that you read these pages in order._
 - [Slicing](./guide/slicing.md)
 - [Backprojection](./guide/backproject.md)
 
-## Basic Ouroboros Usage
+## Ouroboros Explanation
 
 A user of Ouroboros may have a multi-terabyte volumetric scan, hosted with the Neuroglancer family of tools (i.e. [cloud-volume](https://github.com/seung-lab/cloud-volume)). 
 
