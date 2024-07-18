@@ -216,26 +216,21 @@ export async function checkDocker(): Promise<{ available: boolean; error: string
 	return { available: true, error: null }
 }
 
-export async function startAllPlugins(): Promise<
-	{
-		id: string
-		name: string
-		indexPath: string
-		iconPath?: string
-	}[]
-> {
+export type PluginDetail = {
+	id: string
+	name: string
+	indexPath: string
+	iconPath?: string
+}
+
+export async function startAllPlugins(): Promise<PluginDetail[]> {
 	const pluginFolder = await getPluginFolder()
 	const plugins = await getPluginList(pluginFolder, true)
 
 	const dockerCheck = await checkDocker()
 	let alerted = false
 
-	const pluginDetails: {
-		id: string
-		name: string
-		indexPath: string
-		iconPath?: string
-	}[] = []
+	const pluginDetails: PluginDetail[] = []
 
 	plugins.forEach(async (plugin) => {
 		const json = plugin.json
@@ -269,12 +264,7 @@ export async function startAllPlugins(): Promise<
 			}
 		}
 
-		const localPluginDetails: {
-			id: string
-			name: string
-			indexPath: string
-			iconPath?: string
-		} = {
+		const localPluginDetails: PluginDetail = {
 			id: json.name,
 			name: json.pluginName,
 			indexPath: getPluginFileURL(plugin.folderName, json.index)

@@ -27,6 +27,7 @@ import {
 	deletePlugin,
 	downloadPlugin,
 	getPluginFolder,
+	PluginDetail,
 	sendPluginFolderContents,
 	startAllPlugins,
 	startPluginFileServer,
@@ -44,12 +45,7 @@ const PLUGIN_WINDOW = {
 let mainWindow: Electron.BrowserWindow
 let mainServer: ChildProcess
 
-const pluginDetails: {
-	id: string
-	name: string
-	indexPath: string
-	iconPath?: string
-}[] = []
+const pluginDetails: PluginDetail[] = []
 
 function createWindow(): void {
 	mainWindow = new BrowserWindow({
