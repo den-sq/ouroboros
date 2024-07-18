@@ -113,9 +113,25 @@ export async function deletePlugin(pluginFolder: string): Promise<void> {
 export async function addLocalPlugin(pluginFolder: string): Promise<void> {
 	const pluginFolderPath = await getPluginFolder()
 
-	// Get the name of the plugin folder
-	const pluginFolderSplit = pluginFolder.split('/')
-	const pluginFolderName = pluginFolderSplit[pluginFolderSplit.length - 1]
+	// Get the package.json file
+	const pathToPackageJSON = join(pluginFolder, 'package.json')
+
+	// Check if the folder contains a package.json file
+	if (!existsSync(pathToPackageJSON)) {
+		return
+	}
+
+	const packageJSON = await readFile({ folder: pluginFolder, name: 'package.json' })
+
+	// Check if the package.json file is valid
+	const parsedJSON = parsePluginPackageJSON(packageJSON)
+
+	if (typeof parsedJSON === 'string') {
+		console.error(parsedJSON)
+		return
+	}
+
+	const pluginFolderName = parsedJSON.name
 
 	// Create the plugin folder if it doesn't exist
 	const targetFolder = join(pluginFolderPath, pluginFolderName)
