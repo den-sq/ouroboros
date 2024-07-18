@@ -47,15 +47,13 @@ let mainServer: ChildProcess
 const pluginDetails: {
 	id: string
 	name: string
-	mainPath: string
-	stylesPath?: string
+	indexPath: string
 	iconPath?: string
 }[] = []
 
 function createWindow(): void {
 	mainWindow = new BrowserWindow({
 		show: false,
-		autoHideMenuBar: true,
 		...(process.platform === 'linux' ? { icon } : {}),
 		webPreferences: {
 			preload: join(__dirname, '../preload/index.js'),
@@ -277,6 +275,10 @@ app.whenReady().then(() => {
 		})
 
 		return await fetchFolderContents(folderPath)
+	})
+
+	ipcMain.on('get-is-dev', () => {
+		mainWindow.webContents.send('is-dev', is.dev)
 	})
 
 	// Save a string to a file

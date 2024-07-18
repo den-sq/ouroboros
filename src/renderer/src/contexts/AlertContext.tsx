@@ -5,6 +5,7 @@ export type AlertContextValue = {
 	addAlert: (message: string, type: 'error' | 'info' | 'success' | 'warning') => void
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const AlertContext = createContext<AlertContextValue>(null as any)
 
 export type AlertMessageType = {
@@ -13,11 +14,17 @@ export type AlertMessageType = {
 	type: 'error' | 'info' | 'success' | 'warning'
 }
 
-function AlertProvider({ children, duration = 6000 }) {
+function AlertProvider({
+	children,
+	duration = 6000
+}: {
+	children: React.ReactNode
+	duration?: number
+}): JSX.Element {
 	const [alerts, setAlerts] = useState<AlertMessageType[]>([])
 	const timeoutsRef = useRef<NodeJS.Timeout[]>([])
 
-	const addAlert = (message: string, type: 'error' | 'info' | 'success' | 'warning') => {
+	const addAlert = (message: string, type: 'error' | 'info' | 'success' | 'warning'): void => {
 		const id = `${type}-${message}-${Date.now()}`
 		setAlerts((currentAlerts) => [...currentAlerts, { id, message, type }])
 
@@ -29,7 +36,7 @@ function AlertProvider({ children, duration = 6000 }) {
 
 	useEffect(() => {
 		// Clear all timeouts when the component unmounts
-		return () => {
+		return (): void => {
 			timeoutsRef.current.forEach(clearTimeout)
 		}
 	}, [])

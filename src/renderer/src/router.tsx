@@ -7,13 +7,12 @@ import SlicesPage from './routes/SlicesPage/SlicesPage'
 import BackprojectPage from './routes/BackprojectPage/BackprojectPage'
 import Root from './routes/Root/Root'
 import PluginsPage from './routes/extras/PluginsPage/PluginsPage'
-import StylesWrapper from './components/StylesWrapper/StylesWrapper'
+import PluginDisplay from './components/PluginDisplay/PluginDisplay'
 
 const pluginDetails: {
 	id: string
 	name: string
-	mainPath: string
-	stylesPath?: string
+	indexPath: string
 	iconPath?: string
 }[] = []
 
@@ -59,6 +58,16 @@ export const router = createHashRouter(
 	],
 	{
 		async unstable_patchRoutesOnMiss({ path, patch }) {
+			// Insert the plugin test page, a page that is only available in development
+			if (path === '/plugin-test') {
+				patch('root', [
+					{
+						path: path,
+						Component: (await import('./routes/PluginTestPage/PluginTestPage')).default
+					}
+				])
+			}
+
 			const errorRoute = {
 				path: path,
 				element: <></>
@@ -91,26 +100,8 @@ const getPluginRoute = async (route: string) => {
 
 	if (!pluginDetail) return null
 
-	let exportedPlugin = null
-
-	try {
-		const mainPath = pluginDetail.mainPath
-
-		// Load the plugin
-		const plugin = await import(/* @vite-ignore */ mainPath)
-
-		exportedPlugin = plugin.default
-	} catch (e) {
-		console.error(e)
-		return null
-	}
-
-	if (!exportedPlugin) return null
-
-	const stylesPath = pluginDetail.stylesPath
-
 	return {
 		path: route,
-		element: <StylesWrapper stylesPath={stylesPath}>{plugin.default}</StylesWrapper>
+		element: <PluginDisplay url={pluginDetail.indexPath} />
 	}
 }

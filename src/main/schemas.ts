@@ -4,8 +4,7 @@ export const PluginPackageJSONSchema = object({
 	name: string('Plugin name is required'),
 	pluginName: string('Readable plugin name is required'),
 	icon: optional(string()),
-	main: string('Plugin main frontend script file is required'),
-	styles: optional(string()),
+	index: string('Plugin index.html file is required'),
 	dockerfile: optional(string())
 })
 

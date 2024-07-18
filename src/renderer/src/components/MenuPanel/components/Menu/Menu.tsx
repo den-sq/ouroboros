@@ -4,10 +4,13 @@ import BackprojectIcon from './assets/backproject-icon.svg?react'
 import DefaultIcon from './assets/segment-icon.svg?react'
 import MenuOption from './components/MenuOption/MenuOption'
 import { useLocation } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import DynamicIcon from './components/DynamicIcon/DynamicIcon'
+import { TestingPluginContext } from '@renderer/contexts/TestingPluginContext'
 
 function Menu(): JSX.Element {
+	const { testingPlugin } = useContext(TestingPluginContext)
+
 	const location = useLocation()
 
 	const [pluginDetails, setPluginDetails] = useState<
@@ -48,6 +51,14 @@ function Menu(): JSX.Element {
 				icon={<BackprojectIcon />}
 				location={location}
 			/>
+			{testingPlugin ? (
+				<MenuOption
+					path={'/plugin-test'}
+					optionName={'Test Plugin'}
+					icon={<DefaultIcon />}
+					location={location}
+				/>
+			) : null}
 			{pluginDetails.map((plugin) => {
 				const Icon = plugin.iconPath ? (
 					<DynamicIcon url={plugin.iconPath} path={`/${plugin.id}`} location={location} />

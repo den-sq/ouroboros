@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createContext, useCallback, useEffect, useState } from 'react'
 
 const DEFAULT_SERVER_URL = 'http://127.0.0.1:8000'
@@ -35,7 +36,7 @@ export type ServerContextValue = {
 
 export const ServerContext = createContext<ServerContextValue>(null as any)
 
-function useServerContextProvider(baseURL = DEFAULT_SERVER_URL) {
+function useServerContextProvider(baseURL = DEFAULT_SERVER_URL): ServerContextValue {
 	const [fetchStates, setFetchStates] = useState<Map<string, FetchResult>>(new Map())
 	const [streamStates, setStreamStates] = useState<Map<string, StreamResult>>(new Map())
 
@@ -110,11 +111,12 @@ function useServerContextProvider(baseURL = DEFAULT_SERVER_URL) {
 	const retryDelay = 5000 // Delay between checks in milliseconds
 
 	useEffect(() => {
-		const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+		const delay = (ms: number): Promise<void> =>
+			new Promise((resolve) => setTimeout(resolve, ms))
 
 		let isMounted = true // Flag to manage cleanup
 
-		const checkServerStatus = async () => {
+		const checkServerStatus = async (): Promise<void> => {
 			while (isMounted) {
 				try {
 					const response = await fetch(baseURL)
@@ -133,7 +135,7 @@ function useServerContextProvider(baseURL = DEFAULT_SERVER_URL) {
 		checkServerStatus()
 
 		// Cleanup function to stop polling when component unmounts
-		return () => {
+		return (): void => {
 			isMounted = false
 		}
 	}, [baseURL, retryDelay])
@@ -284,7 +286,9 @@ function useServerContextProvider(baseURL = DEFAULT_SERVER_URL) {
 		})
 	}, [])
 
-	const useFetchListener = (relativeURL: string) => {
+	const useFetchListener = (
+		relativeURL: string
+	): { results: object | null; error: ServerError } => {
 		const [results, setResults] = useState<object | null>(null)
 		const [error, setError] = useState<ServerError>({ status: false, message: '' })
 
@@ -299,7 +303,9 @@ function useServerContextProvider(baseURL = DEFAULT_SERVER_URL) {
 		return { results, error }
 	}
 
-	const useStreamListener = (relativeURL: string) => {
+	const useStreamListener = (
+		relativeURL: string
+	): { results: object | null; error: ServerError; done: boolean } => {
 		const [results, setResults] = useState<object | null>(null)
 		const [error, setError] = useState<ServerError>({ status: false, message: '' })
 		const [done, setDone] = useState(false)
@@ -328,7 +334,13 @@ function useServerContextProvider(baseURL = DEFAULT_SERVER_URL) {
 	}
 }
 
-function ServerProvider({ baseURL = DEFAULT_SERVER_URL, children }) {
+function ServerProvider({
+	baseURL = DEFAULT_SERVER_URL,
+	children
+}: {
+	baseURL?: string
+	children: React.ReactNode
+}): JSX.Element {
 	const serverContextValue = useServerContextProvider(baseURL)
 
 	return <ServerContext.Provider value={serverContextValue}>{children}</ServerContext.Provider>

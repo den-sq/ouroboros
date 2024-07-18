@@ -57,22 +57,12 @@ export async function getPluginList(
 			continue
 		}
 
-		// Check if the main script file exists
-		const pathToMain = join(parentFolder, parsedJSON.main)
+		// Check if the index html file exists
+		const pathToIndex = join(parentFolder, parsedJSON.index)
 
-		if (!existsSync(pathToMain)) {
-			console.error(`Main script file not found: ${pathToMain}`)
+		if (!existsSync(pathToIndex)) {
+			console.error(`Index html file not found: ${pathToIndex}`)
 			continue
-		}
-
-		// Check if the styles file exists
-		if (parsedJSON.styles) {
-			const pathToStyles = join(parentFolder, parsedJSON.styles)
-
-			if (!existsSync(pathToStyles)) {
-				console.error(`Styles file not found: ${pathToStyles}`)
-				continue
-			}
 		}
 
 		// Check if the Dockerfile exists
@@ -230,8 +220,7 @@ export async function startAllPlugins(): Promise<
 	{
 		id: string
 		name: string
-		mainPath: string
-		stylesPath?: string
+		indexPath: string
 		iconPath?: string
 	}[]
 > {
@@ -244,8 +233,7 @@ export async function startAllPlugins(): Promise<
 	const pluginDetails: {
 		id: string
 		name: string
-		mainPath: string
-		stylesPath?: string
+		indexPath: string
 		iconPath?: string
 	}[] = []
 
@@ -284,19 +272,12 @@ export async function startAllPlugins(): Promise<
 		const localPluginDetails: {
 			id: string
 			name: string
-			mainPath: string
-			stylesPath?: string
+			indexPath: string
 			iconPath?: string
 		} = {
 			id: json.name,
 			name: json.pluginName,
-			mainPath: getPluginFileURL(plugin.folderName, json.main)
-		}
-
-		// Get the path to the styles file
-		if (json.styles) {
-			const pathToStyles = getPluginFileURL(plugin.folderName, json.styles)
-			localPluginDetails.stylesPath = pathToStyles
+			indexPath: getPluginFileURL(plugin.folderName, json.index)
 		}
 
 		// Get the icons

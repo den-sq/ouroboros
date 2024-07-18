@@ -6,22 +6,25 @@ import ServerProvider from '@renderer/contexts/ServerContext'
 import { Outlet } from 'react-router-dom'
 
 import styles from './Root.module.css'
+import TestingPluginProvider from '@renderer/contexts/TestingPluginContext'
 
 function Root(): JSX.Element {
 	return (
 		<>
-			<AlertProvider>
-				<ServerProvider>
-					<DirectoryProvider>
-						<DragProvider>
-							<div className={styles.rootArea}>
-								<MenuPanel />
-								<Outlet />
-							</div>
-						</DragProvider>
-					</DirectoryProvider>
-				</ServerProvider>
-			</AlertProvider>
+			<TestingPluginProvider>
+				<AlertProvider>
+					<ServerProvider>
+						<DirectoryProvider>
+							<DragProvider>
+								<div className={styles.rootArea}>
+									<MenuPanel />
+									<Outlet />
+								</div>
+							</DragProvider>
+						</DirectoryProvider>
+					</ServerProvider>
+				</AlertProvider>
+			</TestingPluginProvider>
 		</>
 	)
 }

@@ -8,13 +8,14 @@ export type DragContextValue = {
 	clearDragEvent: () => void
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const DragContext = createContext<DragContextValue>(null as any)
 
-function DragProvider({ children }): JSX.Element {
+function DragProvider({ children }: { children: React.ReactNode }): JSX.Element {
 	const [active, setActive] = useState<Active | null>(null)
 	const [parentChildData, setParentChildData] = useState<[UniqueIdentifier, Active] | null>(null)
 
-	const clearDragEvent = () => setParentChildData(null)
+	const clearDragEvent = (): void => setParentChildData(null)
 
 	return (
 		<DragContext.Provider value={{ active, parentChildData, clearDragEvent }}>
@@ -24,13 +25,13 @@ function DragProvider({ children }): JSX.Element {
 		</DragContext.Provider>
 	)
 
-	function handleDragStart(event: DragEndEvent) {
+	function handleDragStart(event: DragEndEvent): void {
 		if (event.active) {
 			setActive(event.active)
 		}
 	}
 
-	function handleDragEnd(event: DragEndEvent) {
+	function handleDragEnd(event: DragEndEvent): void {
 		if (event.over && event.active) {
 			setParentChildData([event.over.id, event.active])
 		}
