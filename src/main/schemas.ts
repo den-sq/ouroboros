@@ -5,7 +5,7 @@ export const PluginPackageJSONSchema = object({
 	pluginName: string('Readable plugin name is required'),
 	icon: optional(string()),
 	index: string('Plugin index.html file is required'),
-	dockerfile: optional(string())
+	dockerCompose: optional(string())
 })
 
 export type PluginPackageJSON = InferOutput<typeof PluginPackageJSONSchema>

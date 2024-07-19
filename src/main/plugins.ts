@@ -66,12 +66,12 @@ export async function getPluginList(
 			continue
 		}
 
-		// Check if the Dockerfile exists
-		if (parsedJSON.dockerfile) {
-			const pathToDockerfile = join(parentFolder, parsedJSON.dockerfile)
+		// Check if the Docker Compose exists
+		if (parsedJSON.dockerCompose) {
+			const pathToDockerCompose = join(parentFolder, parsedJSON.dockerCompose)
 
-			if (!existsSync(pathToDockerfile)) {
-				console.error(`Dockerfile not found: ${pathToDockerfile}`)
+			if (!existsSync(pathToDockerCompose)) {
+				console.error(`Dockerfile not found: ${pathToDockerCompose}`)
 				continue
 			}
 		}
@@ -255,7 +255,7 @@ export async function startAllPlugins(): Promise<PluginDetail[]> {
 		if (!json) return
 
 		// Try to start the docker container
-		if (json.dockerfile) {
+		if (json.dockerCompose) {
 			if (!dockerCheck.available) {
 				console.error(dockerCheck.error)
 
@@ -267,7 +267,11 @@ export async function startAllPlugins(): Promise<PluginDetail[]> {
 					alerted = true
 				}
 			} else {
-				upAll({ cwd: join(plugin.folder), log: false }).then(
+				upAll({
+					cwd: join(plugin.folder),
+					log: false,
+					config: join(plugin.folder, json.dockerCompose)
+				}).then(
 					() => {},
 					(err) => {
 						console.log(
@@ -309,9 +313,13 @@ export async function stopAllPlugins(): Promise<void> {
 			if (!json) return
 
 			// Try to stop the docker container
-			if (json.dockerfile) {
+			if (json.dockerCompose) {
 				try {
-					await downAll({ cwd: join(plugin.folder), log: false })
+					await downAll({
+						cwd: join(plugin.folder),
+						log: false,
+						config: join(plugin.folder, json.dockerCompose)
+					})
 				} catch (err) {
 					console.log(
 						`An error occurred while stopping plugin ${json.pluginName}'s Dockerfile:`,
