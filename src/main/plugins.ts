@@ -4,13 +4,9 @@ import fs from 'fs/promises'
 import { join } from 'path'
 import { parsePluginPackageJSON, PluginPackageJSON } from './schemas'
 import { downloadRelease } from '@terascope/fetch-github-release'
-import { exec } from 'child_process'
 import { fetchFolderContents, readFile } from './helpers'
-import express from 'express'
-import cors from 'cors'
-import { Express } from 'express'
-import serveStatic from 'serve-static'
-import { upAll, downAll } from 'docker-compose/dist/v2'
+import { buildDockerCompose, checkDocker, startDockerCompose, stopDockerCompose } from './docker'
+import { getPluginFileURL } from './file-server'
 
 export async function getPluginFolder(): Promise<string> {
 	const userData = app.getPath('userData')
@@ -139,6 +135,20 @@ export async function addLocalPlugin(pluginFolder: string): Promise<void> {
 
 	// Copy the folder from the given path to the plugin folder
 	await fs.cp(pluginFolder, targetFolder, { recursive: true })
+
+	// Build the docker container for the plugin
+	if (parsedJSON.dockerCompose) {
+		await buildDockerCompose({
+			cwd: targetFolder,
+			config: join(targetFolder, parsedJSON.dockerCompose),
+			onError: (err) => {
+				console.error(
+					`An error occurred while building plugin ${parsedJSON.pluginName}'s Dockerfile:`,
+					err
+				)
+			}
+		})
+	}
 }
 
 /**
@@ -193,46 +203,6 @@ export async function downloadPlugin(url: string): Promise<void> {
 	}
 }
 
-function execPromise(cmd: string): Promise<string> {
-	return new Promise(function (resolve, reject) {
-		exec(cmd, function (err, stdout) {
-			if (err) return reject(err)
-			resolve(stdout)
-		})
-	})
-}
-
-export async function checkDocker(): Promise<{ available: boolean; error: string | null }> {
-	const commands = [
-		{
-			cmd: 'docker --version',
-			successMsg: 'Docker is installed',
-			failureMsg: 'Docker is not installed'
-		},
-		{ cmd: 'docker info', successMsg: 'Docker is running', failureMsg: 'Docker is not running' }
-	]
-
-	const results = await commands.reduce(async function (p, command) {
-		const results: { success: boolean; message: string }[] = await p
-		try {
-			const stdout = await execPromise(command.cmd)
-			results.push({ success: true, message: command.successMsg + ': ' + stdout.trim() })
-		} catch (err) {
-			results.push({ success: false, message: command.failureMsg })
-		}
-		return results
-	}, Promise.resolve<{ success: boolean; message: string }[]>([]))
-
-	// If any of the commands failed, return the error message
-	const failed = results.filter((result) => !result.success)
-
-	if (failed.length > 0) {
-		return { available: false, error: failed[0].message }
-	}
-
-	return { available: true, error: null }
-}
-
 export type PluginDetail = {
 	id: string
 	name: string
@@ -267,19 +237,16 @@ export async function startAllPlugins(): Promise<PluginDetail[]> {
 					alerted = true
 				}
 			} else {
-				upAll({
+				startDockerCompose({
 					cwd: join(plugin.folder),
-					log: false,
-					config: join(plugin.folder, json.dockerCompose)
-				}).then(
-					() => {},
-					(err) => {
+					config: join(plugin.folder, json.dockerCompose),
+					onError: (err) => {
 						console.log(
 							`An error occurred while starting plugin ${json.pluginName}'s Dockerfile:`,
 							err
 						)
 					}
-				)
+				})
 			}
 		}
 
@@ -315,9 +282,8 @@ export async function stopAllPlugins(): Promise<void> {
 			// Try to stop the docker container
 			if (json.dockerCompose) {
 				try {
-					await downAll({
+					await stopDockerCompose({
 						cwd: join(plugin.folder),
-						log: false,
 						config: join(plugin.folder, json.dockerCompose)
 					})
 				} catch (err) {
@@ -329,37 +295,4 @@ export async function stopAllPlugins(): Promise<void> {
 			}
 		})
 	)
-}
-
-let pluginFileServer: Express
-const pluginFileServerURL: string = 'http://127.0.0.1:3000'
-
-/**
- * Starts a file server to serve plugin files
- */
-export async function startPluginFileServer(): Promise<void> {
-	const pluginFolder = await getPluginFolder()
-
-	pluginFileServer = express()
-
-	pluginFileServer.use(cors())
-	pluginFileServer.use(serveStatic(pluginFolder))
-	pluginFileServer.listen(3000)
-}
-
-export async function stopPluginFileServer(): Promise<void> {
-	if ('close' in pluginFileServer && typeof pluginFileServer.close === 'function')
-		pluginFileServer?.close()
-}
-
-export function getPluginFileServerURL(): string {
-	return pluginFileServerURL
-}
-
-export function getPluginFileURL(pluginFolder: string, fileRelativePath: string): string {
-	const filePath = join(pluginFolder, fileRelativePath)
-
-	const url = new URL(filePath, getPluginFileServerURL())
-
-	return url.toString()
 }

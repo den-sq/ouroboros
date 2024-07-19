@@ -1,4 +1,5 @@
 import { is } from '@electron-toolkit/utils'
+import { exec } from 'child_process'
 import { BrowserWindow } from 'electron'
 import fs from 'fs/promises'
 import { join } from 'path'
@@ -90,4 +91,13 @@ export function makeExtraWindow({
 	}
 
 	return extraWindow
+}
+
+export function execPromise(cmd: string): Promise<string> {
+	return new Promise(function (resolve, reject) {
+		exec(cmd, function (err, stdout) {
+			if (err) return reject(err)
+			resolve(stdout)
+		})
+	})
 }

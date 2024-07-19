@@ -30,10 +30,9 @@ import {
 	PluginDetail,
 	sendPluginFolderContents,
 	startAllPlugins,
-	startPluginFileServer,
-	stopAllPlugins,
-	stopPluginFileServer
+	stopAllPlugins
 } from './plugins'
+import { startPluginFileServer, stopPluginFileServer } from './file-server'
 
 const PLUGIN_WINDOW = {
 	name: 'Manage Plugins',
