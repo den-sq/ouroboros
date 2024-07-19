@@ -1,40 +1,18 @@
-import {
-	app,
-	shell,
-	BrowserWindow,
-	ipcMain,
-	Menu,
-	dialog,
-	MenuItemConstructorOptions
-} from 'electron'
+import { app, shell, BrowserWindow, Menu } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
 import { ChildProcess, execFile } from 'child_process'
 import { existsSync } from 'fs'
-import Watcher from 'watcher'
 
-import {
-	BACKGROUND_COLOR,
-	fetchFolderContents,
-	makeExtraWindow,
-	readFile,
-	saveFile
-} from '../main/helpers'
-import {
-	addLocalPlugin,
-	deletePlugin,
-	downloadPlugin,
-	getPluginFolder,
-	PluginDetail,
-	sendPluginFolderContents,
-	startAllPlugins,
-	stopAllPlugins
-} from './plugins'
+import { BACKGROUND_COLOR } from '../main/helpers'
+import { PluginDetail, startAllPlugins, stopAllPlugins } from './plugins'
 import { startPluginFileServer, stopPluginFileServer } from './file-server'
+import { handleEvents } from './events'
+import { makeMenu } from './menu'
 
-const PLUGIN_WINDOW = {
+export const PLUGIN_WINDOW = {
 	name: 'Manage Plugins',
 	width: 550,
 	height: 400,
@@ -45,6 +23,9 @@ let mainWindow: Electron.BrowserWindow
 let mainServer: ChildProcess
 
 const pluginDetails: PluginDetail[] = []
+
+const getMainWindow = (): BrowserWindow => mainWindow
+const getPluginDetails = (): PluginDetail[] => pluginDetails
 
 function createWindow(): void {
 	mainWindow = new BrowserWindow({
@@ -58,131 +39,7 @@ function createWindow(): void {
 		backgroundColor: BACKGROUND_COLOR
 	})
 
-	const isMac = process.platform === 'darwin'
-
-	const template = [
-		// { role: 'appMenu' }
-		...(isMac
-			? [
-					{
-						label: app.name,
-						submenu: [
-							{ role: 'about' },
-							{ type: 'separator' },
-							{
-								label: 'Manage Plugins',
-								click: (): void => {
-									ipcMain.emit('manage-plugins')
-								}
-							},
-							{ type: 'separator' },
-							{ role: 'services' },
-							{ type: 'separator' },
-							{ role: 'hide' },
-							{ role: 'hideOthers' },
-							{ role: 'unhide' },
-							{ type: 'separator' },
-							{ role: 'quit' }
-						]
-					}
-				]
-			: []),
-		// { role: 'fileMenu' }
-		{
-			label: 'File',
-			submenu: [
-				{
-					label: 'Open Folder',
-					click: async (): Promise<void> => {
-						const result = await dialog.showOpenDialog(mainWindow, {
-							properties: ['openDirectory']
-						})
-						if (!result.canceled) {
-							mainWindow.webContents.send('selected-folder', result.filePaths[0])
-						}
-					}
-				},
-				{ type: 'separator' },
-				isMac ? { role: 'close' } : { role: 'quit' }
-			]
-		},
-		// { role: 'editMenu' }
-		{
-			label: 'Edit',
-			submenu: [
-				{ role: 'undo' },
-				{ role: 'redo' },
-				{ type: 'separator' },
-				{ role: 'cut' },
-				{ role: 'copy' },
-				{ role: 'paste' },
-				...(isMac
-					? [
-							{ role: 'pasteAndMatchStyle' },
-							{ role: 'delete' },
-							{ role: 'selectAll' },
-							{ type: 'separator' },
-							{
-								label: 'Speech',
-								submenu: [{ role: 'startSpeaking' }, { role: 'stopSpeaking' }]
-							}
-						]
-					: [{ role: 'delete' }, { type: 'separator' }, { role: 'selectAll' }])
-			]
-		},
-		// { role: 'viewMenu' }
-		{
-			label: 'View',
-			submenu: [
-				{ role: 'reload' },
-				{ role: 'forceReload' },
-				{ role: 'toggleDevTools' },
-				{ type: 'separator' },
-				{ role: 'resetZoom' },
-				{ role: 'zoomIn' },
-				{ role: 'zoomOut' },
-				{ type: 'separator' },
-				{ role: 'togglefullscreen' }
-			]
-		},
-		// { role: 'windowMenu' }
-		{
-			label: 'Window',
-			submenu: [
-				{ role: 'minimize' },
-				{ role: 'zoom' },
-				...(isMac
-					? [
-							{ type: 'separator' },
-							{ role: 'front' },
-							{ type: 'separator' },
-							{ role: 'window' }
-						]
-					: [{ role: 'close' }])
-			]
-		},
-		{
-			role: 'help',
-			submenu: [
-				{
-					label: 'Learn More',
-					click: async (): Promise<void> => {
-						await shell.openExternal('https://github.com/We-Gold/ouroboros')
-					}
-				},
-				{
-					label: 'Report Issue',
-					click: async (): Promise<void> => {
-						await shell.openExternal('https://github.com/We-Gold/ouroboros/issues')
-					}
-				}
-			]
-		}
-	]
-
-	const menu = Menu.buildFromTemplate(template as MenuItemConstructorOptions[])
-
-	Menu.setApplicationMenu(menu)
+	Menu.setApplicationMenu(makeMenu(mainWindow))
 
 	mainWindow.on('ready-to-show', () => {
 		mainWindow.maximize()
@@ -249,104 +106,9 @@ app.whenReady().then(() => {
 		optimizer.watchWindowShortcuts(window)
 	})
 
-	let subscription: Watcher | null = null
-
-	// Fetch the contents of the given folder
-	ipcMain.handle('fetch-folder-contents', async (_, folderPath: string) => {
-		if (folderPath === '' || folderPath === undefined || folderPath === null)
-			return { files: [], isFolder: [] }
-
-		if (subscription) {
-			subscription.close()
-			subscription = null
-		}
-
-		// Send updates to the renderer when the folder contents change
-		subscription = new Watcher(folderPath)
-
-		subscription.on('all', async () => {
-			const result = await fetchFolderContents(folderPath)
-			mainWindow?.webContents.send('folder-contents-update', result)
-		})
-
-		return await fetchFolderContents(folderPath)
-	})
-
-	ipcMain.on('get-is-dev', () => {
-		mainWindow.webContents.send('is-dev', is.dev)
-	})
-
-	// Save a string to a file
-	ipcMain.handle('save-file', async (_, args) => {
-		return await saveFile(args)
-	})
-
-	// Join two paths
-	ipcMain.handle('join-path', (_, { folder, name }) => {
-		return join(folder, name)
-	})
-
-	// Read the contents of a file as a string
-	ipcMain.handle('read-file', async (_, args) => {
-		return await readFile(args)
-	})
-
-	let pluginSubscription: Watcher | null = null
-	let pluginWindow: BrowserWindow | null = null
-
-	ipcMain.on('manage-plugins', async () => {
-		// Make new window for mananging plugins
-		pluginWindow = makeExtraWindow(PLUGIN_WINDOW)
-
-		pluginWindow.on('close', () => {
-			if (pluginSubscription) {
-				pluginSubscription.close()
-				pluginSubscription = null
-			}
-		})
-	})
-
-	ipcMain.on('get-plugin-folder-contents', async () => {
-		// Get the path to the plugin folder
-		const pluginFolder = await getPluginFolder()
-
-		if (pluginFolder === '') {
-			dialog.showErrorBox('Plugin Folder Not Found', 'The plugin folder was not found.')
-			return
-		}
-
-		if (pluginSubscription) {
-			pluginSubscription.close()
-			pluginSubscription = null
-		}
-
-		pluginSubscription = new Watcher(pluginFolder)
-
-		// Send updates to the renderer when the folder contents change
-		pluginSubscription.on('all', async () => {
-			sendPluginFolderContents(pluginWindow, pluginFolder)
-		})
-
-		// Send the contents of the plugin folder to the renderer
-		sendPluginFolderContents(pluginWindow, pluginFolder)
-	})
-
-	ipcMain.on('download-plugin', async (_, url: string) => {
-		// Download the plugin from the given github URL
-		downloadPlugin(url)
-	})
-
-	ipcMain.on('add-local-plugin', async (_, folderPath: string) => {
-		// Copy the plugin from the given folder
-		addLocalPlugin(folderPath)
-	})
-
-	ipcMain.on('delete-plugin', async (_, pluginFolder: string) => {
-		deletePlugin(pluginFolder)
-	})
-
-	ipcMain.on('get-plugin-paths', () => {
-		mainWindow.webContents.send('plugin-paths', pluginDetails)
+	handleEvents({
+		getMainWindow,
+		getPluginDetails
 	})
 
 	createWindow()
