@@ -8,7 +8,7 @@ from ouroboros.helpers.volume_cache import VolumeCache
 from ouroboros.helpers.bounding_boxes import BoundingBox
 from .pipeline import PipelineStep
 from ouroboros.helpers.options import BackprojectOptions
-from ouroboros.helpers.files import load_and_save_tiff_from_slices
+from ouroboros.helpers.files import join_path, load_and_save_tiff_from_slices
 
 import concurrent.futures
 import tifffile
@@ -60,8 +60,8 @@ class BackprojectPipelineStep(PipelineStep):
         volume_memmaps = [None] * len(volume_cache.bounding_boxes)
 
         # Create a folder to hold the temporary volume files
-        temp_folder_path = os.path.join(
-            config.output_file_folder, config.output_file_name + "-tempvolumes"
+        temp_folder_path = join_path(
+            config.output_file_folder, f"{config.output_file_name}-tempvolumes"
         )
         os.makedirs(temp_folder_path, exist_ok=True)
 
@@ -136,8 +136,8 @@ class BackprojectPipelineStep(PipelineStep):
             pipeline_input.backprojection_offset = f"{min_bounding_box.x_min},{min_bounding_box.y_min},{min_bounding_box.z_min}"
 
         # Save the backprojected volume to a series of tif files
-        folder_path = os.path.join(
-            config.output_file_folder, config.output_file_name + "-backprojected"
+        folder_path = join_path(
+            config.output_file_folder, f"{config.output_file_name}-backprojected"
         )
         if os.path.exists(folder_path):
             shutil.rmtree(folder_path)
@@ -179,7 +179,7 @@ class BackprojectPipelineStep(PipelineStep):
                 slice_index = 0
                 for j in slice_range:
                     tifffile.imwrite(
-                        os.path.join(folder_path, f"{str(j).zfill(num_digits)}.tif"),
+                        join_path(folder_path, f"{str(j).zfill(num_digits)}.tif"),
                         np.take(chunk_volume, slice_index, axis=axis),
                         contiguous=True,
                         compression=config.backprojection_compression,
@@ -243,7 +243,7 @@ class BackprojectPipelineStep(PipelineStep):
             slice_index = 0
             for j in slice_range:
                 tifffile.imwrite(
-                    os.path.join(folder_path, f"{str(j).zfill(num_digits)}.tif"),
+                    join_path(folder_path, f"{str(j).zfill(num_digits)}.tif"),
                     np.take(chunk_volume, slice_index, axis=axis),
                     contiguous=True,
                     compression=config.backprojection_compression,
@@ -260,7 +260,7 @@ class BackprojectPipelineStep(PipelineStep):
 
         # Delete the temporary volume files
         shutil.rmtree(
-            os.path.join(
+            join_path(
                 config.output_file_folder, config.output_file_name + "-tempvolumes"
             )
         )
@@ -353,9 +353,9 @@ def process_bounding_box(
 
     # Save the volume locally as a tif file
     start = time.perf_counter()
-    file_path = os.path.join(
+    file_path = join_path(
         config.output_file_folder,
-        config.output_file_name + "-tempvolumes",
+        f"{config.output_file_name}-tempvolumes",
         f"{index}.tif",
     )
     tifffile.imwrite(file_path, volume, software="ouroboros")

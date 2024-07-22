@@ -3,7 +3,7 @@ from ouroboros.helpers.slice import (
     slice_volume_from_grids,
 )
 from ouroboros.helpers.volume_cache import VolumeCache
-from ouroboros.helpers.files import load_and_save_tiff_from_slices
+from ouroboros.helpers.files import join_path, load_and_save_tiff_from_slices
 from .pipeline import PipelineStep
 from ouroboros.helpers.options import SliceOptions
 import numpy as np
@@ -51,11 +51,11 @@ class SliceParallelPipelineStep(PipelineStep):
             return "Input data must contain an array of slice rects."
 
         # Create a folder with the same name as the output file
-        folder_name = os.path.join(
+        folder_name = join_path(
             config.output_file_folder, f"{config.output_file_name}-slices"
         )
         os.makedirs(folder_name, exist_ok=True)
-        output_file_path = os.path.join(
+        output_file_path = join_path(
             config.output_file_folder, config.output_file_name + ".tif"
         )
 
@@ -229,7 +229,7 @@ def process_worker_save_parallel(
 
         for i, slice_i in zip(slice_indices, slices):
             start = time.perf_counter()
-            filename = os.path.join(folder_name, f"{str(i).zfill(num_digits)}.tif")
+            filename = join_path(folder_name, f"{str(i).zfill(num_digits)}.tif")
             futures.append(thread_executor.submit(save_thread, filename, slice_i))
             durations["save"].append(time.perf_counter() - start)
 
