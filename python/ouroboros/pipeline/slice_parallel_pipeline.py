@@ -229,7 +229,7 @@ def process_worker_save_parallel(
 
         for i, slice_i in zip(slice_indices, slices):
             start = time.perf_counter()
-            filename = f"{folder_name}/{str(i).zfill(num_digits)}.tif"
+            filename = os.path.join(folder_name, f"{str(i).zfill(num_digits)}.tif")
             futures.append(thread_executor.submit(save_thread, filename, slice_i))
             durations["save"].append(time.perf_counter() - start)
 

@@ -17,7 +17,8 @@ def load_and_save_tiff_from_slices(
     tif_files = get_sorted_tif_files(folder_name)
 
     # Read in the first tif file to determine if the resulting tif should be a bigtiff
-    first_tif = imread(f"{folder_name}/{tif_files[0]}")
+    first_path = os.path.join(folder_name, tif_files[0])
+    first_tif = imread(first_path)
     shape = (len(tif_files), *first_tif.shape)
 
     bigtiff = calculate_gigabytes_from_dimensions(shape, first_tif.dtype) > 4
@@ -27,7 +28,8 @@ def load_and_save_tiff_from_slices(
     # Save tifs to a new resulting tif
     with TiffWriter(output_file_path, bigtiff=bigtiff) as tif:
         for filename in tif_files:
-            tif_file = imread(f"{folder_name}/{filename}")
+            tif_path = os.path.join(folder_name, filename)
+            tif_file = imread(tif_path)
             tif.write(
                 tif_file,
                 contiguous=contiguous,
