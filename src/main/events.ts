@@ -1,9 +1,8 @@
 import { BrowserWindow, dialog, ipcMain } from 'electron'
 import Watcher from 'watcher'
-import { fetchFolderContents, makeExtraWindow, saveFile } from './helpers'
+import { fetchFolderContents, makeExtraWindow, readFile, saveFile } from './helpers'
 import { is } from '@electron-toolkit/utils'
 import { join } from 'path'
-import { readFile } from 'fs/promises'
 import {
 	addLocalPlugin,
 	deletePlugin,
