@@ -24,7 +24,7 @@ function DirectoryProvider({ children }: { children: React.ReactNode }): JSX.Ele
 				setDirectoryPath(directory)
 
 				// Clean up the directory name
-				const directorySplit = directory.split('/')
+				const directorySplit = directory.split(/[/\\]/)
 				setDirectoryName(directorySplit[directorySplit.length - 1])
 			}
 		)

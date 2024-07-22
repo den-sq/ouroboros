@@ -2,7 +2,7 @@ import { BrowserWindow, dialog, ipcMain } from 'electron'
 import Watcher from 'watcher'
 import { fetchFolderContents, makeExtraWindow, readFile, saveFile } from './helpers'
 import { is } from '@electron-toolkit/utils'
-import { join } from 'path'
+import { basename, join } from 'path'
 import {
 	addLocalPlugin,
 	deletePlugin,
@@ -55,6 +55,11 @@ export function handleEvents({
 	// Join two paths
 	ipcMain.handle('join-path', (_, { folder, name }) => {
 		return join(folder, name)
+	})
+
+	// Get base name of a path
+	ipcMain.handle('basename-path', (_, { folder }) => {
+		return basename(folder)
 	})
 
 	// Read the contents of a file as a string

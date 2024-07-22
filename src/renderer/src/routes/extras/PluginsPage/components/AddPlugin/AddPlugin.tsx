@@ -13,7 +13,11 @@ function AddPlugin({ onAdd }: { onAdd: ({ type: string, content: string }) => vo
 		// Display the folder name
 		const files = event.target.files
 		if (files && files.length > 0) {
-			const name = files[0].webkitRelativePath.split('/')[0]
+			// Set the folder name
+			// Note: the folder name is the first part of the webkitRelativePath
+			// e.g. if the webkitRelativePath is "folder/file.txt", the folder name is "folder"
+			// The regex is needed to match on posix and windows paths
+			const name = files[0].webkitRelativePath.split(/[/\\]/)[0]
 			setFolderName(name)
 
 			// Set the folder path
