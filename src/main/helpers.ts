@@ -3,6 +3,11 @@ import { exec } from 'child_process'
 import { BrowserWindow } from 'electron'
 import fs from 'fs/promises'
 import { join } from 'path'
+import fixPath from 'fix-path'
+
+// Fix the $PATH on macOS and Linux
+// Otherwise, the PATH variable is not set correctly
+fixPath()
 
 export const BACKGROUND_COLOR = '#2d2e3c'
 

@@ -17,7 +17,7 @@ export async function checkDocker(): Promise<{ available: boolean; error: string
 			const stdout = await execPromise(command.cmd)
 			results.push({ success: true, message: command.successMsg + ': ' + stdout.trim() })
 		} catch (err) {
-			results.push({ success: false, message: command.failureMsg })
+			results.push({ success: false, message: command.failureMsg + ': ' + `${err}` })
 		}
 		return results
 	}, Promise.resolve<{ success: boolean; message: string }[]>([]))
