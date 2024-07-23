@@ -1,13 +1,10 @@
-import express from 'express'
-import cors from 'cors'
-import { Express } from 'express'
-import serveStatic from 'serve-static'
-
 import { join } from 'path'
 import { getPluginFolder } from './plugins'
+import { ChildProcess, fork } from 'child_process'
 
-let pluginFileServer: Express
-const pluginFileServerURL: string = 'http://127.0.0.1:3000'
+let pluginFileServer: ChildProcess
+const port = 3000
+const pluginFileServerURL: string = `http://127.0.0.1:${port}`
 
 /**
  * Starts a file server to serve plugin files
@@ -15,16 +12,14 @@ const pluginFileServerURL: string = 'http://127.0.0.1:3000'
 export async function startPluginFileServer(): Promise<void> {
 	const pluginFolder = await getPluginFolder()
 
-	pluginFileServer = express()
-
-	pluginFileServer.use(cors())
-	pluginFileServer.use(serveStatic(pluginFolder))
-	pluginFileServer.listen(3000)
+	pluginFileServer = fork(join(__dirname, '../../resources/file-server-script.mjs'), [
+		pluginFolder,
+		`${port}`
+	])
 }
 
 export async function stopPluginFileServer(): Promise<void> {
-	if ('close' in pluginFileServer && typeof pluginFileServer.close === 'function')
-		pluginFileServer?.close()
+	pluginFileServer.kill()
 }
 
 export function getPluginFileServerURL(): string {
