@@ -1,0 +1,6 @@
+services:
+  ouroboros-server:
+    build: .
+    container_name: ouroboros-server
+    ports:
+      - '8000:8000'

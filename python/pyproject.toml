@@ -8,6 +8,7 @@ readme = "README.md"
 [tool.poetry.scripts]
 ouroboros-cli = "ouroboros.cli:main"
 ouroboros-server = "ouroboros.server:main"
+ouroboros-docker-server = "ouroboros.docker_server:main"
 build-cli-executable = "pyinstaller:build_cli_executable"
 build-server-executable = "pyinstaller:build_server_executable"
 

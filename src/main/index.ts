@@ -11,6 +11,7 @@ import { PluginDetail, startAllPlugins, stopAllPlugins } from './plugins'
 import { startPluginFileServer, stopPluginFileServer } from './file-server'
 import { handleEvents } from './events'
 import { makeMenu } from './menu'
+import { startMainServerDevelopment, stopMainServerDevelopment } from './main-server'
 
 export const PLUGIN_WINDOW = {
 	name: 'Manage Plugins',
@@ -60,6 +61,8 @@ function createWindow(): void {
 	}
 
 	// Run the Python Server with execFile
+	// Note: this is no longer the default behavior
+	// but it still works if the server is present
 	if (!is.dev) {
 		const serverPath = join(
 			__dirname,
@@ -91,8 +94,17 @@ function createWindow(): void {
 			pluginDetails.push(...result)
 		})
 		.then(() => {
+			// Send the plugin paths to the renderer
+			mainWindow.webContents.send('plugin-paths', pluginDetails)
+		})
+		.then(() => {
 			startPluginFileServer()
 		})
+
+	// Start the main server
+	if (is.dev) {
+		startMainServerDevelopment()
+	}
 }
 
 app.whenReady().then(() => {
@@ -126,6 +138,10 @@ app.on('window-all-closed', async () => {
 	// Stop all plugins before quitting the app
 	await stopAllPlugins()
 	await stopPluginFileServer()
+
+	if (is.dev) {
+		await stopMainServerDevelopment()
+	}
 
 	app.quit()
 })
