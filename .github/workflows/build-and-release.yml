@@ -38,21 +38,23 @@ jobs:
         working-directory: ./python
         run: poetry install
 
-      - name: Build Python Server with PyInstaller
+      - name: Build Wheel
         working-directory: ./python
-        run: poetry run build-server-executable
+        run: poetry build
 
-      - name: Copy Python Server Executable Linux
-        if: matrix.os == 'ubuntu-latest'
-        run: cp -r ./python/dist/* ./resources/
-
-      - name: Copy Python Server Executable Mac
-        if: matrix.os == 'macos-latest'
-        run: cp -r ./python/dist/* ./resources/
+      - name: Copy Python Server Executable Mac or Linux
+        if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
+        run: |
+          cp -r ./python/dist/* ./extra-resources/server/dist/
+          cp ./python/Dockerfile-prod ./extra-resources/server/Dockerfile
+          cp ./python/compose.yml ./extra-resources/server/compose.yml
 
       - name: Copy Python Server Executable Windows
         if: matrix.os == 'windows-latest'
-        run: Copy-Item -Path ./python/dist/* -Destination ./resources/ -Recurse
+        run: |
+          Copy-Item -Path ./python/dist/* -Destination ./extra-resources/server/dist/ -Recurse
+          Copy-Item -Path ./python/Dockerfile-prod -Destination ./extra-resources/server/Dockerfile
+          Copy-Item -Path ./python/compose.yml -Destination ./extra-resources/server/compose.yml
         shell: powershell
 
       - name: Install Node.js

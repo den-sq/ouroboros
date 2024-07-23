@@ -11,7 +11,12 @@ import { PluginDetail, startAllPlugins, stopAllPlugins } from './plugins'
 import { startPluginFileServer, stopPluginFileServer } from './file-server'
 import { handleEvents } from './events'
 import { makeMenu } from './menu'
-import { startMainServerDevelopment, stopMainServerDevelopment } from './main-server'
+import {
+	startMainServerDevelopment,
+	startMainServerProduction,
+	stopMainServerDevelopment,
+	stopMainServerProduction
+} from './main-server'
 
 export const PLUGIN_WINDOW = {
 	name: 'Manage Plugins',
@@ -104,6 +109,8 @@ function createWindow(): void {
 	// Start the main server
 	if (is.dev) {
 		startMainServerDevelopment()
+	} else {
+		startMainServerProduction()
 	}
 }
 
@@ -135,13 +142,13 @@ app.whenReady().then(() => {
 app.on('window-all-closed', async () => {
 	mainServer?.kill()
 
-	// Stop all plugins before quitting the app
-	await stopAllPlugins()
-	await stopPluginFileServer()
-
-	if (is.dev) {
-		await stopMainServerDevelopment()
-	}
+	// Stop all plugins and other servers before quitting
+	await Promise.all([
+		stopAllPlugins(),
+		stopPluginFileServer(),
+		is.dev && stopMainServerDevelopment(),
+		!is.dev && stopMainServerProduction()
+	])
 
 	app.quit()
 })

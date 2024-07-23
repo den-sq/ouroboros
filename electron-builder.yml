@@ -1,5 +1,5 @@
 appId: com.wegold.ouroboros
-productName: ouroboros
+productName: Ouroboros
 directories:
     buildResources: build
 files:
@@ -14,8 +14,10 @@ files:
     - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
 asarUnpack:
     - resources/**
+extraResources:
+    - extra-resources/**
 win:
-    executableName: ouroboros
+    executableName: Ouroboros
 nsis:
     artifactName: ${name}-${version}-setup.${ext}
     shortcutName: ${productName}

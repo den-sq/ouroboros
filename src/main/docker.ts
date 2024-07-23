@@ -35,29 +35,33 @@ export async function checkDocker(): Promise<{ available: boolean; error: string
 export async function startDockerCompose({
 	cwd,
 	config,
-	onError
+	onError,
+	log = false
 }: {
 	cwd: string
 	config: string
 	onError: (err) => void
+	log?: boolean
 }): Promise<void> {
 	await upAll({
 		cwd,
-		log: false,
+		log,
 		config
 	}).then(() => {}, onError)
 }
 
 export async function stopDockerCompose({
 	cwd,
-	config
+	config,
+	log = false
 }: {
 	cwd: string
 	config: string
+	log?: boolean
 }): Promise<void> {
 	await downAll({
 		cwd,
-		log: false,
+		log,
 		config
 	})
 }

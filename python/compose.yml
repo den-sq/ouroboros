@@ -1,6 +1,8 @@
 services:
   ouroboros-server:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     container_name: ouroboros-server
     ports:
       - '8000:8000'

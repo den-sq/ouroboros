@@ -12,7 +12,7 @@ const pluginFileServerURL: string = `http://127.0.0.1:${port}`
 export async function startPluginFileServer(): Promise<void> {
 	const pluginFolder = await getPluginFolder()
 
-	pluginFileServer = fork(join(__dirname, '../../resources/file-server-script.mjs'), [
+	pluginFileServer = fork(join(__dirname, '../../resources/processes/file-server-script.mjs'), [
 		pluginFolder,
 		`${port}`
 	])

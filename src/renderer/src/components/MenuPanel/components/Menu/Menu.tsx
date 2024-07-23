@@ -25,7 +25,6 @@ function Menu(): JSX.Element {
 
 	useEffect(() => {
 		const clearListener = window.electron.ipcRenderer.on('plugin-paths', (_, paths) => {
-			console.log('plugin-paths', paths)
 			try {
 				setPluginDetails(paths)
 			} catch (e) {
