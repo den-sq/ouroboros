@@ -1,5 +1,7 @@
 # Ouroboros
 
+`or-uh-bore-us`
+
 ![](./assets/slicing/long-slice.png)
 
 Extract ROIs from cloud-hosted medical scans.

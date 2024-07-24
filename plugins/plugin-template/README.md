@@ -65,3 +65,13 @@ Some contexts and components that may be useful to you:
 - VisualizeSlicing in SlicesPage
 
 Remember, these contexts are not available to you through the app's iframe, you must copy the code from the main app and use your own implementation.
+
+### Docker
+
+The default Dockerfile and Docker Compose YAML should be a good starting point. 
+
+It is recommended to read the sample `main.py` in `backend`. This goes over a basic FastAPI server, but more importantly, it demonstrates how to use the `Docker Volume Server` (custom to Ouroboros).
+
+Since plugins need to access files from the host file system (plugin frontends usually sends absolute file paths in the host file system), the `Docker Volume Server` provides functionality to copy files to and from a Docker volume (shared between all plugins and the main server). 
+
+Each plugin has its own folder in the volume, and files can easily be copied to or from that folder. Additionally, when an operation is done, you can easily clear out the folder.

@@ -1,5 +1,7 @@
 # Ouroboros
 
+`or-uh-bore-us`
+
 Quickly extract ROIs from cloud-hosted medical scans.
 
 This repository is a monorepo containing the code for the Ouroboros app and the Ouroboros Python package (`python` folder). 
