@@ -4,7 +4,7 @@ import { startDockerCompose, stopDockerCompose } from './docker'
 const DEVELOPMENT_PATH = join(__dirname, '../../python/')
 const DEVELOPMENT_CONFIG = join(DEVELOPMENT_PATH, 'compose.yml')
 
-const PRODUCTION_PATH = join(__dirname, '../../../extra-resources/main-server/')
+const PRODUCTION_PATH = join(__dirname, '../../../extra-resources/server/')
 const PRODUCTION_CONFIG = join(PRODUCTION_PATH, 'compose.yml')
 
 export async function startMainServerDevelopment(): Promise<void> {
