@@ -14,7 +14,6 @@ import requests
 import json
 from pathlib import Path
 
-from ouroboros.helpers.files import join_path
 from ouroboros.helpers.options import BackprojectOptions, SliceOptions
 from ouroboros.pipeline import (
     BackprojectPipelineStep,
@@ -55,10 +54,12 @@ class BackProjectTask(Task):
 
 
 def handle_slice(task: SliceTask):
+    target_path = "./"
+
     options_path = task.options
 
     # Copy the file to the docker volume
-    files = [{"sourcePath": options_path, "targetPath": "./"}]
+    files = [{"sourcePath": options_path, "targetPath": target_path}]
     success, error = asyncio.run(copy_to_volume(files))
 
     if not success:
@@ -84,7 +85,7 @@ def handle_slice(task: SliceTask):
     files = [
         {
             "sourcePath": slice_options.neuroglancer_json,
-            "targetPath": "./",
+            "targetPath": target_path,
         }
     ]
 
@@ -130,16 +131,67 @@ def handle_slice(task: SliceTask):
 
     # Copy the output files to the host
     files = [
-        {"sourcePath": host_output_file, "targetPath": "./"},
-        {"sourcePath": host_output_config_file, "targetPath": "./"},
+        {"sourcePath": host_output_file, "targetPath": target_path},
+        {"sourcePath": host_output_config_file, "targetPath": target_path},
     ]
     success, error = asyncio.run(copy_to_host(files))
 
+    if not success:
+        task.error = error
+        task.status = "error"
+        return
+
+    # Clear the plugin folder
+    asyncio.run(clear_plugin_folder())
+
 
 def handle_backproject(task: BackProjectTask):
+    target_path = "./"
+
     options_path = task.options
 
+    # Copy the file to the docker volume
+    files = [{"sourcePath": options_path, "targetPath": target_path}]
+    success, error = asyncio.run(copy_to_volume(files))
+
+    if not success:
+        task.error = error
+        task.status = "error"
+        return
+
+    # Define the path to the copied file in the docker volume
+    options_path = "/volume/main/" + Path(options_path).name
+
     options = BackprojectOptions.load_from_json(options_path)
+
+    # Copy the straightened volume and config files to the docker volume
+    files = [
+        {"sourcePath": options.straightened_volume_path, "targetPath": target_path},
+        {"sourcePath": options.config_path, "targetPath": target_path},
+    ]
+
+    success, error = asyncio.run(copy_to_volume(files))
+
+    if not success:
+        task.error = error
+        task.status = "error"
+        return
+
+    # Define the output file paths
+    host_output_folder = options.output_file_folder
+    host_output_file = (
+        host_output_folder + options.output_file_name + "-backprojected.tif"
+    )
+    host_output_config_file = options.config_path
+
+    # Define the path to the copied straightened volume and config files in the docker volume
+    options.straightened_volume_path = (
+        "/volume/main/" + Path(options.straightened_volume_path).name
+    )
+    options.config_path = "/volume/main/" + Path(options.config_path).name
+
+    # Modify the output file folder to be in the docker volume
+    options.output_file_folder = "/volume/main/"
 
     pipeline = Pipeline(
         [
@@ -166,6 +218,21 @@ def handle_backproject(task: BackProjectTask):
     if error:
         task.error = error
         task.status = "error"
+
+    # Copy the output files to the host
+    files = [
+        {"sourcePath": host_output_file, "targetPath": target_path},
+        {"sourcePath": host_output_config_file, "targetPath": target_path},
+    ]
+    success, error = asyncio.run(copy_to_host(files))
+
+    if not success:
+        task.error = error
+        task.status = "error"
+        return
+
+    # Clear the plugin folder
+    asyncio.run(clear_plugin_folder())
 
 
 def handle_task(task: Task):
