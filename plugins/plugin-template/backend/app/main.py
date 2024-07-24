@@ -20,7 +20,7 @@ async def read_root():
     return {"result": "Plugin Template backend is working!"}
 
 @app.post("/copy-to-volume")
-async def copy_to_volume(file_path: str):
+async def copy_to_volume_call(file_path: str):
     # Copy a file from an absolute path on the host file system
     # to the plugin folder in the volume ("/volume/PLUGIN_NAME/")
     # sourcePath: absolute path of the file on the host file system
