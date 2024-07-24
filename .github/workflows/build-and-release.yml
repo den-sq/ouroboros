@@ -43,6 +43,7 @@ jobs:
       - name: Copy Python Server Executable Mac or Linux
         if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
         run: |
+          mkdir -p ./extra-resources/server/dist/
           cp -r ./python/dist/* ./extra-resources/server/dist/
           cp ./python/Dockerfile-prod ./extra-resources/server/Dockerfile
           cp ./python/compose.yml ./extra-resources/server/compose.yml
@@ -50,6 +51,7 @@ jobs:
       - name: Copy Python Server Executable Windows
         if: matrix.os == 'windows-latest'
         run: |
+          New-Item -Path ./extra-resources/server/dist/ -ItemType Directory -Force
           Copy-Item -Path ./python/dist/* -Destination ./extra-resources/server/dist/ -Recurse
           Copy-Item -Path ./python/Dockerfile-prod -Destination ./extra-resources/server/Dockerfile
           Copy-Item -Path ./python/compose.yml -Destination ./extra-resources/server/compose.yml
