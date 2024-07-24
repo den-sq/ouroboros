@@ -5,6 +5,8 @@ let volumeServer: ChildProcess
 const port = 3001
 const volumeServerURL: string = `http://127.0.0.1:${port}`
 
+const VOLUME = 'ouroboros-volume'
+
 /**
  * Starts a serve that facilitates copying files from the host
  * file system to docker volumes and vice versa.
@@ -16,6 +18,9 @@ export async function startVolumeServer(): Promise<void> {
 }
 
 export async function stopVolumeServer(): Promise<void> {
+	// Remove all files from the volume
+	await clearVolume({ volumeName: VOLUME })
+
 	volumeServer.kill()
 }
 
@@ -42,7 +47,6 @@ export type ClearPluginFolderData = {
 
 export type ClearVolumeData = {
 	volumeName: string
-	pluginFolderName: string
 }
 
 export async function copyToVolume(data: CopyToVolumeData): Promise<[boolean, string]> {

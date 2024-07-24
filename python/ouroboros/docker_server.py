@@ -1,4 +1,3 @@
-import json
 from multiprocessing import freeze_support
 
 from fastapi import FastAPI, Request
@@ -11,7 +10,11 @@ from concurrent.futures import Executor, ThreadPoolExecutor
 import asyncio
 import uvicorn
 import uuid
+import requests
+import json
+from pathlib import Path
 
+from ouroboros.helpers.files import join_path
 from ouroboros.helpers.options import BackprojectOptions, SliceOptions
 from ouroboros.pipeline import (
     BackprojectPipelineStep,
@@ -54,7 +57,48 @@ class BackProjectTask(Task):
 def handle_slice(task: SliceTask):
     options_path = task.options
 
+    # Copy the file to the docker volume
+    files = [{"sourcePath": options_path, "targetPath": "./"}]
+    success, error = asyncio.run(copy_to_volume(files))
+
+    if not success:
+        task.error = error
+        task.status = "error"
+        return
+
+    # Define the path to the copied file in the docker volume
+    options_path = "/volume/main/" + Path(options_path).name
+
     slice_options = SliceOptions.load_from_json(options_path)
+
+    host_output_folder = slice_options.output_file_folder
+    host_output_file = host_output_folder + slice_options.output_file_name + ".tif"
+    host_output_config_file = (
+        host_output_folder + slice_options.output_file_name + "-configuration.json"
+    )
+
+    # Modify the output file folder to be in the docker volume
+    slice_options.output_file_folder = "/volume/main/"
+
+    # Copy the neuroglancer json file to the docker volume
+    files = [
+        {
+            "sourcePath": slice_options.neuroglancer_json,
+            "targetPath": "./",
+        }
+    ]
+
+    success, error = asyncio.run(copy_to_volume(files))
+
+    if not success:
+        task.error = error
+        task.status = "error"
+        return
+
+    # Define the path to the copied neuroglancer json file in the docker volume
+    slice_options.neuroglancer_json = (
+        "/volume/main/" + Path(slice_options.neuroglancer_json).name
+    )
 
     pipeline = Pipeline(
         [
@@ -83,6 +127,13 @@ def handle_slice(task: SliceTask):
     if error:
         task.error = error
         task.status = "error"
+
+    # Copy the output files to the host
+    files = [
+        {"sourcePath": host_output_file, "targetPath": "./"},
+        {"sourcePath": host_output_config_file, "targetPath": "./"},
+    ]
+    success, error = asyncio.run(copy_to_host(files))
 
 
 def handle_backproject(task: BackProjectTask):
@@ -334,6 +385,53 @@ async def delete_task(task_id: str):
         return JSONResponse({"success": True}, status_code=200)
     else:
         return JSONResponse({"success": False}, status_code=404)
+
+
+### Volume server communication ###
+async def copy_to_volume(files):
+    data = {
+        "volumeName": "ouroboros-volume",
+        "pluginFolderName": "main",
+        "files": files,
+    }
+
+    return await request_volume_server("copy-to-volume", data)
+
+
+async def copy_to_host(files):
+    data = {
+        "volumeName": "ouroboros-volume",
+        "pluginFolderName": "main",
+        "files": files,
+    }
+
+    return await request_volume_server("copy-to-host", data)
+
+
+async def clear_plugin_folder():
+    data = {
+        "volumeName": "ouroboros-volume",
+        "pluginFolderName": "main",
+    }
+
+    return await request_volume_server("clear-plugin-folder", data)
+
+
+async def request_volume_server(path, data):
+    volume_server_url = "http://host.docker.internal:3001"
+    url = f"{volume_server_url}/{path}"
+    try:
+        result = requests.post(
+            url,
+            headers={"Content-Type": "application/json"},
+            json=data,
+        )
+        if not result.ok:
+            return False, result.text
+        else:
+            return True, ""
+    except Exception as error:
+        return False, str(error)
 
 
 def main():
