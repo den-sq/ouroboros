@@ -6,3 +6,9 @@ services:
     container_name: ouroboros-server
     ports:
       - '8000:8000'
+    volumes:
+      - ouroboros-volume:/volume
+
+volumes:
+  ouroboros-volume:
+    name: ouroboros-volume

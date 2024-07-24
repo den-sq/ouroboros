@@ -6,3 +6,10 @@ services:
     container_name: plugin-template-backend
     ports:
       - '8001:8000'
+    volumes:
+      - ouroboros-volume:/volume
+
+volumes:
+  ouroboros-volume:
+    external: true
+    name: ouroboros-volume

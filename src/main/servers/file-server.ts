@@ -1,5 +1,5 @@
 import { join } from 'path'
-import { getPluginFolder } from './plugins'
+import { getPluginFolder } from '../plugins'
 import { ChildProcess, fork } from 'child_process'
 
 let pluginFileServer: ChildProcess

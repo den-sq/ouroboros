@@ -5,8 +5,13 @@ import { join } from 'path'
 import { parsePluginPackageJSON, PluginPackageJSON } from './schemas'
 import { downloadRelease } from '@terascope/fetch-github-release'
 import { fetchFolderContents, readFile } from './helpers'
-import { buildDockerCompose, checkDocker, startDockerCompose, stopDockerCompose } from './docker'
-import { getPluginFileURL } from './file-server'
+import {
+	buildDockerCompose,
+	checkDocker,
+	startDockerCompose,
+	stopDockerCompose
+} from './servers/docker'
+import { getPluginFileURL } from './servers/file-server'
 
 export async function getPluginFolder(): Promise<string> {
 	const userData = app.getPath('userData')

@@ -8,7 +8,7 @@ import { existsSync } from 'fs'
 
 import { BACKGROUND_COLOR } from '../main/helpers'
 import { PluginDetail, startAllPlugins, stopAllPlugins } from './plugins'
-import { startPluginFileServer, stopPluginFileServer } from './file-server'
+import { startPluginFileServer, stopPluginFileServer } from './servers/file-server'
 import { handleEvents } from './events'
 import { makeMenu } from './menu'
 import {
@@ -16,7 +16,8 @@ import {
 	startMainServerProduction,
 	stopMainServerDevelopment,
 	stopMainServerProduction
-} from './main-server'
+} from './servers/main-server'
+import { startVolumeServer, stopVolumeServer } from './servers/volume-server'
 
 export const PLUGIN_WINDOW = {
 	name: 'Manage Plugins',
@@ -112,6 +113,9 @@ function createWindow(): void {
 	} else {
 		startMainServerProduction()
 	}
+
+	// Start the docker volume server
+	startVolumeServer()
 }
 
 app.whenReady().then(() => {
@@ -146,6 +150,7 @@ app.on('window-all-closed', async () => {
 	await Promise.all([
 		stopAllPlugins(),
 		stopPluginFileServer(),
+		stopVolumeServer(),
 		is.dev && stopMainServerDevelopment(),
 		!is.dev && stopMainServerProduction()
 	])

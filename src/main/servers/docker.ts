@@ -1,5 +1,5 @@
 import { buildAll, downAll, upAll } from 'docker-compose/dist/v2'
-import { execPromise } from './helpers'
+import { execPromise } from '../helpers'
 
 export async function checkDocker(): Promise<{ available: boolean; error: string | null }> {
 	const commands = [
