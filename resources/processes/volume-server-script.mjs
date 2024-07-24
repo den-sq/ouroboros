@@ -2,7 +2,7 @@
 
 import express from 'express'
 import cors from 'cors'
-import { basename, dirname, join } from 'path'
+import path, { basename, dirname } from 'path'
 import { exec } from 'child_process'
 import bodyParser from 'body-parser'
 
@@ -32,7 +32,7 @@ const copyHandler = (toVolume) => async (req, res) => {
 				const { sourcePath, targetPath } = file
 				const sourceFolder = dirname(sourcePath)
 				const sourceFileName = basename(sourcePath)
-				const targetDir = join(pluginFolderName, targetPath)
+				const targetDir = path.posix.join(pluginFolderName, targetPath)
 
 				let command
 
@@ -99,9 +99,9 @@ app.listen(PORT)
  * @returns An executable command
  */
 function copyFileToVolumeCommand(sourceFolder, fileName, volumeName, destFolder) {
-	const innerFilePath = join('/host/', fileName)
-	const newDestFolder = join('/volume/', destFolder)
-	const destFile = join(newDestFolder, fileName)
+	const innerFilePath = path.posix.join('/host/', fileName)
+	const newDestFolder = path.posix.join('/volume/', destFolder)
+	const destFile = path.posix.join(newDestFolder, fileName)
 
 	// Construct the Docker command
 	const command = `
@@ -123,8 +123,8 @@ function copyFileToVolumeCommand(sourceFolder, fileName, volumeName, destFolder)
  * @returns An executable command
  */
 function copyFileToHostCommand(sourceFolder, fileName, volumeName, destFolder) {
-	const innerFilePath = join('/host/', fileName)
-	const destFile = join('/volume/', destFolder, fileName)
+	const innerFilePath = path.posix.join('/host/', fileName)
+	const destFile = path.posix.join('/volume/', destFolder, fileName)
 
 	// Construct the Docker command
 	const command = `
@@ -144,7 +144,7 @@ function copyFileToHostCommand(sourceFolder, fileName, volumeName, destFolder) {
  * @returns An executable command
  */
 function deleteFilesFromVolumeFolder(volumeName, targetFolder) {
-	const targetFolderPath = join('/volume/', targetFolder, '/*')
+	const targetFolderPath = path.posix.join('/volume/', targetFolder, '/*')
 
 	// Construct the Docker command
 	const command = `

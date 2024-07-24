@@ -13,6 +13,7 @@ import uuid
 import requests
 import json
 from pathlib import Path
+import os
 
 from ouroboros.helpers.options import BackprojectOptions, SliceOptions
 from ouroboros.pipeline import (
@@ -52,6 +53,8 @@ class SliceTask(Task):
 class BackProjectTask(Task):
     options: str
 
+def get_path_name(path: str):
+    return Path(path.replace('\\', os.sep)).name
 
 def handle_slice(task: SliceTask):
     target_path = "./"
@@ -68,7 +71,7 @@ def handle_slice(task: SliceTask):
         return
 
     # Define the path to the copied file in the docker volume
-    options_path = "/volume/main/" + Path(options_path).name
+    options_path = "/volume/main/" + get_path_name(options_path)
 
     slice_options = SliceOptions.load_from_json(options_path)
 
@@ -98,7 +101,7 @@ def handle_slice(task: SliceTask):
 
     # Define the path to the copied neuroglancer json file in the docker volume
     slice_options.neuroglancer_json = (
-        "/volume/main/" + Path(slice_options.neuroglancer_json).name
+        "/volume/main/" + get_path_name(slice_options.neuroglancer_json)
     )
 
     pipeline = Pipeline(
@@ -160,7 +163,7 @@ def handle_backproject(task: BackProjectTask):
         return
 
     # Define the path to the copied file in the docker volume
-    options_path = "/volume/main/" + Path(options_path).name
+    options_path = "/volume/main/" + get_path_name(options_path)
 
     options = BackprojectOptions.load_from_json(options_path)
 
@@ -186,9 +189,9 @@ def handle_backproject(task: BackProjectTask):
 
     # Define the path to the copied straightened volume and config files in the docker volume
     options.straightened_volume_path = (
-        "/volume/main/" + Path(options.straightened_volume_path).name
+        "/volume/main/" + get_path_name(options.straightened_volume_path)
     )
-    options.config_path = "/volume/main/" + Path(options.config_path).name
+    options.config_path = "/volume/main/" + get_path_name(options.config_path)
 
     # Modify the output file folder to be in the docker volume
     options.output_file_folder = "/volume/main/"
