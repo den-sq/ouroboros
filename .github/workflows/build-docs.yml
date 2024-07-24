@@ -3,9 +3,7 @@ name: Build Documentation
 on:
   push:
     tags:
-      - 'v*.*.*'
-    paths:
-      - 'documentation/**'
+      - v*.*.*
 
 env: 
   GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

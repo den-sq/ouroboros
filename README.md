@@ -6,9 +6,11 @@ Quickly extract ROIs from cloud-hosted medical scans.
 
 This repository is a monorepo containing the code for the Ouroboros app and the Ouroboros Python package (`python` folder). 
 
-For a usage guide, check out the [Documentation](https://wegold.me/ouroboros/).
+For a **usage guide**, check out the [Documentation](https://wegold.me/ouroboros/).
 
 # Quick Start
+
+**[Docker](https://www.docker.com/products/docker-desktop/) is REQUIRED to run Ouroboros.**
 
 There are prebuilt applications available in [Releases](https://github.com/We-Gold/ouroboros/releases).
 
@@ -16,11 +18,13 @@ There are prebuilt applications available in [Releases](https://github.com/We-Go
 - Mac: `*.dmg`
 - Linux: Multiple options available
 
-When you open the app, the GUI will open immediately, but **the local server that runs the processing could take up to 15 seconds to start**. There is an indicator in the GUI that shows if the server is connected.
+When you open the app, the GUI will open immediately, but **the local server that runs the processing could a while to start the first time** (the server needs to build). 
+
+There is an indicator in the GUI that shows if the server is connected.
 
 Currently, none of the apps are notarized. 
 
-For Mac, if an error occurs when you try to run the app, find the app installation (should be called `ouroboros.app`) and run `xattr -d com.apple.quarantine ouroboros.app`. 
+For Mac, if an error occurs when you try to run the app, find the app installation (should be called `Ouroboros.app`) and run `xattr -d com.apple.quarantine Ouroboros.app`. 
 
 # Development Quick Start
 
