@@ -1,149 +1,19 @@
 import json
 from multiprocessing import freeze_support
 
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Request
 from sse_starlette.sse import EventSourceResponse
 from fastapi.responses import JSONResponse
-from contextlib import asynccontextmanager
-from dataclasses import dataclass, field
-from concurrent.futures import Executor, ThreadPoolExecutor
 import asyncio
 import uvicorn
 import uuid
 
-from ouroboros.common.file_system import (
-    load_options_for_backproject,
-    load_options_for_slice,
-)
-from ouroboros.common.pipelines import backproject_pipeline, slice_pipeline
-from ouroboros.pipeline import (
-    Pipeline,
-    PipelineInput,
-)
+from ouroboros.common.server import BackProjectTask, SliceTask, create_server
+from ouroboros.common.server import HOST, PORT
 
-HOST = "127.0.0.1"
-PORT = 8000
-
-
-# Note: kw_only=True is used to make the fields keyword-only,
-# which is required for the parent dataclass to have default values
-@dataclass(kw_only=True)
-class Task:
-    task_id: str
-    pipeline_input: PipelineInput = None
-    pipeline: Pipeline = None
-    last_progress: list[tuple[str, float]] = field(default_factory=list)
-    status: str = "enqueued"
-    error: str = None
-
-
-@dataclass(kw_only=True)
-class SliceTask(Task):
-    options: str
-
-
-@dataclass(kw_only=True)
-class BackProjectTask(Task):
-    options: str
-
-
-def handle_slice(task: SliceTask):
-    options_path = task.options
-
-    slice_options = load_options_for_slice(options_path)
-
-    if isinstance(slice_options, str):
-        task.error = slice_options
-        task.status = "error"
-        return
-
-    pipeline, input_data = slice_pipeline(slice_options)
-
-    # Store the pipeline in the task
-    task.pipeline = pipeline
-
-    # Store the input data in the task
-    task.pipeline_input = input_data
-
-    task.status = "started"
-
-    _, error = pipeline.process(input_data)
-
-    if error:
-        task.error = error
-        task.status = "error"
-
-
-def handle_backproject(task: BackProjectTask):
-    options_path = task.options
-
-    options = load_options_for_backproject(options_path)
-
-    if isinstance(options, str):
-        task.error = options
-        task.status = "error"
-        return
-
-    pipeline, input_data = backproject_pipeline(options)
-
-    # Store the pipeline in the task
-    task.pipeline = pipeline
-
-    # Store the input data in the task
-    task.pipeline_input = input_data
-
-    task.status = "started"
-
-    _, error = pipeline.process(input_data)
-
-    if error:
-        task.error = error
-        task.status = "error"
-
-
-def handle_task(task: Task):
-    try:
-        if isinstance(task, SliceTask):
-            handle_slice(task)
-        elif isinstance(task, BackProjectTask):
-            handle_backproject(task)
-        else:
-            raise ValueError("Invalid task type")
-    except BaseException as e:
-        task.status = "error"
-        task.error = str(e)
-
-
-async def process_requests(queue: asyncio.Queue, pool: Executor):
-    while True:
-        task = await queue.get()
-        loop = asyncio.get_running_loop()
-        await loop.run_in_executor(pool, handle_task, task)
-        queue.task_done()
-        if task.status != "error":
-            task.status = "done"
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    queue = asyncio.Queue()  # note that asyncio.Queue() is not thread safe
-    pool = ThreadPoolExecutor()
-    asyncio.create_task(process_requests(queue, pool))
-    yield {"queue": queue, "pool": pool}
-    pool.shutdown()
-
+app = create_server()
 
 tasks = {}
-app = FastAPI(lifespan=lifespan)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 @app.get("/")
