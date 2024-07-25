@@ -73,3 +73,92 @@ Instructions From: https://stackoverflow.com/questions/59882884/vscode-doesnt-sh
 ### Testing
 
 In VSCode, use the testing tab. Otherwise, use `pytest`.
+
+## Using the Python Package
+
+The Ouroboros CLI and Server internally use the Python package for slicing and backprojecting. 
+
+It is designed to be easy to use at a high level, but also extensible for more custom processing when needed.
+
+#### Using Predefined Pipelines
+
+The package includes predefined pipelines for common tasks such as backprojection and slicing. Here is an example of how to use the backprojection pipeline:
+
+```python
+from ouroboros.common.pipelines import backproject_pipeline
+
+# Load options from a JSON file
+backproject_options = BackprojectOptions.load_from_json('path/to/options.json')
+
+# Create the pipeline and input data
+pipeline, input_data = backproject_pipeline(backproject_options, verbose=True)
+
+# Process the pipeline
+output, error = pipeline.process(input_data)
+
+if error:
+    print(f"Error: {error}")
+else:
+    print("Backprojection completed successfully.")
+```
+
+The two predefined pipelines are `backproject_pipeline` and `slice_pipeline`.
+
+For more example usage, see [Server Handlers](./ouroboros/common/server_handlers.py).
+
+#### Creating a Custom Pipeline
+
+You can create custom pipelines by defining your own pipeline steps and combining them. Here is an example of how to create a custom pipeline:
+
+1. **Define Custom Pipeline Steps**
+
+```python
+from ouroboros.pipeline import PipelineStep
+
+class CustomPipelineStep(PipelineStep):
+    def __init__(self) -> None:
+        # List the desired inputs 
+        # Note: see PipelineInput for available inputs
+        super().__init__(inputs=("slice_options",))
+
+    def _process(self, input_data: tuple[any]) -> None | str:
+        # A tuple/iterator is automatically provided with the
+        # desired inputs. `pipeline_input` is always included
+        config, pipeline_input = input_data
+
+        if not isinstance(config, SliceOptions):
+            # Return an error when something goes wrong
+            return "Input data must contain a SliceOptions object."
+
+        # Do some custom processing
+        # Note: set existing fields of pipeline_input
+        # to persist data to the next pipeline step
+        pipeline_input.sample_points = custom_points()
+
+        # Return None when everything succeeds
+        return None
+```
+
+2. **Create and Configure the Pipeline**
+
+```python
+from ouroboros.pipeline import Pipeline
+
+# Create a custom pipeline with our custom step
+pipeline = Pipeline(
+    [
+        CustomPipelineStep()
+    ]
+)
+
+# Create input data for the pipeline
+input_data = PipelineInput(json_path="./data/myjson.json")
+
+# Process the pipeline
+output, error = pipeline.process(input_data)
+
+if error:
+    print(f"Error: {error}")
+else:
+    print("Custom pipeline completed successfully.")
+```
