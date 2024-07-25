@@ -15,17 +15,11 @@ import json
 from pathlib import Path
 import os
 
+from ouroboros.common.pipelines import backproject_pipeline, slice_pipeline
 from ouroboros.helpers.options import BackprojectOptions, SliceOptions
 from ouroboros.pipeline import (
-    BackprojectPipelineStep,
-    LoadConfigPipelineStep,
-    ParseJSONPipelineStep,
     Pipeline,
     PipelineInput,
-    SaveConfigPipelineStep,
-    SliceParallelPipelineStep,
-    SlicesGeometryPipelineStep,
-    VolumeCachePipelineStep,
 )
 
 HOST = "0.0.0.0"
@@ -111,22 +105,10 @@ def handle_slice(task: SliceTask):
         slice_options.neuroglancer_json
     )
 
-    pipeline = Pipeline(
-        [
-            ParseJSONPipelineStep(),
-            SlicesGeometryPipelineStep(),
-            VolumeCachePipelineStep(),
-            SliceParallelPipelineStep(),
-            SaveConfigPipelineStep(),
-        ]
-    )
+    pipeline, input_data = slice_pipeline(slice_options)
 
     # Store the pipeline in the task
     task.pipeline = pipeline
-
-    input_data = PipelineInput(
-        slice_options=slice_options, json_path=slice_options.neuroglancer_json
-    )
 
     # Store the input data in the task
     task.pipeline_input = input_data
@@ -208,20 +190,10 @@ def handle_backproject(task: BackProjectTask):
     # Modify the output file folder to be in the docker volume
     options.output_file_folder = "/volume/main/"
 
-    pipeline = Pipeline(
-        [
-            LoadConfigPipelineStep()
-            .with_custom_output_file_path(options.straightened_volume_path)
-            .with_custom_options(options),
-            BackprojectPipelineStep(),
-            SaveConfigPipelineStep(),
-        ]
-    )
+    pipeline, input_data = backproject_pipeline(options)
 
     # Store the pipeline in the task
     task.pipeline = pipeline
-
-    input_data = PipelineInput(config_file_path=options.config_path)
 
     # Store the input data in the task
     task.pipeline_input = input_data

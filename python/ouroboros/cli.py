@@ -2,18 +2,9 @@ from multiprocessing import freeze_support
 
 import argparse
 
+from ouroboros.common.pipelines import backproject_pipeline, slice_pipeline
 from ouroboros.helpers.options import BackprojectOptions, SliceOptions
-from ouroboros.pipeline import (
-    Pipeline,
-    PipelineInput,
-    ParseJSONPipelineStep,
-    SlicesGeometryPipelineStep,
-    VolumeCachePipelineStep,
-    SliceParallelPipelineStep,
-    BackprojectPipelineStep,
-    SaveConfigPipelineStep,
-    LoadConfigPipelineStep,
-)
+
 import json
 
 
@@ -80,19 +71,7 @@ def main():
 def handle_slice(args):
     slice_options = SliceOptions.load_from_json(args.options)
 
-    pipeline = Pipeline(
-        [
-            ParseJSONPipelineStep(),
-            SlicesGeometryPipelineStep(),
-            VolumeCachePipelineStep(),
-            SliceParallelPipelineStep().with_progress_bar(),
-            SaveConfigPipelineStep(),
-        ]
-    )
-
-    input_data = PipelineInput(
-        slice_options=slice_options, json_path=slice_options.neuroglancer_json
-    )
+    pipeline, input_data = slice_pipeline(slice_options)
 
     _, error = pipeline.process(input_data)
 
@@ -109,17 +88,7 @@ def handle_slice(args):
 def handle_backproject(args):
     backproject_options = BackprojectOptions.load_from_json(args.options)
 
-    pipeline = Pipeline(
-        [
-            LoadConfigPipelineStep()
-            .with_custom_output_file_path(backproject_options.straightened_volume_path)
-            .with_custom_options(backproject_options),
-            BackprojectPipelineStep().with_progress_bar(),
-            SaveConfigPipelineStep(),
-        ]
-    )
-
-    input_data = PipelineInput(config_file_path=backproject_options.config_path)
+    pipeline, input_data = backproject_pipeline(backproject_options)
 
     _, error = pipeline.process(input_data)
 
@@ -134,17 +103,15 @@ def handle_backproject(args):
 
 
 def handle_sample_options():
-    sample_options = SliceOptions(
+    # Create sample options files
+    sample_slice_options = SliceOptions(
         slice_width=100,
         slice_height=100,
         output_file_folder="./output/",
         output_file_name="sample",
         neuroglancer_json="",
     )
-
-    sample_options.save_to_json("./sample-slice-options.json")
-
-    sample_options = BackprojectOptions(
+    sample_backproject_options = BackprojectOptions(
         slice_width=100,
         slice_height=100,
         output_file_folder="./output/",
@@ -153,7 +120,9 @@ def handle_sample_options():
         config_path="./sample-configuration.json",
     )
 
-    sample_options.save_to_json("./sample-backproject-options.json")
+    # Save the sample options files
+    sample_slice_options.save_to_json("./sample-slice-options.json")
+    sample_backproject_options.save_to_json("./sample-backproject-options.json")
 
 
 if __name__ == "__main__":
