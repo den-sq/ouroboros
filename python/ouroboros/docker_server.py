@@ -11,10 +11,9 @@ import json
 from ouroboros.common.server import (
     DOCKER_HOST,
     DOCKER_PORT,
-    BackProjectTask,
-    SliceTask,
     create_server,
 )
+from ouroboros.common.server_types import BackProjectTask, SliceTask
 
 app = create_server(docker=True)
 
