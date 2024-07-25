@@ -6,7 +6,20 @@ from ouroboros.helpers.volume_cache import VolumeCache
 
 
 @dataclass_with_json
-class PipelineInput(BaseModel):
+class BasePipelineInput(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    def __getitem__(self, keys):
+        return iter(getattr(self, k) for k in keys)
+
+    def clear_entry(self, key):
+        """
+        Clear the entry with the given key.
+        """
+        setattr(self, key, None)
+
+
+class PipelineInput(BasePipelineInput):
     """
     Dataclass for the input to the pipeline.
     """
@@ -22,17 +35,6 @@ class PipelineInput(BaseModel):
     backprojected_folder_path: str | None = None
     config_file_path: str | None = None
     backprojection_offset: str | None = None
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    def __getitem__(self, keys):
-        return iter(getattr(self, k) for k in keys)
-
-    def clear_entry(self, key):
-        """
-        Clear the entry with the given key.
-        """
-        setattr(self, key, None)
 
     @field_serializer("sample_points", "slice_rects")
     def to_list(self, value):

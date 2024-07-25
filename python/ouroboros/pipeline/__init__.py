@@ -7,4 +7,4 @@ from .backproject_pipeline import BackprojectPipelineStep
 from .save_config_pipeline import SaveConfigPipelineStep
 from .load_config_pipeline import LoadConfigPipelineStep
 
-from .pipeline_input import PipelineInput
+from .pipeline_input import PipelineInput, BasePipelineInput

@@ -118,7 +118,9 @@ from ouroboros.pipeline import PipelineStep
 class CustomPipelineStep(PipelineStep):
     def __init__(self) -> None:
         # List the desired inputs 
-        # Note: see PipelineInput for available inputs
+        # Note: see PipelineInput for default inputs
+        # If you use a custom pipeline input, these names
+        # must match the field names in the input class
         super().__init__(inputs=("slice_options",))
 
     def _process(self, input_data: tuple[any]) -> None | str:
@@ -142,7 +144,7 @@ class CustomPipelineStep(PipelineStep):
 2. **Create and Configure the Pipeline**
 
 ```python
-from ouroboros.pipeline import Pipeline
+from ouroboros.pipeline import Pipeline, PipelineInput
 
 # Create a custom pipeline with our custom step
 pipeline = Pipeline(
@@ -161,4 +163,69 @@ if error:
     print(f"Error: {error}")
 else:
     print("Custom pipeline completed successfully.")
+```
+
+3. **Custom Pipeline Input**
+
+The default pipeline input class, `PipelineInput`, is the one used for both the `slice_pipeline` and the `backproject_pipeline`.
+
+Creating a new pipeline input class for your custom pipeline is relatively simple. The default pipeline input is a good template.
+
+This is the code for the default pipeline input:
+
+```python
+from ouroboros.pipeline import BasePipelineInput
+from pydantic import field_serializer, field_validator
+
+from ouroboros.helpers.options import BackprojectOptions, SliceOptions
+from ouroboros.helpers.volume_cache import VolumeCache
+import numpy as np
+
+class PipelineInput(BasePipelineInput):
+    """
+    Dataclass for the input to the pipeline.
+    """
+
+    json_path: str | None = None
+    slice_options: SliceOptions | None = None
+    backproject_options: BackprojectOptions | None = None
+    source_url: str | None = None
+    sample_points: np.ndarray | None = None
+    slice_rects: np.ndarray | None = None
+    volume_cache: VolumeCache | None = None
+    output_file_path: str | None = None
+    backprojected_folder_path: str | None = None
+    config_file_path: str | None = None
+    backprojection_offset: str | None = None
+
+    # A custom serializer is needed to correctly convert 
+    # numpy arrays to a JSON-compatible form
+    @field_serializer("sample_points", "slice_rects")
+    def to_list(self, value):
+        return value.tolist() if value is not None else None
+
+    # A custom validator is needed to convert parsed lists
+    # into numpy arrays before the type is validated
+    @field_validator("sample_points", "slice_rects", mode="before")
+    @classmethod
+    def validate_list(cls, value: any):
+        if isinstance(value, list):
+            return np.array(value)
+        return value
+
+    # A custom serializer is needed to correctly convert a
+    # class with a `to_dict` method to a JSON-compatible format.
+    @field_serializer("volume_cache")
+    def to_dict(self, value):
+        return value.to_dict() if value is not None else None
+
+    # A custom validator is needed to convert a parsed dict
+    # to a class with a `from_dict` method.
+    @field_validator("volume_cache", mode="before")
+    @classmethod
+    def validate_volume_cache(cls, value: any):
+        if isinstance(value, dict):
+            return VolumeCache.from_dict(value)
+        return value
+
 ```
