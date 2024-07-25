@@ -12,8 +12,11 @@ import asyncio
 import uvicorn
 import uuid
 
+from ouroboros.common.file_system import (
+    load_options_for_backproject,
+    load_options_for_slice,
+)
 from ouroboros.common.pipelines import backproject_pipeline, slice_pipeline
-from ouroboros.helpers.options import BackprojectOptions, SliceOptions
 from ouroboros.pipeline import (
     Pipeline,
     PipelineInput,
@@ -48,7 +51,7 @@ class BackProjectTask(Task):
 def handle_slice(task: SliceTask):
     options_path = task.options
 
-    slice_options = SliceOptions.load_from_json(options_path)
+    slice_options = load_options_for_slice(options_path)
 
     if isinstance(slice_options, str):
         task.error = slice_options
@@ -75,7 +78,7 @@ def handle_slice(task: SliceTask):
 def handle_backproject(task: BackProjectTask):
     options_path = task.options
 
-    options = BackprojectOptions.load_from_json(options_path)
+    options = load_options_for_backproject(options_path)
 
     if isinstance(options, str):
         task.error = options
