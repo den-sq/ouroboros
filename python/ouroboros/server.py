@@ -56,6 +56,11 @@ def handle_slice(task: SliceTask):
 
     slice_options = SliceOptions.load_from_json(options_path)
 
+    if isinstance(slice_options, str):
+        task.error = slice_options
+        task.status = "error"
+        return
+
     pipeline = Pipeline(
         [
             ParseJSONPipelineStep(),
@@ -89,6 +94,11 @@ def handle_backproject(task: BackProjectTask):
     options_path = task.options
 
     options = BackprojectOptions.load_from_json(options_path)
+
+    if isinstance(options, str):
+        task.error = options
+        task.status = "error"
+        return
 
     pipeline = Pipeline(
         [

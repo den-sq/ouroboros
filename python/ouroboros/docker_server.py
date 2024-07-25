@@ -53,8 +53,10 @@ class SliceTask(Task):
 class BackProjectTask(Task):
     options: str
 
+
 def get_path_name(path: str):
-    return Path(path.replace('\\', os.sep)).name
+    return Path(path.replace("\\", os.sep)).name
+
 
 def handle_slice(task: SliceTask):
     target_path = "./"
@@ -74,6 +76,11 @@ def handle_slice(task: SliceTask):
     options_path = "/volume/main/" + get_path_name(options_path)
 
     slice_options = SliceOptions.load_from_json(options_path)
+
+    if isinstance(slice_options, str):
+        task.error = slice_options
+        task.status = "error"
+        return
 
     host_output_folder = slice_options.output_file_folder
     host_output_file = host_output_folder + slice_options.output_file_name + ".tif"
@@ -100,8 +107,8 @@ def handle_slice(task: SliceTask):
         return
 
     # Define the path to the copied neuroglancer json file in the docker volume
-    slice_options.neuroglancer_json = (
-        "/volume/main/" + get_path_name(slice_options.neuroglancer_json)
+    slice_options.neuroglancer_json = "/volume/main/" + get_path_name(
+        slice_options.neuroglancer_json
     )
 
     pipeline = Pipeline(
@@ -167,6 +174,11 @@ def handle_backproject(task: BackProjectTask):
 
     options = BackprojectOptions.load_from_json(options_path)
 
+    if isinstance(options, str):
+        task.error = options
+        task.status = "error"
+        return
+
     # Copy the straightened volume and config files to the docker volume
     files = [
         {"sourcePath": options.straightened_volume_path, "targetPath": target_path},
@@ -188,8 +200,8 @@ def handle_backproject(task: BackProjectTask):
     host_output_config_file = options.config_path
 
     # Define the path to the copied straightened volume and config files in the docker volume
-    options.straightened_volume_path = (
-        "/volume/main/" + get_path_name(options.straightened_volume_path)
+    options.straightened_volume_path = "/volume/main/" + get_path_name(
+        options.straightened_volume_path
     )
     options.config_path = "/volume/main/" + get_path_name(options.config_path)
 
