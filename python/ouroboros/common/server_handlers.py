@@ -119,6 +119,15 @@ def handle_backproject_docker(task: BackProjectTask):
 
 
 def handle_task(task: Task):
+    """
+    Handle a server task.
+
+    Parameters
+    ----------
+    task : Task
+        The task to handle.
+    """
+
     try:
         if isinstance(task, SliceTask):
             handle_slice(task)
@@ -132,6 +141,15 @@ def handle_task(task: Task):
 
 
 def handle_task_docker(task: Task):
+    """
+    Handle a server task in a docker environment.
+
+    Parameters
+    ----------
+    task : Task
+        The task to handle.
+    """
+
     try:
         if isinstance(task, SliceTask):
             handle_slice_docker(task)

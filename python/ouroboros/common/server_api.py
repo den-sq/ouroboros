@@ -10,6 +10,15 @@ from ouroboros.common.server_types import BackProjectTask, SliceTask
 
 
 def create_api(app: FastAPI):
+    """
+    Create the API for the Ouroboros server.
+
+    Parameters
+    ----------
+    app : FastAPI
+        The FastAPI server.
+    """
+
     tasks = {}
 
     @app.get("/")

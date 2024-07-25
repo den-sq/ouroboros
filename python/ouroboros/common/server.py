@@ -15,6 +15,20 @@ DOCKER_PORT = 8000
 
 
 def create_server(docker=False):
+    """
+    Create Ouroboros's FastAPI server.
+
+    Parameters
+    ----------
+    docker : bool
+        If True, the server will be created for a Docker environment.
+
+    Returns
+    -------
+    FastAPI
+        The FastAPI server.
+    """
+
     task_handler = handle_task_docker if docker else handle_task
 
     async def process_requests(queue: asyncio.Queue, pool: Executor):

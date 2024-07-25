@@ -156,6 +156,22 @@ def load_options_for_slice(options_path: str) -> SliceOptions | str:
 def load_options_for_slice_docker(
     options_path: str, target_path: str = "./"
 ) -> tuple[SliceOptions, str, str] | str:
+    """
+    Loads the options for slicing a volume and copies the necessary files to the docker volume.
+
+    Parameters
+    ----------
+    options_path : str
+        The path to the options file.
+    target_path : str, optional
+        The path to the target folder in the docker volume, by default "./"
+
+    Returns
+    -------
+    tuple[SliceOptions, str, str] | str
+        The options for slicing the volume, the host path to the output file, and the host path to the config file.
+    """
+
     # Copy the file to the docker volume
     files = [{"sourcePath": options_path, "targetPath": target_path}]
     success, error = asyncio.run(copy_to_volume(files))
