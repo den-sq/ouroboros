@@ -5,7 +5,7 @@ from itertools import chain
 
 from tqdm import tqdm
 
-from ouroboros.pipeline.pipeline_input import PipelineInput
+from ouroboros.pipeline.pipeline_input import BasePipelineInput
 
 
 class Pipeline:
@@ -13,8 +13,8 @@ class Pipeline:
         self.steps = steps
 
     def process(
-        self, input_data: PipelineInput
-    ) -> tuple[PipelineInput, None] | tuple[None, str]:
+        self, input_data: BasePipelineInput
+    ) -> tuple[BasePipelineInput, None] | tuple[None, str]:
         """
         Run the pipeline on the input data.
 
@@ -65,8 +65,8 @@ class PipelineStep(ABC):
         self.inputs = inputs
 
     def process(
-        self, input_data: PipelineInput
-    ) -> tuple[PipelineInput, None] | tuple[PipelineInput, str]:
+        self, input_data: BasePipelineInput
+    ) -> tuple[BasePipelineInput, None] | tuple[BasePipelineInput, str]:
         if self.show_progress_bar:
             tqdm.write(f"Starting Step: {self.step_name}")
             self.progress_bar = tqdm(total=100)
