@@ -86,6 +86,7 @@ The package includes predefined pipelines for common tasks such as backprojectio
 
 ```python
 from ouroboros.common.pipelines import backproject_pipeline
+from ouroboros.helpers.options import BackprojectOptions
 
 # Load options from a JSON file
 backproject_options = BackprojectOptions.load_from_json('path/to/options.json')
@@ -114,6 +115,7 @@ You can create custom pipelines by defining your own pipeline steps and combinin
 
 ```python
 from ouroboros.pipeline import PipelineStep
+from ouroboros.helpers.options import SliceOptions
 
 class CustomPipelineStep(PipelineStep):
     def __init__(self) -> None:
@@ -126,9 +128,9 @@ class CustomPipelineStep(PipelineStep):
     def _process(self, input_data: tuple[any]) -> None | str:
         # A tuple/iterator is automatically provided with the
         # desired inputs. `pipeline_input` is always included
-        config, pipeline_input = input_data
+        options, pipeline_input = input_data
 
-        if not isinstance(config, SliceOptions):
+        if not isinstance(options, SliceOptions):
             # Return an error when something goes wrong
             return "Input data must contain a SliceOptions object."
 
@@ -145,6 +147,7 @@ class CustomPipelineStep(PipelineStep):
 
 ```python
 from ouroboros.pipeline import Pipeline, PipelineInput
+from . import CustomPipelineStep
 
 # Create a custom pipeline with our custom step
 pipeline = Pipeline(
