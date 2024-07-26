@@ -1,4 +1,4 @@
-from .pipeline import Pipeline
+from .pipeline import Pipeline, PipelineStep
 from .parse_pipeline import ParseJSONPipelineStep
 from .slices_geom_pipeline import SlicesGeometryPipelineStep
 from .volume_cache_pipeline import VolumeCachePipelineStep

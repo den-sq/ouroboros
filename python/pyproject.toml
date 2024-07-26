@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "ouroboros"
 version = "1.0.0"
-description = ""
+description = "Extract ROIs (e.g. nerves, blood vessels) from multi-terabyte cloud-hosted medical scans."
 authors = ["Weaver Goldman <we.goldm@gmail.com>"]
 readme = "README.md"
 

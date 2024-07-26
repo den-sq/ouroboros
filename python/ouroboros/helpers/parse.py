@@ -65,7 +65,7 @@ def parse_neuroglancer_json(json_path: str) -> ParseResult:
 
 
 def neuroglancer_config_to_annotation(
-    config: NeuroglancerJSONModel, options: SliceOptions
+    config: NeuroglancerJSONModel, neuroglancer_annotation_layer: str
 ) -> Result:
     """
     Extract the first annotation from a neuroglancer state JSON dictionary as a numpy array.
@@ -74,8 +74,8 @@ def neuroglancer_config_to_annotation(
     ----------
     config : NeuroglancerJSONModel
         The neuroglancer state JSON object.
-    options : SliceOptions
-        The options object containing the annotation layer name.
+    neuroglancer_annotation_layer : str
+        The name of the annotation layer.
 
     Returns
     -------
@@ -87,7 +87,7 @@ def neuroglancer_config_to_annotation(
         for layer in config.layers:
             if (
                 layer.type == "annotation"
-                and layer.name == options.neuroglancer_annotation_layer
+                and layer.name == neuroglancer_annotation_layer
             ):
                 annotations = layer.annotations
 
@@ -104,7 +104,7 @@ def neuroglancer_config_to_annotation(
 
 
 def neuroglancer_config_to_source(
-    config: NeuroglancerJSONModel, options: SliceOptions
+    config: NeuroglancerJSONModel, neuroglancer_image_layer: str
 ) -> Result:
     """
     Extract the source URL from a neuroglancer state JSON dictionary.
@@ -113,8 +113,8 @@ def neuroglancer_config_to_source(
     ----------
     config : NeuroglancerJSONModel
         The neuroglancer state JSON object.
-    options : SliceOptions
-        The options object containing the annotation layer name.
+    neuroglancer_image_layer : str
+        The name of the image layer.
 
     Returns
     -------
@@ -124,7 +124,7 @@ def neuroglancer_config_to_source(
 
     try:
         for layer in config.layers:
-            if layer.type == "image" and layer.name == options.neuroglancer_image_layer:
+            if layer.type == "image" and layer.name == neuroglancer_image_layer:
                 if isinstance(layer.source, str):
                     return layer.source, None
                 elif isinstance(layer.source, SourceModel):

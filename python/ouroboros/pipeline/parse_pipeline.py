@@ -31,7 +31,9 @@ class ParseJSONPipelineStep(PipelineStep):
         if error:
             return error
 
-        sample_points, error = neuroglancer_config_to_annotation(ng_config, config)
+        sample_points, error = neuroglancer_config_to_annotation(
+            ng_config, config.neuroglancer_annotation_layer
+        )
 
         if error:
             return error
@@ -40,7 +42,9 @@ class ParseJSONPipelineStep(PipelineStep):
         if config.connect_start_and_end:
             sample_points = np.concatenate((sample_points, sample_points[0:1]), axis=0)
 
-        source_url, error = neuroglancer_config_to_source(ng_config, config)
+        source_url, error = neuroglancer_config_to_source(
+            ng_config, config.neuroglancer_image_layer
+        )
 
         if error:
             return error
