@@ -2,12 +2,12 @@ from pydantic import BaseModel, field_serializer, field_validator
 
 from ouroboros.helpers.bounding_boxes import BoundingBoxParams
 
-from ouroboros.helpers.dataclasses import dataclass_with_json
+from ouroboros.helpers.models import model_with_json
 
 # TODO Still need to detect color based on channels and other data
 
 
-@dataclass_with_json
+@model_with_json
 class CommonOptions(BaseModel):
     slice_width: int  # Width of the slice
     slice_height: int  # Height of the slice

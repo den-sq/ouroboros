@@ -49,6 +49,3 @@ def test_parse_neuroglancer_json(tmp_path):
     # Assert that the source is a string
     assert source is not None
     assert isinstance(source, str)
-
-    # Clean up
-    Path(json_path).unlink()

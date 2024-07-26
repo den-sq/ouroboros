@@ -11,3 +11,4 @@ sample-volume
 data
 .pytest_cache
 .benchmarks
+.coverage

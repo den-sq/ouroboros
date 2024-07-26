@@ -1,8 +1,7 @@
 import numpy as np
 
 from pydantic import BaseModel
-from ouroboros.helpers.dataclasses import dataclass_with_json
-from ouroboros.helpers.options import SliceOptions
+from ouroboros.helpers.models import model_with_json
 
 
 class LayerModel(BaseModel):
@@ -31,7 +30,7 @@ class ImageLayerModel(LayerModel):
     name: str
 
 
-@dataclass_with_json
+@model_with_json
 class NeuroglancerJSONModel(BaseModel):
     layers: list[AnnotationLayerModel | ImageLayerModel | LayerModel]
 

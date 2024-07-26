@@ -74,6 +74,11 @@ Instructions From: https://stackoverflow.com/questions/59882884/vscode-doesnt-sh
 
 In VSCode, use the testing tab. Otherwise, use `pytest`.
 
+To run code coverage, use the following command: 
+```
+coverage run --source=ouroboros/helpers -m pytest && coverage report -m
+```
+
 ## Using the Python Package
 
 The Ouroboros CLI and Server internally use the Python package for slicing and backprojecting. 

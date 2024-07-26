@@ -1,9 +1,7 @@
 import numpy as np
 
 
-def convert_axes(
-    data: np.ndarray, current_axes: str, target_axes: str, truncate=True
-) -> np.ndarray:
+def convert_axes(data: np.ndarray, current_axes: str, target_axes: str) -> np.ndarray:
     """
     Convert the axes of a numpy array from one format to another.
 
@@ -15,8 +13,6 @@ def convert_axes(
             The current axes format (e.g. XYZ, XYZC).
         target_axes : str
             The target axes format.
-        truncate : bool
-            Whether or not to truncate the axes if the data has fewer dimensions than the axes do.
 
     Returns
     -------
@@ -25,14 +21,18 @@ def convert_axes(
     """
 
     # Ensure that the axes are valid
-    if not set(current_axes) == set(target_axes):
+    if not set(current_axes) == set(target_axes) or len(current_axes) != len(
+        target_axes
+    ):
         raise ValueError(
             "The current and target axes must contain the same characters."
         )
 
-    if truncate and len(data.shape) < len(target_axes):
-        current_axes = current_axes[-len(data.shape) :]
-        target_axes = target_axes[-len(data.shape) :]
+    # Ensure that the data has the same number of dimensions as the axes
+    if len(data.shape) != len(current_axes):
+        raise ValueError(
+            "The data must have the same number of dimensions as the current axes."
+        )
 
     axis_to_index = {axis: i for i, axis in enumerate(current_axes)}
 

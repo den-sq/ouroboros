@@ -3,7 +3,9 @@ from pathlib import Path
 import numpy as np
 
 
-def generate_sample_curve_helix(start_z=-10, end_z=10, num_points=100) -> np.ndarray:
+def generate_sample_curve_helix(
+    start_z=-10, end_z=10, radius=1, num_points=100
+) -> np.ndarray:
     """
     Generates a sample helix curve for testing purposes.
 
@@ -13,6 +15,8 @@ def generate_sample_curve_helix(start_z=-10, end_z=10, num_points=100) -> np.nda
         The starting z value.
     end_z : float
         The ending z value.
+    radius : float
+        The radius of the helix.
     num_points : int
         The number of points to generate.
 
@@ -22,8 +26,8 @@ def generate_sample_curve_helix(start_z=-10, end_z=10, num_points=100) -> np.nda
         The sample helix curve (num_points, 3).
     """
     t = np.linspace(start_z, end_z, num_points)
-    x = np.cos(t)
-    y = np.sin(t)
+    x = np.cos(t) * radius
+    y = np.sin(t) * radius
     z = t
 
     return np.vstack((x, y, z)).T

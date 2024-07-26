@@ -16,6 +16,35 @@ def test_convert_axes():
     assert convert_axes(test_data, source, target).shape == expected_result
 
 
+def test_convert_axes_invalid_axes():
+    test_data = np.random.randint(0, 255, (400, 256, 4), "uint8")
+
+    source = "XYC"
+    target = "YXZ"
+
+    # Call the function and check the result
+    try:
+        convert_axes(test_data, source, target)
+    except ValueError as e:
+        assert str(e) == "The current and target axes must contain the same characters."
+
+
+def test_convert_axes_truncate():
+    test_data = np.random.randint(0, 255, (256, 4), "uint8")
+
+    source = "XYC"
+    target = "YXC"
+
+    # Call the function and check the result
+    try:
+        convert_axes(test_data, source, target)
+    except ValueError as e:
+        assert (
+            str(e)
+            == "The data must have the same number of dimensions as the current axes."
+        )
+
+
 def test_convert_points_between_volumes():
     test_data = np.random.randint(0, 255, (100, 3), "uint8")
 

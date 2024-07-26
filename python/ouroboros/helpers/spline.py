@@ -158,7 +158,10 @@ class Spline:
             rotation_axis = np.cross(previous_tangent, current_tangent)
             if np.linalg.norm(rotation_axis) < 1e-6:
                 # If the rotation axis is too small, keep the previous frame
-                return previous_normal, previous_binormal
+                tangents.append(previous_tangent)
+                normals.append(previous_normal)
+                binormals.append(previous_binormal)
+                continue
 
             # Normalize the rotation axis
             rotation_axis /= np.linalg.norm(rotation_axis)
@@ -212,7 +215,10 @@ class Spline:
             numpy.ndarray: The parameter values that correspond to equidistant points along the spline.
         """
 
-        # TODO: Add test
+        if distance_between_points <= 0:
+            raise ValueError(
+                "The distance between points must be positive and non-zero."
+            )
 
         # Evaluate the B-spline derivative
         dx, dy, dz = splev(self.u, self.tck, der=1)

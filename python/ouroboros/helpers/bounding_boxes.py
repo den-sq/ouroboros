@@ -31,7 +31,9 @@ class BoundingBoxParams:
 
 class BoundingBox:
     def __init__(self, initial_rect):
-        x_min, x_max, y_min, y_max, z_min, z_max = BoundingBox.get_bounds(initial_rect)
+        x_min, x_max, y_min, y_max, z_min, z_max = BoundingBox.get_rect_bounds(
+            initial_rect
+        )
 
         self.x_min = x_min
         self.x_max = x_max
@@ -162,7 +164,7 @@ class BoundingBox:
         )
 
     @staticmethod
-    def get_bounds(rect: np.ndarray):
+    def get_rect_bounds(rect: np.ndarray):
         x, y, z = rect.T
         x_min = min(x)
         x_max = max(x)
@@ -210,6 +212,13 @@ class BoundingBox:
         )
 
     def intersection(self, other):
+        """
+        Get the intersection of two bounding boxes.
+
+        Note: This function assumes that the bounding boxes intersect.
+        Note 2: The intersection is calculated based on approximate bounds.
+        """
+
         x_min, x_max, y_min, y_max, z_min, z_max = self.approx_bounds()
         other_x_min, other_x_max, other_y_min, other_y_max, other_z_min, other_z_max = (
             other.approx_bounds()

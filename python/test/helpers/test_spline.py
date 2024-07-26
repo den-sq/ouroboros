@@ -25,6 +25,22 @@ def test_evaluate_spline():
     ), "The shape of evaluated points should match the number of t values and dimensions"
 
 
+def test_calculate_vectors_empty():
+    # Sample points arranged in a simple curve
+    sample_points = generate_sample_curve_helix()
+
+    # Initialize Spline object
+    spline = Spline(sample_points, degree=2)
+
+    # Calculate vectors
+    tangent_vectors, normal_vectors, binormal_vectors = spline.calculate_vectors([])
+
+    # Assert that the method returns three empty numpy arrays
+    assert tangent_vectors.size == 0, "Tangent vectors should be empty"
+    assert normal_vectors.size == 0, "Normal vectors should be empty"
+    assert binormal_vectors.size == 0, "Binormal vectors should be empty"
+
+
 def test_calculate_vectors_basic():
     # Sample points arranged in a simple curve
     sample_points = generate_sample_curve_helix()
@@ -141,27 +157,70 @@ def test_rotation_minimizing_vectors():
         ), "Binormal vectors should not flip"
 
 
-# def test_calculate_equidistant_parameters():
-#     # Define a simple curve as sample points
-#     sample_points = np.array([
-#         [0, 0, 0],
-#         [1, 2, 1],
-#         [2, 0, 2],
-#         [3, -2, 3],
-#         [4, 0, 4]
-#     ])
-#     # Initialize Spline object
-#     spline = Spline(sample_points, degree=3)
-#     # Specify the distance between points
-#     distance_between_points = 0.1
-#     # Calculate equidistant parameters
-#     equidistant_params = spline.calculate_equidistant_parameters(distance_between_points)
-#     # Evaluate the spline at these parameters
-#     evaluated_points = spline(equidistant_params)
-#     # Calculate distances between consecutive points
-#     distances = np.sqrt(np.sum(np.diff(evaluated_points, axis=1)**2, axis=0))
+def test_rotation_minimizing_vectors_empty():
+    # Define a simple curve as sample points
+    sample_points = generate_sample_curve_helix()
 
-#     print(distances, distance_between_points)
+    # Initialize Spline object
+    spline = Spline(sample_points, degree=3)
 
-#     # Assert that distances are close to the specified distance
-#     assert np.allclose(distances, distance_between_points, atol=0.1), "Distances between points should be close to the specified distance"
+    # Calculate rotation minimizing vectors
+    tangent_vectors, normal_vectors, binormal_vectors = (
+        spline.calculate_rotation_minimizing_vectors([])
+    )
+
+    # Assert that the method returns three empty numpy arrays
+    assert tangent_vectors.size == 0, "Tangent vectors should be empty"
+    assert normal_vectors.size == 0, "Normal vectors should be empty"
+    assert binormal_vectors.size == 0, "Binormal vectors should be empty"
+
+
+def test_calculate_equidistant_parameters():
+    # Define a simple curve as sample points
+    sample_points = generate_sample_curve_helix()
+
+    # Initialize Spline object
+    spline = Spline(sample_points, degree=3)
+
+    # Specify the distance between points
+    distance_between_points = 0.1
+
+    # Calculate equidistant parameters
+    equidistant_params = spline.calculate_equidistant_parameters(
+        distance_between_points
+    )
+
+    # Evaluate the spline at these parameters
+    evaluated_points = spline(equidistant_params)
+
+    # Calculate distances between consecutive points
+    distances = np.sqrt(np.sum(np.diff(evaluated_points, axis=1) ** 2, axis=0))
+
+    print(distances, distance_between_points)
+
+    # Assert that distances are close to the specified distance
+    assert np.allclose(
+        distances, distance_between_points, atol=0.005
+    ), "Distances between points should be close to the specified distance"
+
+
+def test_calculate_equidistant_parameters_zero():
+    # Define a simple curve as sample points
+    sample_points = generate_sample_curve_helix()
+
+    # Initialize Spline object
+    spline = Spline(sample_points, degree=3)
+
+    # Specify the distance between points
+    distance_between_points = 0
+
+    # Calculate equidistant parameters
+    try:
+        spline.calculate_equidistant_parameters(distance_between_points)
+    except ValueError as e:
+        assert str(e) == "The distance between points must be positive and non-zero."
+        return
+
+    raise AssertionError(
+        "The method should raise a ValueError if the distance is zero."
+    )

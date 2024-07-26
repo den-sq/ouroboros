@@ -1,7 +1,7 @@
 from .bounding_boxes import BoundingBox
 from .memory_usage import calculate_gigabytes_from_dimensions
 
-from cloudvolume import CloudVolume, VolumeCutout, Bbox
+from cloudvolume import CloudVolume, VolumeCutout
 
 FLUSH_CACHE = False
 

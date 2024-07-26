@@ -1,11 +1,11 @@
 import numpy as np
 from pydantic import BaseModel, ConfigDict, field_serializer, field_validator
-from ouroboros.helpers.dataclasses import dataclass_with_json
+from ouroboros.helpers.models import model_with_json
 from ouroboros.helpers.options import BackprojectOptions, SliceOptions
 from ouroboros.helpers.volume_cache import VolumeCache
 
 
-@dataclass_with_json
+@model_with_json
 class BasePipelineInput(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
