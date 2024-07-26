@@ -1,12 +1,13 @@
 import numpy as np
 from ouroboros.helpers.spline import Spline
+from test.sample_data import generate_sample_curve_helix
 
 
 def test_evaluate_spline():
     import numpy as np
 
     # Sample points for fitting the spline
-    sample_points = np.array([[0, 0, 0], [1, 1, 1], [2, 0, 2], [3, -1, 3], [4, 0, 4]])
+    sample_points = generate_sample_curve_helix()
 
     # Fit the spline
     spline = Spline(sample_points, degree=3)
@@ -26,7 +27,7 @@ def test_evaluate_spline():
 
 def test_calculate_vectors_basic():
     # Sample points arranged in a simple curve
-    sample_points = np.array([[0, 0, 0], [1, 1, 0], [2, 0, 0]])
+    sample_points = generate_sample_curve_helix()
     # Initialize Spline object
     spline = Spline(sample_points, degree=2)
     # Times at which to calculate vectors
@@ -60,7 +61,7 @@ def test_calculate_vectors_basic():
 
 def test_vectors_orthogonality():
     # Define a simple curve as sample points
-    sample_points = np.array([[1, 0, 0], [1, 2, 1], [2, 1, 2], [3, -2, 4], [4, 7, 4]])
+    sample_points = generate_sample_curve_helix()
 
     # Initialize Spline object
     spline = Spline(sample_points, degree=3)
@@ -94,7 +95,7 @@ def test_vectors_orthogonality():
 
 def test_rotation_minimizing_vectors():
     # Define a simple curve as sample points
-    sample_points = np.array([[1, 0, 0], [1, 2, 1], [2, 1, 2], [3, -2, 4], [4, 7, 4]])
+    sample_points = generate_sample_curve_helix()
 
     # Initialize Spline object
     spline = Spline(sample_points, degree=3)
