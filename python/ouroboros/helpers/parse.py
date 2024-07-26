@@ -53,7 +53,7 @@ def parse_neuroglancer_json(json_path: str) -> ParseResult:
     Returns
     -------
     ParseResult
-        A tuple containing the parsed JSON dictionary and an error if one occurred.
+        A tuple containing the parsed JSON (NeuroglancerJSONModel) and an error if one occurred.
     """
 
     neuroglancer_json_or_error = NeuroglancerJSONModel.load_from_json(json_path)
