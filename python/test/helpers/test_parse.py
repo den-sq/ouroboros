@@ -1,4 +1,3 @@
-from pathlib import Path
 from ouroboros.helpers.parse import (
     NeuroglancerJSONModel,
     parse_neuroglancer_json,
@@ -49,3 +48,14 @@ def test_parse_neuroglancer_json(tmp_path):
     # Assert that the source is a string
     assert source is not None
     assert isinstance(source, str)
+
+
+def test_parse_neuroglancer_json_invalid():
+    # Parse an invalid JSON file
+    parsed_data, error = parse_neuroglancer_json("invalid.json")
+
+    # Assert that there is an error
+    assert error is not None
+
+    # Assert that the parsed data is None
+    assert parsed_data is None
