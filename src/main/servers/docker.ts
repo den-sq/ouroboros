@@ -36,17 +36,20 @@ export async function startDockerCompose({
 	cwd,
 	config,
 	onError,
-	log = false
+	log = false,
+	build = false
 }: {
 	cwd: string
 	config: string
 	onError: (err) => void
 	log?: boolean
+	build?: boolean
 }): Promise<void> {
 	await upAll({
 		cwd,
 		log,
-		config
+		config,
+		commandOptions: build ? ['--build'] : []
 	}).then(() => {}, onError)
 }
 

@@ -12,6 +12,7 @@ export async function startMainServerDevelopment(): Promise<void> {
 		await startDockerCompose({
 			cwd: DEVELOPMENT_PATH,
 			config: DEVELOPMENT_CONFIG,
+			build: true,
 			onError: (err) => {
 				console.error('An error occurred while starting the main server:', err)
 			}

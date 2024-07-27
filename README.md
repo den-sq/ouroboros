@@ -28,12 +28,12 @@ For Mac, if an error occurs when you try to run the app, find the app installati
 
 # Development Quick Start
 
+**[Docker](https://www.docker.com/products/docker-desktop/) is REQUIRED to run Ouroboros.**
+
 Ouroboros has two main components:
 
 - Python package (`python` folder within repository)
 - Electron app (main repository)
-
-These two components are packaged together when the app is built, but in development mode, they are run separately. 
 
 The Python package and the Electron app have separate setup steps which are listed below. Before you begin, **it is recommended that you open the Python package (`python` folder) in a separate VSCode window whenever you are running or writing Python code** (one window for the Electron app and one window for Python).
 
@@ -61,7 +61,15 @@ $ npm run dev
 
 ## Python Setup
 
-The following steps are here to streamline the setup process for Python. For more advanced development, like testing PyInstaller, or if you encounter any issues, you may need to follow the instructions available in the [Python README](./python/README.md).
+The following steps are here to streamline the setup process for Python. For more advanced development or if you encounter any issues, you may need to follow the instructions available in the [Python README](./python/README.md).
+
+**Easier Python Option (No Python Setup)**
+
+If you only plan on developing the Electron app and not the Python package, there is no need to setup Python.
+
+Running `npm run dev` in the Electron app will automatically build and start the Python server inside of Docker.
+
+This may take up to a minute the first time, but after that, it will be almost instantaneous.
 
 ### 1. Install Python
 
@@ -121,8 +129,6 @@ Poetry makes it easier to run the built-in CLI or server with the following comm
 
 ## Running the App in Development Mode
 
-In the Electron VSCode window, run `npm run dev` to start the Electron app. 
+In the Electron VSCode window, run `npm run dev` to start the Electron app. This will start the main server in the background in a Docker container.
 
-In the Python VSCode window, run `ouroboros-server` to start the server.
-
-These two components should automatically talk to each other, and the server connection component in the app should indicate this.
+The initial Docker build may take up to a minute, but after that it should only take a second or so.
