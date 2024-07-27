@@ -79,6 +79,8 @@ To run code coverage, use the following command:
 coverage run --source=ouroboros/helpers -m pytest && coverage report -m
 ```
 
+_Only `helpers` is unit tested right now, primarily because the rest of the package fundamentally depends on `helpers`._
+
 Commits to main and PR's should trigger coverage reports automatically on GitHub.
 
 ## Using the Python Package
