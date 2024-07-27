@@ -1,0 +1,59 @@
+name: Python Test Coverage
+
+on:
+  push:
+    paths:
+      - python/**/*
+
+env: 
+  GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+  GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+jobs:
+  test-coverage:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      - name: "Setup Python, Poetry and Dependencies"
+        uses: packetcoders/action-setup-cache-python-poetry@main
+        with:
+          python-version: "3.10"
+          poetry-version: "1.8.3"
+
+      - name: Run Tests
+        run: |
+          poetry run coverage run --source=ouroboros/helpers -m pytest 
+          poetry run coverage report -m
+        working-directory: ./python
+
+      - name: Coverage Badge
+        uses: tj-actions/coverage-badge-py@v2
+        with:
+          working-directory: './python'
+
+      - name: Verify Changed files
+        uses: tj-actions/verify-changed-files@v16
+        id: verify-changed-files
+        with:
+          files: python/coverage.svg
+
+      - name: Commit files
+        if: steps.verify-changed-files.outputs.files_changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add python/coverage.svg
+          git commit -m "Updated coverage.svg"
+
+      - name: Push changes
+        if: steps.verify-changed-files.outputs.files_changed == 'true'
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
