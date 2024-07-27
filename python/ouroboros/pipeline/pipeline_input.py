@@ -19,6 +19,7 @@ class BasePipelineInput(BaseModel):
         setattr(self, key, None)
 
 
+@model_with_json
 class PipelineInput(BasePipelineInput):
     """
     Dataclass for the input to the pipeline.

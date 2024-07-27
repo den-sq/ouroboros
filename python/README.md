@@ -187,8 +187,11 @@ from pydantic import field_serializer, field_validator
 
 from ouroboros.helpers.options import BackprojectOptions, SliceOptions
 from ouroboros.helpers.volume_cache import VolumeCache
+from ouroboros.helpers.models import model_with_json
+
 import numpy as np
 
+@model_with_json
 class PipelineInput(BasePipelineInput):
     """
     Dataclass for the input to the pipeline.

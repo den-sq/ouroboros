@@ -22,6 +22,7 @@ class CommonOptions(BaseModel):
     max_ram_gb: int = 0  # Maximum amount of RAM to use in GB (0 means no limit)
 
 
+@model_with_json
 class SliceOptions(CommonOptions):
     neuroglancer_json: str  # Path to the neuroglancer JSON file
     neuroglancer_image_layer: (
@@ -46,6 +47,7 @@ class SliceOptions(CommonOptions):
         return value
 
 
+@model_with_json
 class BackprojectOptions(CommonOptions):
     straightened_volume_path: str  # Path to the straightened volume
     config_path: str  # Path to the config file
