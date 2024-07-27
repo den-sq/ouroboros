@@ -79,6 +79,8 @@ To run code coverage, use the following command:
 coverage run --source=ouroboros/helpers -m pytest && coverage report -m
 ```
 
+Commits to main and PR's should trigger coverage reports automatically on GitHub.
+
 ## Using the Python Package
 
 The Ouroboros CLI and Server internally use the Python package for slicing and backprojecting. 
