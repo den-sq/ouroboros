@@ -146,14 +146,18 @@ app.whenReady().then(() => {
 app.on('window-all-closed', async () => {
 	mainServer?.kill()
 
-	// Stop all plugins and other servers before quitting
-	await Promise.all([
-		stopAllPlugins(),
-		stopPluginFileServer(),
-		stopVolumeServer(),
-		is.dev && stopMainServerDevelopment(),
-		!is.dev && stopMainServerProduction()
-	])
+	try {
+		// Stop all plugins and other servers before quitting
+		await Promise.all([
+			stopAllPlugins(),
+			stopPluginFileServer(),
+			stopVolumeServer(),
+			is.dev && stopMainServerDevelopment(),
+			!is.dev && stopMainServerProduction()
+		])
+	} catch (error) {
+		console.error('An error occurred while stopping the servers:', error)
+	}
 
 	app.quit()
 })

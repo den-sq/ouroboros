@@ -11,13 +11,13 @@ class VolumeCache:
         self,
         bounding_boxes: list[BoundingBox],
         link_rects: list[int],
-        source_url: str,
+        cloud_volume_interface: "CloudVolumeInterface",
         mip=None,
         flush_cache=FLUSH_CACHE,
     ) -> None:
         self.bounding_boxes = bounding_boxes
         self.link_rects = link_rects
-        self.source_url = source_url
+        self.cv = cloud_volume_interface
         self.mip = mip
         self.flush_cache = flush_cache
 
@@ -38,7 +38,7 @@ class VolumeCache:
         return {
             "bounding_boxes": [bb.to_dict() for bb in self.bounding_boxes],
             "link_rects": self.link_rects,
-            "source_url": self.source_url,
+            "cv": self.cv.to_dict(),
             "mip": self.mip,
             "flush_cache": self.flush_cache,
         }
@@ -47,15 +47,13 @@ class VolumeCache:
     def from_dict(data: dict):
         bounding_boxes = [BoundingBox.from_dict(bb) for bb in data["bounding_boxes"]]
         link_rects = data["link_rects"]
-        source_url = data["source_url"]
+        cv = CloudVolumeInterface.from_dict(data["cv"])
         mip = data["mip"]
         flush_cache = data["flush_cache"]
 
-        return VolumeCache(bounding_boxes, link_rects, source_url, mip, flush_cache)
+        return VolumeCache(bounding_boxes, link_rects, cv, mip, flush_cache)
 
     def init_cloudvolume(self):
-        self.cv = CloudVolumeInterface(self.source_url)
-
         if self.mip is None:
             self.mip = min(self.cv.available_mips)
 
@@ -180,7 +178,7 @@ class VolumeCache:
     def get_slice_indices(self, volume_index: int):
         return [i for i, v in enumerate(self.link_rects) if v == volume_index]
 
-    def __del__(self):
+    def flush_local_cache(self):
         if self.flush_cache:
             self.cv.flush_cache()
 
@@ -193,6 +191,14 @@ class CloudVolumeInterface:
 
         self.available_mips = self.cv.available_mips
         self.dtype = self.cv.dtype
+
+    def to_dict(self):
+        return {"source_url": self.source_url}
+
+    @staticmethod
+    def from_dict(data: dict):
+        source_url = data["source_url"]
+        return CloudVolumeInterface(source_url)
 
     @property
     def has_color_channels(self):
