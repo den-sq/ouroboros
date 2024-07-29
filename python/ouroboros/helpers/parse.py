@@ -82,11 +82,12 @@ def neuroglancer_config_to_annotation(
         A tuple containing the annotation points and an error if one occurred.
     """
 
+    valid_layer_name = neuroglancer_annotation_layer != ""
+
     try:
         for layer in config.layers:
-            if (
-                layer.type == "annotation"
-                and layer.name == neuroglancer_annotation_layer
+            if layer.type == "annotation" and (
+                layer.name == neuroglancer_annotation_layer or not valid_layer_name
             ):
                 annotations = layer.annotations
 
@@ -121,9 +122,13 @@ def neuroglancer_config_to_source(
         A tuple containing the source URL and an error if one occurred.
     """
 
+    valid_layer_name = neuroglancer_image_layer != ""
+
     try:
         for layer in config.layers:
-            if layer.type == "image" and layer.name == neuroglancer_image_layer:
+            if layer.type == "image" and (
+                layer.name == neuroglancer_image_layer or not valid_layer_name
+            ):
                 if isinstance(layer.source, str):
                     return layer.source, None
                 elif isinstance(layer.source, SourceModel):
