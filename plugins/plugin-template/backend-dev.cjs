@@ -5,7 +5,11 @@ const containerFolder = join(__dirname, 'backend')
 
 // Start docker compose
 console.log('Starting Docker Container')
-upAll({ cwd: containerFolder, log: false })
+upAll({ cwd: containerFolder, log: false, commandOptions: ['--build'] }).catch(() => {
+	console.error(
+		'Failed to start plugin docker environment. Make sure Docker is installed and running.'
+	)
+})
 
 async function cleanup() {
 	try {

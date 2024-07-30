@@ -7,6 +7,7 @@ import { Outlet } from 'react-router-dom'
 
 import styles from './Root.module.css'
 import TestingPluginProvider from '@renderer/contexts/TestingPluginContext'
+import { IFrameManager } from '@renderer/interfaces/iframe'
 
 function Root(): JSX.Element {
 	return (
@@ -19,6 +20,7 @@ function Root(): JSX.Element {
 								<div className={styles.rootArea}>
 									<MenuPanel />
 									<Outlet />
+									<IFrameManager />
 								</div>
 							</DragProvider>
 						</DirectoryProvider>

@@ -22,6 +22,34 @@ function TemplatePage(): JSX.Element {
 		}
 	}, [])
 
+	useEffect(() => {
+		const registerMessage = {
+			type: 'register-plugin',
+			data: {
+				pluginName: 'plugin-template'
+			}
+		}
+
+		// Register the plugin with the main app
+		// Doing so allows the main app to send messages to the plugin,
+		// which it primarily uses to send directory information (i.e. the open folder in the main app)
+		parent.postMessage(registerMessage, '*')
+
+		// Listen for messages from the main app
+		// See iframe.tsx and iframe-message-schema.ts in the main app for more information
+		// You can use this to get directory information from the main app,
+		// to read file contents, or to save file contents through the main app
+		const listener = (event: MessageEvent) => {
+			console.log(event.data)
+		}
+
+		window.addEventListener('message', listener)
+
+		return () => {
+			window.removeEventListener('message', listener)
+		}
+	}, [])
+
 	return (
 		<div>
 			<h1 className={styles.header}>{testResult === '' ? 'Template Page!' : testResult}</h1>
