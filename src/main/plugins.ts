@@ -160,26 +160,17 @@ export async function addLocalPlugin(pluginFolder: string): Promise<void> {
  * Downloads the plugin from the given github releases URL
  */
 export async function downloadPlugin(url: string): Promise<void> {
-	// Determine if the URL is a github releases URL or a github repository URL
-	const urlSplit = url.split('/')
-	const isReleasesURL = urlSplit.includes('releases')
+	// Make sure the URL is a github repository
+	const isGithub = url.includes('github.com')
 
-	// If the URL is not a releases URL, make sure it is a github repository URL
-	if (!isReleasesURL) {
-		const isGithub = urlSplit.includes('github.com')
-
-		if (!isGithub) {
-			console.error('URL is not a github repository URL')
-			return
-		}
+	if (!isGithub) {
+		console.error('URL is not a github repository URL')
+		return
 	}
 
-	// If the URL is a github repository URL, get the releases URL
-	const releasesURL = isReleasesURL ? url : new URL('/releases/', url).toString()
-
 	// Get the user and repo from the URL
-	const user = releasesURL.split('/')[3]
-	const repo = releasesURL.split('/')[4]
+	const user = url.split('/')[3]
+	const repo = url.split('/')[4]
 
 	const outputDir = join(app.getPath('temp'), `${user}-${repo}`)
 
@@ -278,6 +269,33 @@ export async function startAllPlugins(): Promise<PluginDetail[]> {
 	})
 
 	return pluginDetails
+}
+
+export async function initializePlugins(
+	pluginDetails: PluginDetail[],
+	mainWindow: BrowserWindow
+): Promise<void> {
+	startAllPlugins()
+		.then((result) => {
+			// Clear the plugin paths
+			pluginDetails.length = 0
+
+			// Add the plugin paths to the pluginPaths array
+			pluginDetails.push(...result)
+		})
+		.then(() => {
+			// Send the plugin paths to the renderer
+			mainWindow.webContents.send('plugin-paths', pluginDetails)
+		})
+}
+
+export async function restartPlugins(
+	pluginDetails: PluginDetail[],
+	mainWindow: BrowserWindow
+): Promise<void> {
+	await stopAllPlugins()
+
+	initializePlugins(pluginDetails, mainWindow)
 }
 
 export async function stopAllPlugins(): Promise<void> {

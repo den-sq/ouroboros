@@ -8,8 +8,11 @@ import {
 	deletePlugin,
 	downloadPlugin,
 	getPluginFolder,
+	initializePlugins,
 	PluginDetail,
-	sendPluginFolderContents
+	restartPlugins,
+	sendPluginFolderContents,
+	stopAllPlugins
 } from './plugins'
 import { PLUGIN_WINDOW } from '.'
 
@@ -109,16 +112,28 @@ export function handleEvents({
 
 	ipcMain.on('download-plugin', async (_, url: string) => {
 		// Download the plugin from the given github URL
-		downloadPlugin(url)
+		downloadPlugin(url).then(() => {
+			// Restart the plugins
+			restartPlugins(getPluginDetails(), getMainWindow())
+		})
 	})
 
 	ipcMain.on('add-local-plugin', async (_, folderPath: string) => {
 		// Copy the plugin from the given folder
-		addLocalPlugin(folderPath)
+		addLocalPlugin(folderPath).then(() => {
+			// Restart the plugins
+			restartPlugins(getPluginDetails(), getMainWindow())
+		})
 	})
 
 	ipcMain.on('delete-plugin', async (_, pluginFolder: string) => {
-		deletePlugin(pluginFolder)
+		await stopAllPlugins()
+
+		// Delete the plugin folder
+		deletePlugin(pluginFolder).then(() => {
+			// Restart the plugins
+			initializePlugins(getPluginDetails(), getMainWindow())
+		})
 	})
 
 	ipcMain.on('get-plugin-paths', () => {

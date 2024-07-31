@@ -7,7 +7,7 @@ import { ChildProcess, execFile } from 'child_process'
 import { existsSync } from 'fs'
 
 import { BACKGROUND_COLOR } from '../main/helpers'
-import { PluginDetail, startAllPlugins, stopAllPlugins } from './plugins'
+import { initializePlugins, PluginDetail, stopAllPlugins } from './plugins'
 import { startPluginFileServer, stopPluginFileServer } from './servers/file-server'
 import { handleEvents } from './events'
 import { makeMenu } from './menu'
@@ -91,21 +91,9 @@ function createWindow(): void {
 	}
 
 	// Start all plugins
-	startAllPlugins()
-		.then((result) => {
-			// Clear the plugin paths
-			pluginDetails.length = 0
+	initializePlugins(pluginDetails, mainWindow)
 
-			// Add the plugin paths to the pluginPaths array
-			pluginDetails.push(...result)
-		})
-		.then(() => {
-			// Send the plugin paths to the renderer
-			mainWindow.webContents.send('plugin-paths', pluginDetails)
-		})
-		.then(() => {
-			startPluginFileServer()
-		})
+	startPluginFileServer()
 
 	// Start the main server
 	if (is.dev) {
