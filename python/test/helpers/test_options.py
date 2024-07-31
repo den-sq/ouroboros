@@ -61,7 +61,7 @@ def test_backproject_options_defaults():
     assert options.config_path == "./config.json"
     assert options.backproject_min_bounding_box
     assert not options.make_backprojection_binary
-    assert options.backprojection_compression == "zstd"
+    assert options.backprojection_compression == "zlib"
 
 
 def test_common_options_validation():
