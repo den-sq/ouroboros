@@ -12,6 +12,24 @@ After straightened volume produced by the [slicing step](./slicing.md) is segmen
 
 See the same section under [Slice Page](./slicing.md).
 
+**Compression Options**
+
+One of the options on the Backproject page allows the user to configure the output compression format.
+
+Common options
+
+- `zlib`
+- `zstd`
+- `none` (no compression, not recommended)
+
+For more information, see [Tifffile](https://github.com/cgohlke/tifffile/blob/166092f3e7b38cd1af430846157711f916ed5200/tifffile/tifffile.py#L13068C9-L13068C20), the Python package responsible for the compression.
+
+**Output Position Offset**
+
+By default, the slicing output tiff image is backprojected into the space of its minimum bounding box, rather than the space of the entire source scan.
+
+The offset of the minimum bounding box is stored in the output tiff's description metadata. It is also stored in the configuration file (which is modified by the backproject step).
+
 ### How Does Backprojection Work?
 
 A large amount of helpful data is saved in `*-configuration.json` file after the slicing process. This data contains all of the rectangle corners from slicing, and the bounding boxes the slices are associated with. With this data, Ouroboros recalculates the 2D coordinate grids of 3D points for each slice.

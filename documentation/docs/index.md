@@ -21,6 +21,7 @@ _It is recommended that you read these pages in order._
 - [Download and Install Ouroboros](./guide/downloading.md)
 - [Slicing](./guide/slicing.md)
 - [Backprojection](./guide/backproject.md)
+- [Plugins](./guide/plugins.md)
 
 ## Ouroboros Explanation
 
