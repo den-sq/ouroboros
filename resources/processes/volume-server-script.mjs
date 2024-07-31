@@ -51,8 +51,6 @@ const copyHandler = (toVolume) => async (req, res) => {
 						targetDir
 					)
 
-				console.log(command)
-
 				await runCommand(command)
 			})
 		)

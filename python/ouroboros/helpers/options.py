@@ -13,7 +13,7 @@ class CommonOptions(BaseModel):
     slice_height: int  # Height of the slice
     output_file_folder: str  # Folder to save the output file
     output_file_name: str  # Name of the output file
-    dist_between_slices: int = 1  # Distance between slices
+    dist_between_slices: int | float = 1  # Distance between slices
     flush_cache: bool = False  # Whether to flush the cache after processing
     connect_start_and_end: bool = (
         False  # Whether to connect the start and end of the given annotation points
