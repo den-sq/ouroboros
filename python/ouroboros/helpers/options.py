@@ -58,5 +58,5 @@ class BackprojectOptions(CommonOptions):
         False  # Whether to make the backprojection binary (values of 0 or 1)
     )
     backprojection_compression: str = (
-        "zstd"  # Compression type for the backprojected file
+        "zlib"  # Compression type for the backprojected file
     )

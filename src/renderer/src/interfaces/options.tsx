@@ -25,7 +25,7 @@ export class Entry {
 		this.options = options
 	}
 
-	setValue(value: CompoundValueType) {
+	setValue(value: CompoundValueType): void {
 		if (typeof value === 'object') return
 
 		if (typeof value !== typeof this.value) return
@@ -33,11 +33,11 @@ export class Entry {
 		this.value = value
 	}
 
-	setValueFromEntry(entry: Entry | CompoundEntry) {
+	setValueFromEntry(entry: Entry | CompoundEntry): void {
 		if (entry instanceof Entry) this.setValue(entry.value)
 	}
 
-	toObject() {
+	toObject(): ValueType {
 		return this.value
 	}
 
@@ -74,7 +74,7 @@ export class CompoundEntry {
 		}
 	}
 
-	setValue(value: CompoundValueType) {
+	setValue(value: CompoundValueType): void {
 		if (typeof value !== 'object') return
 
 		for (const [name, val] of Object.entries(value)) {
@@ -84,7 +84,7 @@ export class CompoundEntry {
 		}
 	}
 
-	setValueFromEntry(entry: Entry | CompoundEntry) {
+	setValueFromEntry(entry: Entry | CompoundEntry): void {
 		if (entry instanceof Entry) return
 
 		for (const _entry of entry.entries) {
@@ -94,7 +94,7 @@ export class CompoundEntry {
 		}
 	}
 
-	toObject(includeSelf = false) {
+	toObject(includeSelf = false): CompoundValueType {
 		const result = {}
 
 		for (const entry of this.entries) {
@@ -125,7 +125,7 @@ export class CompoundEntry {
 		return this.schema
 	}
 
-	getEntries() {
+	getEntries(): (Entry | CompoundEntry)[] {
 		return this.entries
 	}
 
@@ -162,7 +162,7 @@ export class SliceOptionsFile extends CompoundEntry {
 			new Entry('flush_cache', 'Flush CloudVolume Cache', false, 'boolean'),
 			new Entry('connect_start_and_end', 'Connect Endpoints', false, 'boolean'),
 			new CompoundEntry('bounding_box_params', 'Bounding Box Parameters', [
-				new Entry('max_depth', 'Max Depth', 10, 'number'),
+				new Entry('max_depth', 'Max Depth', 12, 'number'),
 				new Entry('target_slices_per_box', 'Target Slices per Box', 128, 'number')
 			]),
 			new Entry('make_single_file', 'Output Single File', true, 'boolean'),
@@ -187,7 +187,7 @@ export class BackprojectOptionsFile extends CompoundEntry {
 			new Entry('connect_start_and_end', 'Connect Endpoints', false, 'boolean'),
 			new Entry('backproject_min_bounding_box', 'Output Min Bounding Box', true, 'boolean'),
 			new Entry('make_backprojection_binary', 'Binary Backprojection', false, 'boolean'),
-			new Entry('backprojection_compression', 'Backprojection Compression', 'zstd', 'string'),
+			new Entry('backprojection_compression', 'Backprojection Compression', 'zlib', 'string'),
 			new Entry('make_single_file', 'Output Single File', true, 'boolean'),
 			new Entry('max_ram_gb', 'Max RAM (GB) (0 = no limit)', 0, 'number')
 		])
