@@ -319,6 +319,7 @@ def process_bounding_box(
     num_channels = (
         None if len(straightened_volume.shape) == 3 else straightened_volume.shape[-1]
     )
+    slice_width, slice_height = straightened_volume.shape[1], straightened_volume.shape[2]
     durations["memmap"].append(time.perf_counter() - start)
 
     # Get the slices from the straightened volume
@@ -334,7 +335,7 @@ def process_bounding_box(
     grids = np.array(
         [
             generate_coordinate_grid_for_rect(
-                slice_rects[i], config.slice_width, config.slice_height
+                slice_rects[i], slice_width, slice_height
             )
             for i in slice_indices
         ]
