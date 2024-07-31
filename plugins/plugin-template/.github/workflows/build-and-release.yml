@@ -32,9 +32,15 @@ jobs:
       - name: Build 
         run: npm run build
 
-      - name: release
-        uses: softprops/action-gh-release@v1
+      - name: Archive Release
+        uses: thedoctor0/zip-release@0.7.5
         with:
-          draft: true
-          files: |
-            dist/**/*
+          type: 'zip'
+          filename: 'release.zip'
+          directory: 'dist'
+
+      - name: Upload Release
+        uses: ncipollo/release-action@v1.12.0
+        with:
+          artifacts: "dist/release.zip"
+          token: ${{ secrets.GITHUB_TOKEN }}
