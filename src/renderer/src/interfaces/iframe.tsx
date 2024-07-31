@@ -41,32 +41,6 @@ export function IFrameManager(): JSX.Element {
 		'register-plugin': updateIframes
 	}
 
-	const listener = (event: MessageEvent): void => {
-		const origin = event.origin
-
-		// Validate the origin of the request
-		if (!listContainsStartsWith(allowedOrigins, origin)) return
-
-		const request = event.data
-
-		// Validate the request format
-		const messageParse = safeParse(IFrameMessageSchema, request)
-
-		if (!messageParse.success) return
-
-		const message = messageParse.output
-
-		if (!event.source) return
-
-		// Asynchronously handle the message
-		if (message.type in handlers) {
-			handlers[message.type](event.source, message).catch(console.error)
-		}
-	}
-
-	// Create listener for messages from any iframe
-	window.addEventListener('message', listener)
-
 	// Access the directory context
 	const data = useContext(DirectoryContext)
 
@@ -92,6 +66,32 @@ export function IFrameManager(): JSX.Element {
 	}, [data, iframes])
 
 	useEffect(() => {
+		const listener = (event: MessageEvent): void => {
+			const origin = event.origin
+
+			// Validate the origin of the request
+			if (!listContainsStartsWith(allowedOrigins, origin)) return
+
+			const request = event.data
+
+			// Validate the request format
+			const messageParse = safeParse(IFrameMessageSchema, request)
+
+			if (!messageParse.success) return
+
+			const message = messageParse.output
+
+			if (!event.source) return
+
+			// Asynchronously handle the message
+			if (message.type in handlers) {
+				handlers[message.type](event.source, message).catch(console.error)
+			}
+		}
+
+		// Create listener for messages from any iframe
+		window.addEventListener('message', listener)
+
 		return (): void => {
 			window.removeEventListener('message', listener)
 		}
@@ -112,11 +112,12 @@ async function handleReadFileRequest(
 	const readFileRequest = parseResult.output
 
 	// Read the file contents
-	const filePath = readFileRequest.data.filePath
+	const fileName = readFileRequest.data.fileName
+	const folder = readFileRequest.data.folder
 	let contents = ''
 
 	try {
-		contents = await readFile('', filePath)
+		contents = await readFile(folder, fileName)
 	} catch (e) {
 		console.error(e)
 		return
@@ -126,7 +127,7 @@ async function handleReadFileRequest(
 	const response: ReadFileResponse = {
 		type: 'read-file-response',
 		data: {
-			filePath,
+			fileName,
 			contents
 		}
 	}
@@ -145,11 +146,12 @@ async function handleSaveFileRequest(_: MessageEventSource, data: IFrameMessage)
 
 	const readFileRequest = parseResult.output
 
-	const filePath = readFileRequest.data.filePath
+	const folder = readFileRequest.data.folder
+	const fileName = readFileRequest.data.fileName
 	const fileContents = readFileRequest.data.contents
 
 	try {
-		await writeFile('', filePath, fileContents)
+		await writeFile(folder, fileName, fileContents)
 	} catch (e) {
 		console.error(e)
 		return

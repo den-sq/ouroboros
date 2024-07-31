@@ -31,7 +31,8 @@ export type SendDirectoryContents = InferOutput<typeof SendDirectoryContentsSche
 export const ReadFileRequestSchema = object({
 	type: pipe(string(), includes('read-file')),
 	data: object({
-		filePath: string('File path is required')
+		folder: string('Folder path is required'),
+		fileName: string('File name is required')
 	})
 })
 
@@ -40,7 +41,7 @@ export type ReadFileRequest = InferOutput<typeof ReadFileRequestSchema>
 export const ReadFileResponseSchema = object({
 	type: pipe(string(), includes('read-file-response')),
 	data: object({
-		filePath: string('File path is required'),
+		fileName: string('File name is required'),
 		contents: string()
 	})
 })
@@ -50,7 +51,8 @@ export type ReadFileResponse = InferOutput<typeof ReadFileResponseSchema>
 export const SaveFileRequestSchema = object({
 	type: pipe(string(), includes('save-file')),
 	data: object({
-		filePath: string('File path is required'),
+		folder: string('Folder path is required'),
+		fileName: string('File name is required'),
 		contents: string('File contents are required')
 	})
 })
