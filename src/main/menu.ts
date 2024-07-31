@@ -20,13 +20,6 @@ export function makeMenu(mainWindow: BrowserWindow): Menu {
 						submenu: [
 							{ role: 'about' },
 							{ type: 'separator' },
-							{
-								label: 'Manage Plugins',
-								click: (): void => {
-									ipcMain.emit('manage-plugins')
-								}
-							},
-							{ type: 'separator' },
 							{ role: 'services' },
 							{ type: 'separator' },
 							{ role: 'hide' },
@@ -51,6 +44,13 @@ export function makeMenu(mainWindow: BrowserWindow): Menu {
 						if (!result.canceled) {
 							mainWindow.webContents.send('selected-folder', result.filePaths[0])
 						}
+					}
+				},
+				{ type: 'separator' },
+				{
+					label: 'Manage Plugins',
+					click: (): void => {
+						ipcMain.emit('manage-plugins')
 					}
 				},
 				{ type: 'separator' },
