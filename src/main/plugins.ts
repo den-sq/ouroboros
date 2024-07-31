@@ -182,6 +182,12 @@ export async function downloadPlugin(url: string): Promise<void> {
 	const repo = releasesURL.split('/')[4]
 
 	const outputDir = join(app.getPath('temp'), `${user}-${repo}`)
+
+	// Make sure the output directory is empty
+	if (existsSync(outputDir)) {
+		await fs.rm(outputDir, { recursive: true })
+	}
+
 	const leaveZipped = false
 	const disableLogging = false
 
@@ -201,6 +207,7 @@ export async function downloadPlugin(url: string): Promise<void> {
 	}
 
 	if (existsSync(outputDir)) {
+		// Add the plugin to the local plugins
 		await addLocalPlugin(outputDir)
 
 		// Delete the downloaded release
