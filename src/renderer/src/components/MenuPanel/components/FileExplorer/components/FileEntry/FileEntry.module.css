@@ -2,13 +2,13 @@
 	display: flex;
 	justify-content: start;
 	align-items: center;
-	margin-top: 0.5rem;
-	margin-bottom: 0.5rem;
-	margin-left: 1rem;
+	margin-top: 0.2rem;
+	margin-bottom: 0.2rem;
 	margin-right: 1rem;
 	cursor: pointer;
 	transition: background-color 0.2s;
 	color: var(--primary-text);
+	font-size: 1rem;
 }
 
 .fileEntryIcon {
@@ -16,6 +16,7 @@
 	height: 1.125rem;
 	width: 1.5rem;
 	display: flex;
+	flex-direction: column;
 	justify-content: center;
 	align-items: center;
 }

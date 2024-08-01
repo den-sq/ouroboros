@@ -1,0 +1,35 @@
+.folder {
+	padding-left: 0rem;
+	display: flex;
+	flex-direction: row;
+}
+
+.emptyFolder {
+	display: flex;
+	flex-direction: row;
+	margin-left: 1rem;
+}
+
+.file {
+	display: flex;
+	flex-direction: row;
+	margin-left: 1rem;
+	padding-left: 0rem;
+}
+
+.collapseIcon {
+	width: 0.5rem;
+	margin-left: 0.25rem;
+	margin-right: 0.25rem;
+	cursor: pointer;
+	rotate: -90deg;
+	transition: 0.3s;
+}
+
+.collapseIconOpen {
+	rotate: 0deg;
+}
+
+.children {
+	padding-left: 1.2rem;
+}

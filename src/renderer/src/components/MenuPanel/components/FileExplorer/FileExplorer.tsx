@@ -10,16 +10,14 @@ import { DirectoryContext } from '@renderer/contexts/DirectoryContext'
 function FileExplorer(): JSX.Element {
 	const { active } = useContext(DragContext)
 
-	const { files, isFolder, directoryName } = useContext(DirectoryContext)
+	const { nodes, directoryName } = useContext(DirectoryContext)
 
-	const fileEntries = files.map((file: string, i: number) => {
-		// Determine the type of the file
-		const type = isFolder[i] ? 'folder' : file.endsWith('.tif') ? 'image' : 'file'
+	const fileEntries = nodes
+		? Object.entries(nodes).map(([, node]) => {
+				return <DraggableEntry node={node} key={node.path} />
+			})
+		: null
 
-		return <DraggableEntry name={file} path={`./${file}`} key={`./${file}`} type={type} />
-	})
-
-	// TODO: Header should be the folder name
 	return (
 		<>
 			<div className={styles.fileExplorerPanel}>
@@ -40,7 +38,7 @@ function FileExplorer(): JSX.Element {
 				</div>
 			</div>
 			<DragOverlay>
-				{active ? (
+				{active && active.data.current ? (
 					<FileEntry
 						name={active.data.current.name}
 						path={active.data.current.path}

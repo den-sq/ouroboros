@@ -3,7 +3,12 @@ import styles from './BackprojectPage.module.css'
 import VisualizePanel from '@renderer/components/VisualizePanel/VisualizePanel'
 import ProgressPanel from '@renderer/components/ProgressPanel/Progress'
 import { ServerContext } from '@renderer/contexts/ServerContext'
-import { CompoundEntry, Entry, BackprojectOptionsFile } from '@renderer/interfaces/options'
+import {
+	CompoundEntry,
+	Entry,
+	BackprojectOptionsFile,
+	CompoundValueType
+} from '@renderer/interfaces/options'
 import { useContext, useEffect, useState } from 'react'
 import { DirectoryContext } from '@renderer/contexts/DirectoryContext'
 import { join, readFile, writeFile } from '@renderer/interfaces/file'
@@ -26,7 +31,13 @@ function BackprojectPage(): JSX.Element {
 	)
 }
 
-function useBackprojectPageState() {
+function useBackprojectPageState(): {
+	progress: [string, number][]
+	connected: boolean
+	entries: (Entry | CompoundEntry)[]
+	onSubmit: () => Promise<void>
+	onHeaderDrop: (content: string) => Promise<void>
+} {
 	const {
 		connected,
 		performFetch,
@@ -44,7 +55,7 @@ function useBackprojectPageState() {
 
 	const { addAlert } = useContext(AlertContext)
 
-	const [progress, setProgress] = useState<any>([])
+	const [progress, setProgress] = useState<[string, number][]>([])
 
 	const { results: backprojectResults } = useFetchListener('/backproject/')
 	const {
@@ -78,7 +89,7 @@ function useBackprojectPageState() {
 		}
 	}, [streamDone, streamError])
 
-	const onSubmit = async () => {
+	const onSubmit = async (): Promise<void> => {
 		if (!connected || !directoryPath) {
 			return
 		}
@@ -137,10 +148,10 @@ function useBackprojectPageState() {
 		)
 	}
 
-	const onHeaderDrop = async (content: string) => {
+	const onHeaderDrop = async (content: string): Promise<void> => {
 		if (!directoryPath || !content || content === '') return
 
-		const fileContent = await readFile(directoryPath, content)
+		const fileContent = await readFile('', content)
 
 		let jsonContent = null
 
@@ -164,7 +175,7 @@ function useBackprojectPageState() {
 		}
 
 		// Update the entries with the new values from the file
-		entries[0].setValue(parseResult.output)
+		entries[0].setValue(parseResult.output as CompoundValueType)
 		setEntries([...entries])
 	}
 

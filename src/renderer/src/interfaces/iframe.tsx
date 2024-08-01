@@ -52,8 +52,7 @@ export function IFrameManager(): JSX.Element {
 			data: {
 				directoryPath: data.directoryPath,
 				directoryName: data.directoryName,
-				files: data.files,
-				isFolder: data.isFolder
+				nodes: data.nodes
 			}
 		}
 

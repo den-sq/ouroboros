@@ -2,8 +2,12 @@ export const writeFile = async (folder: string, name: string, data: string): Pro
 	return await window.electron.ipcRenderer.invoke('save-file', { folder, name, data })
 }
 
-export const join = async (folder: string, name: string): Promise<string> => {
-	return window.electron.ipcRenderer.invoke('join-path', { folder, name })
+export const join = async (...args: string[]): Promise<string> => {
+	return window.electron.ipcRenderer.invoke('join-path', args)
+}
+
+export const joinWithSeparator = (separator: string, ...args: string[]): string => {
+	return args.join(separator)
 }
 
 export const readFile = async (folder: string, name: string): Promise<string> => {

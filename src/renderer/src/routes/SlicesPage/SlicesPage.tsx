@@ -3,7 +3,12 @@ import styles from './SlicesPage.module.css'
 import VisualizePanel from '@renderer/components/VisualizePanel/VisualizePanel'
 import ProgressPanel from '@renderer/components/ProgressPanel/Progress'
 import { ServerContext } from '@renderer/contexts/ServerContext'
-import { CompoundEntry, Entry, SliceOptionsFile } from '@renderer/interfaces/options'
+import {
+	CompoundEntry,
+	CompoundValueType,
+	Entry,
+	SliceOptionsFile
+} from '@renderer/interfaces/options'
 import { useContext, useEffect, useState } from 'react'
 import { DirectoryContext } from '@renderer/contexts/DirectoryContext'
 import { join, readFile, writeFile } from '@renderer/interfaces/file'
@@ -53,7 +58,24 @@ function SlicesPage(): JSX.Element {
 	)
 }
 
-function useSlicePageState() {
+function useSlicePageState(): {
+	progress: [string, number][]
+	connected: boolean
+	entries: (Entry | CompoundEntry)[]
+	onSubmit: () => Promise<void>
+	visualizationData: {
+		rects: {
+			topLeft: number[]
+			topRight: number[]
+			bottomRight: number[]
+			bottomLeft: number[]
+		}[]
+		boundingBoxes: { min: number[]; max: number[] }[]
+		linkRects: number[]
+	} | null
+	onEntryChange: (entry: Entry) => Promise<void>
+	onHeaderDrop: (content: string) => Promise<void>
+} {
 	const {
 		connected,
 		performFetch,
@@ -69,7 +91,7 @@ function useSlicePageState() {
 
 	const { addAlert } = useContext(AlertContext)
 
-	const [progress, setProgress] = useState<any>([])
+	const [progress, setProgress] = useState<[string, number][]>([])
 
 	const { results: sliceResults } = useFetchListener('/slice/')
 	const {
@@ -133,7 +155,7 @@ function useSlicePageState() {
 		}
 	}, [streamDone, streamError])
 
-	const onEntryChange = async (entry: Entry) => {
+	const onEntryChange = async (entry: Entry): Promise<void> => {
 		if (entry.name === 'neuroglancer_json' && directoryPath) {
 			if (entry.value === '') return
 
@@ -193,7 +215,7 @@ function useSlicePageState() {
 		}
 	}
 
-	const onSubmit = async () => {
+	const onSubmit = async (): Promise<void> => {
 		if (!connected || !directoryPath) {
 			return
 		}
@@ -244,10 +266,10 @@ function useSlicePageState() {
 		performFetch('/slice/', { options: outputOptions }, { method: 'POST' })
 	}
 
-	const onHeaderDrop = async (content: string) => {
+	const onHeaderDrop = async (content: string): Promise<void> => {
 		if (!directoryPath || !content || content === '') return
 
-		const fileContent = await readFile(directoryPath, content)
+		const fileContent = await readFile('', content)
 
 		let jsonContent = null
 
@@ -271,7 +293,7 @@ function useSlicePageState() {
 		}
 
 		// Update the entries with the new values from the file
-		entries[0].setValue(parseResult.output)
+		entries[0].setValue(parseResult.output as CompoundValueType)
 		setEntries([...entries])
 
 		// Update the neuroglancer JSON entry

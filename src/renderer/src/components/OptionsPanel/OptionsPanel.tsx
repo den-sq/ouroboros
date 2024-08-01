@@ -16,14 +16,14 @@ function OptionsPanel({
 	onEntryChange?: (entry: Entry) => void
 	onHeaderDrop?: (content: string) => void
 }): JSX.Element {
-	if (onEntryChange === undefined) onEntryChange = () => {}
+	if (onEntryChange === undefined) onEntryChange = (): void => {}
 
 	const entryElement = entries.flatMap((entryObject) => {
 		if (entryObject instanceof Entry) return entryToElement(entryObject, onEntryChange)
 		else return compoundEntryToElement(entryObject, onEntryChange, false, false)
 	})
 
-	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
 		e.preventDefault()
 
 		await onSubmit()
@@ -47,7 +47,7 @@ function compoundEntryToElement(
 	onEntryChange: (entry: Entry) => void,
 	indent = true,
 	title = true
-) {
+): JSX.Element {
 	return (
 		<CompoundEntryElement
 			key={compoundEntry.name}
@@ -63,7 +63,7 @@ function compoundEntryToElement(
 	)
 }
 
-function entryToElement(entry: Entry, onEntryChange: (entry: Entry) => void) {
+function entryToElement(entry: Entry, onEntryChange: (entry: Entry) => void): JSX.Element {
 	return <OptionEntry key={entry.name} entry={entry} onEntryChange={onEntryChange} />
 }
 

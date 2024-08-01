@@ -4,7 +4,6 @@ import { useDroppable } from '@dnd-kit/core'
 import { ValueType, Entry } from '@renderer/interfaces/options'
 import { DragContext } from '@renderer/contexts/DragContext'
 import { DirectoryContext } from '@renderer/contexts/DirectoryContext'
-import { join } from '@renderer/interfaces/file'
 
 const MIN_WIDTH = 25
 const LABEL_GAP = 15
@@ -64,13 +63,13 @@ function OptionEntry({
 
 	// Receive file paths dropped from FileExplorer
 	useEffect(() => {
-		;(async () => {
+		;(async (): Promise<void> => {
 			if (parentChildData && parentChildData[0] === inputName && inputType === 'filePath') {
 				const childData = parentChildData[1]?.data?.current
 
 				if (childData && childData.source === 'file-explorer' && directoryPath) {
 					if (inputRef.current) {
-						const path = await join(directoryPath, childData.path)
+						const path = childData.path
 						updateValue(path)
 						clearDragEvent()
 
@@ -81,7 +80,7 @@ function OptionEntry({
 		})()
 	}, [parentChildData])
 
-	function resizeInput(value: ValueType) {
+	function resizeInput(value: ValueType): void {
 		if (inputType === 'boolean' || htmlInputType === 'select') return
 
 		if (labelRef.current) {
@@ -109,7 +108,8 @@ function OptionEntry({
 		}
 	}
 
-	function updateValue(value: any) {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	function updateValue(value: any): void {
 		switch (inputType) {
 			case 'boolean':
 				setInputValue(value)
@@ -133,7 +133,7 @@ function OptionEntry({
 		resizeInput(initialValue)
 	}, [initialValue, minWidth])
 
-	const onChange = (e: ChangeEvent<HTMLInputElement>) => {
+	const onChange = (e: ChangeEvent<HTMLInputElement>): void => {
 		if (inputType === 'boolean') {
 			updateValue(e.target.checked)
 			return

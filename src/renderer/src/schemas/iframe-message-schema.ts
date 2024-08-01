@@ -1,4 +1,4 @@
-import { any, array, includes, object, pipe, string, InferOutput, boolean, nullable } from 'valibot'
+import { any, includes, object, pipe, string, InferOutput, nullable } from 'valibot'
 
 export const IFrameMessageSchema = object({
 	type: string(),
@@ -21,8 +21,7 @@ export const SendDirectoryContentsSchema = object({
 	data: object({
 		directoryPath: nullable(string('Directory path is required')),
 		directoryName: nullable(string('Directory name is required')),
-		files: array(string()),
-		isFolder: array(boolean())
+		nodes: object({})
 	})
 })
 

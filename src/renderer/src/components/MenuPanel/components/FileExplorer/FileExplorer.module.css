@@ -23,6 +23,7 @@
 	align-items: start;
 	border-radius: 1.25rem;
 	overflow-y: scroll;
+	overflow-x: hidden;
 }
 
 .helpText {

@@ -1,8 +1,10 @@
-import { any, boolean, number, object, string } from 'valibot'
+import { any, BaseIssue, BaseSchema, boolean, number, object, string } from 'valibot'
 
 export type CompoundValueType = { [key: string]: CompoundValueType | ValueType } | ValueType
 export type ValueType = number | string | boolean
 export type EntryValueType = 'number' | 'string' | 'boolean' | 'filePath'
+
+export type Schema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
 
 export class Entry {
 	name: string
@@ -41,7 +43,7 @@ export class Entry {
 		return this.value
 	}
 
-	toSchema() {
+	toSchema(): Schema {
 		switch (this.type) {
 			case 'number':
 				return number()
@@ -61,7 +63,7 @@ export class CompoundEntry {
 	label: string
 	entries: (Entry | CompoundEntry)[]
 	entryMap: { [key: string]: Entry | CompoundEntry } = {}
-	schema: any = null
+	schema: Schema | null = null
 
 	constructor(name: string, label: string, entries: (Entry | CompoundEntry)[]) {
 		this.name = name
@@ -110,7 +112,7 @@ export class CompoundEntry {
 		return result
 	}
 
-	toSchema() {
+	toSchema(): Schema {
 		if (this.schema) return this.schema
 
 		const result = {}

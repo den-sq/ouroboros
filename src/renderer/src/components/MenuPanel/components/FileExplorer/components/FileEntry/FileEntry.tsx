@@ -4,7 +4,15 @@ import Folder from './assets/folder.svg?react'
 import Image from './assets/image.svg?react'
 import File from './assets/file.svg?react'
 
-function FileEntry({ name, path, type }): JSX.Element {
+function FileEntry({
+	name,
+	path,
+	type
+}: {
+	name: string
+	path: string
+	type: 'folder' | 'image' | 'file'
+}): JSX.Element {
 	let icon: JSX.Element = <></>
 	switch (type) {
 		case 'folder':
@@ -23,7 +31,7 @@ function FileEntry({ name, path, type }): JSX.Element {
 	return (
 		<div className={styles.fileEntry} data-value={path}>
 			<div className={styles.fileEntryIcon}>{icon}</div>
-			<div className="file-explorer-font-size poppins-regular">{name}</div>
+			<div className="poppins-regular">{name}</div>
 		</div>
 	)
 }
