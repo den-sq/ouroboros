@@ -91,7 +91,7 @@ export function makeExtraWindow({
 	if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
 		extraWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + path)
 	} else {
-		const fullPath = `file://${join(__dirname, '../renderer/index.html' + path)}`
+		const fullPath = `file://${join(__dirname, '../renderer/index.html')}${path}`
 		extraWindow.loadURL(fullPath)
 	}
 
