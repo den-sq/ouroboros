@@ -16,10 +16,9 @@
 ### Installing a Plugin
 
 1. Open the Plugin Manager: `File > Manage Plugins`.
-2. Paste the GitHub URL of the plugin.
-3. Press Download (Ouroboros downloads and installs the plugin for you)
-4. Restart Ouroboros
-    - May be unnecessary in future versions of Ouroboros.
+2. Press the Plus Icon
+3. Paste the GitHub URL of the plugin.
+4. Press Download (Ouroboros downloads and installs the plugin for you)
 
 _Where are plugins installed? In the [appData](https://github.com/electron/electron/blob/main/docs/api/app.md#appgetpathname)/ouroboros folder. This folder is different on each OS._
 
