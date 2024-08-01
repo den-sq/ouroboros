@@ -7,6 +7,7 @@ from ouroboros.common.volume_server_interface import (
     copy_to_host,
     copy_to_volume,
 )
+from ouroboros.helpers.files import combine_unknown_folder
 from ouroboros.helpers.options import BackprojectOptions, SliceOptions
 
 
@@ -81,8 +82,8 @@ def load_options_for_backproject_docker(
 
     # Define the output file paths
     host_output_folder = options.output_file_folder
-    host_output_file = (
-        host_output_folder + options.output_file_name + "-backprojected.tif"
+    host_output_file = combine_unknown_folder(
+        host_output_folder, options.output_file_name + "-backprojected.tif"
     )
     host_output_config_file = options.config_path
 
@@ -188,9 +189,11 @@ def load_options_for_slice_docker(
         return slice_options
 
     host_output_folder = slice_options.output_file_folder
-    host_output_file = host_output_folder + slice_options.output_file_name + ".tif"
-    host_output_config_file = (
-        host_output_folder + slice_options.output_file_name + "-configuration.json"
+    host_output_file = combine_unknown_folder(
+        host_output_folder, slice_options.output_file_name + ".tif"
+    )
+    host_output_config_file = combine_unknown_folder(
+        host_output_folder, slice_options.output_file_name + "-configuration.json"
     )
 
     # Modify the output file folder to be in the docker volume

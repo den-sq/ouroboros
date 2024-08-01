@@ -1,8 +1,6 @@
 from ouroboros.helpers.files import join_path
 from .pipeline import PipelineStep
 
-import os
-
 
 class SaveConfigPipelineStep(PipelineStep):
     def __init__(self) -> None:
