@@ -4,6 +4,7 @@ from ouroboros.helpers.files import (
     load_and_save_tiff_from_slices,
     get_sorted_tif_files,
     join_path,
+    combine_unknown_folder,
 )
 
 
@@ -71,3 +72,31 @@ def test_get_sorted_tif_files_prefix(tmp_path):
 def test_join_path():
     path = join_path("folder", "subfolder", "file.txt")
     assert path == os.path.join("folder", "subfolder", "file.txt")
+
+
+def test_combine_unknown_folder_posix_no_slash():
+    directory = "/path/to/directory"
+    filename = "file.txt"
+    combined = combine_unknown_folder(directory, filename)
+    assert combined == "/path/to/directory/file.txt"
+
+
+def test_combine_unknown_folder_posix_slash():
+    directory = "/path/to/directory/"
+    filename = "file.txt"
+    combined = combine_unknown_folder(directory, filename)
+    assert combined == "/path/to/directory/file.txt"
+
+
+def test_combine_unknown_folder_win_no_slash():
+    directory = "C:\\path\\to\\directory"
+    filename = "file.txt"
+    combined = combine_unknown_folder(directory, filename)
+    assert combined == "C:\\path\\to\\directory\\file.txt"
+
+
+def test_combine_unknown_folder_win_slash():
+    directory = "C:\\path\\to\\directory\\"
+    filename = "file.txt"
+    combined = combine_unknown_folder(directory, filename)
+    assert combined == "C:\\path\\to\\directory\\file.txt"
