@@ -106,7 +106,7 @@ function copyFileToVolumeCommand(sourceFolder, fileName, volumeName, destFolder)
 	// Construct the Docker command
 	const command = `
     docker run --rm -v "${sourceFolder}":/host -v ${volumeName}:/volume -w /host alpine sh -c "
-    mkdir -p ${newDestFolder} && cp ${innerFilePath} ${destFile}"
+    mkdir -p '${newDestFolder}' && cp '${innerFilePath}' '${destFile}'"
 `
 		.replace(/\s+/g, ' ')
 		.trim()
@@ -129,7 +129,7 @@ function copyFileToHostCommand(sourceFolder, fileName, volumeName, destFolder) {
 	// Construct the Docker command
 	const command = `
         docker run --rm -v "${sourceFolder}":/host -v ${volumeName}:/volume -w /host alpine 
-        cp ${destFile} ${innerFilePath}
+        cp "${destFile}" "${innerFilePath}"
     `
 		.replace(/\s+/g, ' ')
 		.trim()
@@ -149,7 +149,7 @@ function deleteFilesFromVolumeFolder(volumeName, targetFolder) {
 	// Construct the Docker command
 	const command = `
     docker run --rm -v ${volumeName}:/volume alpine sh -c "
-    rm -rf ${targetFolderPath}"
+    rm -rf '${targetFolderPath}'"
 `
 		.replace(/\s+/g, ' ')
 		.trim()
