@@ -109,11 +109,9 @@ def handle_sample_options():
         slice_height=100,
         output_file_folder="./output/",
         output_file_name="sample",
-        neuroglancer_json="",
+        neuroglancer_json="./neuroglancer.json",
     )
     sample_backproject_options = BackprojectOptions(
-        slice_width=100,
-        slice_height=100,
         output_file_folder="./output/",
         output_file_name="sample",
         straightened_volume_path="./sample.tif",

@@ -6,18 +6,12 @@ from ouroboros.helpers.options import CommonOptions, SliceOptions, BackprojectOp
 
 def test_common_options_defaults():
     options = CommonOptions(
-        slice_width=100,
-        slice_height=100,
         output_file_folder="./output/",
         output_file_name="output",
     )
-    assert options.slice_width == 100
-    assert options.slice_height == 100
     assert options.output_file_folder == "./output/"
     assert options.output_file_name == "output"
-    assert options.dist_between_slices == 1
     assert not options.flush_cache
-    assert not options.connect_start_and_end
     assert options.make_single_file
     assert options.max_ram_gb == 0
 
@@ -46,15 +40,11 @@ def test_slice_options_defaults():
 
 def test_backproject_options_defaults():
     options = BackprojectOptions(
-        slice_width=100,
-        slice_height=100,
         output_file_folder="./output/",
         output_file_name="output",
         straightened_volume_path="./volume.tif",
         config_path="./config.json",
     )
-    assert options.slice_width == 100
-    assert options.slice_height == 100
     assert options.output_file_folder == "./output/"
     assert options.output_file_name == "output"
     assert options.straightened_volume_path == "./volume.tif"
@@ -82,8 +72,6 @@ def test_slice_options_validation():
 def test_backproject_options_validation():
     with pytest.raises(ValidationError):
         BackprojectOptions(
-            slice_width=100,
-            slice_height=100,
             output_file_folder="./output/",
             output_file_name="output",
         )
@@ -133,8 +121,6 @@ def test_slice_options_from_json():
 
 def test_backproject_options_to_json(tmp_path):
     options = BackprojectOptions(
-        slice_width=100,
-        slice_height=100,
         output_file_folder="./output/",
         output_file_name="output",
         straightened_volume_path="./volume.tif",
