@@ -48,7 +48,7 @@ function compoundEntryToElement(
 	indent = true,
 	title = true
 ): JSX.Element {
-	if (compoundEntry.hidden) return <></>
+	if (compoundEntry.hidden) return <span key={compoundEntry.name}></span>
 
 	return (
 		<CompoundEntryElement
@@ -66,7 +66,7 @@ function compoundEntryToElement(
 }
 
 function entryToElement(entry: Entry, onEntryChange: (entry: Entry) => void): JSX.Element {
-	if (entry.hidden) return <></>
+	if (entry.hidden) return <span key={entry.name}></span>
 
 	return <OptionEntry key={entry.name} entry={entry} onEntryChange={onEntryChange} />
 }

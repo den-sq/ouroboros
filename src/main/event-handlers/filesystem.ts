@@ -1,5 +1,5 @@
 import { BrowserWindow, IpcMain } from 'electron'
-import { stat } from 'fs/promises'
+import { rm, stat } from 'fs/promises'
 import { sep } from 'path'
 import Watcher from 'watcher'
 
@@ -103,5 +103,16 @@ export const addFSEventHandlers = (ipcMain: IpcMain, getMainWindow: () => Browse
 	// Read the contents of a file as a string
 	ipcMain.handle('read-file', async (_, args) => {
 		return await readFile(args)
+	})
+
+	// Delete a file or folder
+	ipcMain.handle('delete-fs-item', async (_, path: string) => {
+		try {
+			await rm(path, {
+				recursive: true
+			})
+		} catch (error) {
+			console.error(error)
+		}
 	})
 }

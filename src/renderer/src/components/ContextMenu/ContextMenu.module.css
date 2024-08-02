@@ -1,0 +1,29 @@
+.contextMenu {
+	position: absolute;
+	width: 125px;
+	background-color: rgba(100, 100, 100, 0.3);
+	color: white;
+	border-radius: 0.25rem;
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+	border: 1px solid rgba(100, 100, 100, 0.35);
+	box-sizing: border-box;
+	font-size: 1rem;
+}
+
+.options {
+	box-sizing: border-box;
+	padding: 0.1rem;
+	margin: 0;
+	list-style: none;
+}
+.options li {
+	padding: 0.3rem 0.4rem;
+	color: rgb(177, 177, 177);
+	transition: 0.3s;
+}
+
+.options li:hover {
+	cursor: pointer;
+	color: white;
+}

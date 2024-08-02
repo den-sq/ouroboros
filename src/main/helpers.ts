@@ -41,10 +41,26 @@ export async function fetchFolderContents(
 	}
 }
 
-export async function saveFile({ folder, name, data }): Promise<boolean> {
+/**
+ * Save a file to the given folder with the given name and data.
+ *
+ * If the name is empty, the folder will be created but the file will not be saved.
+ */
+export async function saveFile({
+	folder,
+	name,
+	data
+}: {
+	folder: string
+	name: string
+	data: string
+}): Promise<boolean> {
 	try {
 		// Create the folder if it doesn't exist
 		await fs.mkdir(folder, { recursive: true })
+
+		// Don't save a the file if the name is empty
+		if (name === '') return true
 
 		await fs.writeFile(join(folder, name), data)
 		return true

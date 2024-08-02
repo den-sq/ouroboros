@@ -3,9 +3,15 @@ import FileEntry from '../FileEntry/FileEntry'
 import { FileSystemNode } from '@renderer/contexts/DirectoryContext'
 
 import styles from './DraggableEntry.module.css'
-import { useState } from 'react'
+import { MouseEvent, useState } from 'react'
 
-function DraggableEntry({ node }: { node: FileSystemNode }): JSX.Element {
+function DraggableEntry({
+	node,
+	handleContextMenu
+}: {
+	node: FileSystemNode
+	handleContextMenu: (event: MouseEvent, data?: FileSystemNode | undefined) => void
+}): JSX.Element {
 	// Determine the type of the entry
 	const type = node.children ? 'folder' : node.name.endsWith('.tif') ? 'image' : 'file'
 	const isFolder = type === 'folder'
@@ -41,14 +47,25 @@ function DraggableEntry({ node }: { node: FileSystemNode }): JSX.Element {
 						/>
 					</svg>
 				)}
-				<div ref={setNodeRef} {...listeners} {...attributes}>
+				<div
+					ref={setNodeRef}
+					{...listeners}
+					{...attributes}
+					onContextMenu={(e) => {
+						handleContextMenu(e as MouseEvent, node)
+					}}
+				>
 					<FileEntry name={node.name} path={node.path} type={type} />
 				</div>
 			</div>
 			{!isEmpty && !isCollapsed && node.children && (
 				<div className={styles.children}>
 					{Object.entries(node.children).map(([, child]) => (
-						<DraggableEntry node={child} key={child.path} />
+						<DraggableEntry
+							node={child}
+							key={child.path}
+							handleContextMenu={handleContextMenu}
+						/>
 					))}
 				</div>
 			)}
