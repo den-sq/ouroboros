@@ -107,23 +107,29 @@ function handleFSEvent(nodes: NodeChildren, fsEvent: FSEvent): NodeChildren {
 	let currentPath = nodesCopy
 	let path = targetPath
 
-	const deletePath = (): void => {
+	let deletedPath: FileSystemNode | null = null
+
+	const deletePath = (_currentPath: NodeChildren): FileSystemNode | null => {
 		for (let i = 0; i < pathParts.length; i++) {
 			const part = parts[i]
 
 			if (i === parts.length - 1) {
-				delete currentPath[part]
+				const deleted = _currentPath[part]
+				delete _currentPath[part]
+				return deleted
 			}
 
-			if (!currentPath[part] || currentPath[part].children === undefined) break
+			if (!_currentPath[part] || _currentPath[part].children === undefined) return null
 
-			currentPath = currentPath[part].children!
+			_currentPath = _currentPath[part].children!
 		}
+
+		return null
 	}
 
 	if (['rename', 'renameDir', 'unlink', 'unlinkDir'].includes(event)) {
 		// Recursively delete the old path
-		deletePath()
+		deletedPath = deletePath(nodesCopy)
 
 		if (event === 'rename' || event === 'renameDir') {
 			parts = nextPathParts
@@ -131,18 +137,24 @@ function handleFSEvent(nodes: NodeChildren, fsEvent: FSEvent): NodeChildren {
 		} else return nodesCopy
 	}
 
-	currentPath = nodesCopy
-
 	// Add the path to the nodes object
-	for (let i = 0; i < pathParts.length; i++) {
+	for (let i = 0; i < parts.length; i++) {
 		const part = parts[i]
 
 		// If this is the last part of the path, add the node
 		if (i === parts.length - 1 && !currentPath[part]) {
-			currentPath[part] = {
-				name: part,
-				path: path,
-				children: isDirectory ? {} : undefined
+			if (deletedPath) {
+				// Rename the node
+				currentPath[part] = deletedPath
+				currentPath[part].name = part
+				currentPath[part].path = path
+			} else {
+				// Create the node
+				currentPath[part] = {
+					name: part,
+					path: path,
+					children: isDirectory ? {} : undefined
+				}
 			}
 		}
 

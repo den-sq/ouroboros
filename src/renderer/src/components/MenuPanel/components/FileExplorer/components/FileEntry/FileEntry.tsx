@@ -7,11 +7,13 @@ import File from './assets/file.svg?react'
 function FileEntry({
 	name,
 	path,
-	type
+	type,
+	bold
 }: {
 	name: string
 	path: string
 	type: 'folder' | 'image' | 'file'
+	bold?: boolean
 }): JSX.Element {
 	let icon: JSX.Element = <></>
 	switch (type) {
@@ -31,7 +33,7 @@ function FileEntry({
 	return (
 		<div className={styles.fileEntry} data-value={path}>
 			<div className={styles.fileEntryIcon}>{icon}</div>
-			<div className="poppins-regular">{name}</div>
+			<div className={bold ? 'poppins-bold' : 'poppins-regular'}>{name}</div>
 		</div>
 	)
 }

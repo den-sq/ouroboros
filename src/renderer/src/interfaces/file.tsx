@@ -25,3 +25,7 @@ export const deleteFSItem = async (path: string): Promise<void> => {
 export const renameFSItem = async (oldPath: string, newPath: string): Promise<void> => {
 	return window.electron.ipcRenderer.invoke('rename-fs-item', { oldPath, newPath })
 }
+
+export const moveFSItem = async (oldPath: string, newPath: string): Promise<void> => {
+	return renameFSItem(oldPath, newPath)
+}

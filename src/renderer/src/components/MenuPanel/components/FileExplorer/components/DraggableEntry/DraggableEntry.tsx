@@ -1,10 +1,12 @@
-import { useDraggable } from '@dnd-kit/core'
+import { useDraggable, useDroppable } from '@dnd-kit/core'
 import FileEntry from '../FileEntry/FileEntry'
 import { FileSystemNode } from '@renderer/contexts/DirectoryContext'
 
 import styles from './DraggableEntry.module.css'
-import { MouseEvent, useState } from 'react'
+import { MouseEvent, useContext, useEffect, useState } from 'react'
 import EditFileEntry from '../FileEntry/EditFileEntry'
+import { DragContext } from '@renderer/contexts/DragContext'
+import { join, moveFSItem } from '@renderer/interfaces/file'
 
 function DraggableEntry({
 	node,
@@ -34,10 +36,41 @@ function DraggableEntry({
 		}
 	})
 
+	const { clearDragEvent, parentChildData, active } = useContext(DragContext)
+	const { isOver, setNodeRef: setDropNodeRef } = useDroppable({
+		id: node.path
+	})
+
+	useEffect(() => {
+		const handleDrop = async (): Promise<void> => {
+			if (parentChildData) {
+				const item = parentChildData[1]
+
+				if (item.data.current?.source === 'file-explorer') {
+					if (
+						node.path !== item.id.toString() &&
+						parentChildData[0].toString() === node.path
+					) {
+						const oldPath = item.id.toString()
+						const newPath = await join(node.path, item.data.current.name)
+
+						// Move the file
+						moveFSItem(oldPath, newPath)
+
+						// Clear the drag event
+						clearDragEvent()
+					}
+				}
+			}
+		}
+
+		handleDrop()
+	}, [isOver, parentChildData])
+
 	const isEdited = editPath === node.path
 
 	return (
-		<div>
+		<div ref={isFolder ? setDropNodeRef : null}>
 			<div
 				className={isFolder ? (isEmpty ? styles.emptyFolder : styles.folder) : styles.file}
 			>
@@ -63,7 +96,19 @@ function DraggableEntry({
 							handleContextMenu(e as MouseEvent, node)
 						}}
 					>
-						<FileEntry name={node.name} path={node.path} type={type} />
+						<FileEntry
+							name={node.name}
+							path={node.path}
+							type={type}
+							bold={
+								isOver &&
+								active &&
+								active.data.current?.source === 'file-explorer' &&
+								node.path !== active.id.toString()
+									? true
+									: false
+							}
+						/>
 					</div>
 				) : (
 					<EditFileEntry
