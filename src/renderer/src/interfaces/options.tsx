@@ -12,6 +12,7 @@ export class Entry {
 	value: ValueType
 	type: EntryValueType
 	options?: string[]
+	hidden: boolean = false
 
 	constructor(
 		name: string,
@@ -25,6 +26,11 @@ export class Entry {
 		this.value = value
 		this.type = type
 		this.options = options
+	}
+
+	withHidden(): Entry {
+		this.hidden = true
+		return this
 	}
 
 	setValue(value: CompoundValueType): void {
@@ -64,6 +70,7 @@ export class CompoundEntry {
 	entries: (Entry | CompoundEntry)[]
 	entryMap: { [key: string]: Entry | CompoundEntry } = {}
 	schema: Schema | null = null
+	hidden: boolean = false
 
 	constructor(name: string, label: string, entries: (Entry | CompoundEntry)[]) {
 		this.name = name
@@ -74,6 +81,11 @@ export class CompoundEntry {
 		for (const entry of entries) {
 			this.entryMap[entry.name] = entry
 		}
+	}
+
+	withHidden(): CompoundEntry {
+		this.hidden = true
+		return this
 	}
 
 	setValue(value: CompoundValueType): void {
@@ -161,9 +173,9 @@ export class SliceOptionsFile extends CompoundEntry {
 			new Entry('output_file_folder', 'Output File Folder', './', 'filePath'),
 			new Entry('output_file_name', 'Output File Name', 'sample', 'string'),
 			new Entry('dist_between_slices', 'Distance Between Slices', 1, 'number'),
-			new Entry('make_single_file', 'Output Single File', true, 'boolean'),
+			new Entry('make_single_file', 'Output Single File', true, 'boolean').withHidden(),
 			new Entry('connect_start_and_end', 'Connect Endpoints', false, 'boolean'),
-			new Entry('flush_cache', 'Flush CloudVolume Cache', false, 'boolean'),
+			new Entry('flush_cache', 'Flush CloudVolume Cache', false, 'boolean').withHidden(),
 			new CompoundEntry('bounding_box_params', 'Bounding Box Parameters', [
 				new Entry('max_depth', 'Max Depth', 12, 'number'),
 				new Entry('target_slices_per_box', 'Target Slices per Box', 128, 'number')
@@ -183,10 +195,10 @@ export class BackprojectOptionsFile extends CompoundEntry {
 			new Entry('output_file_folder', 'Output File Folder', './', 'filePath'),
 			new Entry('output_file_name', 'Output File Name', 'sample', 'string'),
 			new Entry('backprojection_compression', 'Backprojection Compression', 'zlib', 'string'),
-			new Entry('make_single_file', 'Output Single File', true, 'boolean'),
+			new Entry('make_single_file', 'Output Single File', true, 'boolean').withHidden(),
 			new Entry('backproject_min_bounding_box', 'Output Min Bounding Box', true, 'boolean'),
 			new Entry('make_backprojection_binary', 'Binary Backprojection', false, 'boolean'),
-			new Entry('flush_cache', 'Flush CloudVolume Cache', false, 'boolean'),
+			new Entry('flush_cache', 'Flush CloudVolume Cache', false, 'boolean').withHidden(),
 			new Entry('max_ram_gb', 'Max RAM (GB) (0 = no limit)', 0, 'number')
 		])
 
