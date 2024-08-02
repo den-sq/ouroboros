@@ -1,5 +1,5 @@
 import { BrowserWindow, IpcMain } from 'electron'
-import { rm, stat } from 'fs/promises'
+import { rename, rm, stat } from 'fs/promises'
 import { sep } from 'path'
 import Watcher from 'watcher'
 
@@ -111,6 +111,15 @@ export const addFSEventHandlers = (ipcMain: IpcMain, getMainWindow: () => Browse
 			await rm(path, {
 				recursive: true
 			})
+		} catch (error) {
+			console.error(error)
+		}
+	})
+
+	// Rename a file or folder
+	ipcMain.handle('rename-fs-item', async (_, { oldPath, newPath }) => {
+		try {
+			await rename(oldPath, newPath)
 		} catch (error) {
 			console.error(error)
 		}

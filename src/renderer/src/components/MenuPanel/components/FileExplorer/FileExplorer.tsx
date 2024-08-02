@@ -2,18 +2,44 @@ import Header from '@renderer/components/Header/Header'
 import styles from './FileExplorer.module.css'
 import FileEntry from './components/FileEntry/FileEntry'
 import { DragOverlay } from '@dnd-kit/core'
-import { MouseEvent, useContext } from 'react'
+import { MouseEvent, useCallback, useContext, useState } from 'react'
 import DraggableEntry from './components/DraggableEntry/DraggableEntry'
 import { DragContext } from '@renderer/contexts/DragContext'
 import { DirectoryContext, FileSystemNode } from '@renderer/contexts/DirectoryContext'
 import useContextMenu from '@renderer/hooks/use-context-menu'
 import ContextMenu, { ContextMenuAction } from '@renderer/components/ContextMenu/ContextMenu'
-import { deleteFSItem, join, newFolder } from '@renderer/interfaces/file'
+import { deleteFSItem, join, newFolder, renameFSItem } from '@renderer/interfaces/file'
 
 function FileExplorer(): JSX.Element {
 	const { active } = useContext(DragContext)
 	const { nodes, directoryName, directoryPath } = useContext(DirectoryContext)
 	const { point, clicked, data, handleContextMenu } = useContextMenu<FileSystemNode>()
+
+	const [renamePath, setRenamePath] = useState<string | null>(null)
+
+	const handleRenameChange = useCallback(
+		(event: InputEvent): void => {
+			const value = (event.target as HTMLInputElement).value
+
+			if (value === '') return
+			if (!data) return
+
+			const oldPath = data.path
+			const newPath = data.path.replace(data.name, value)
+
+			if (oldPath === newPath) {
+				// Reset the rename path
+				setRenamePath(null)
+				return
+			}
+
+			renameFSItem(oldPath, newPath)
+
+			// Rename the file
+			setRenamePath(null)
+		},
+		[renamePath, setRenamePath, data]
+	)
 
 	const fileEntries = nodes
 		? Object.entries(nodes).map(([, node]) => {
@@ -22,6 +48,8 @@ function FileExplorer(): JSX.Element {
 						node={node}
 						key={node.path}
 						handleContextMenu={handleContextMenu}
+						editPath={renamePath}
+						handleChange={handleRenameChange}
 					/>
 				)
 			})
@@ -55,13 +83,14 @@ function FileExplorer(): JSX.Element {
 	]
 
 	const fileContextActions: ContextMenuAction[] = [
-		// TODO: Implement rename
-		// {
-		// 	label: 'Rename',
-		// 	onClick: (): void => {
-		// 		console.log('Rename', data)
-		// 	}
-		// },
+		{
+			label: 'Rename',
+			onClick: (): void => {
+				if (!data) return
+
+				setRenamePath(data.path)
+			}
+		},
 		{
 			label: 'Delete',
 			onClick: (): void => {

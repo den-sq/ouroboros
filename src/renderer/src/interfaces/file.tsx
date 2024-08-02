@@ -21,3 +21,7 @@ export const readFile = async (folder: string, name: string): Promise<string> =>
 export const deleteFSItem = async (path: string): Promise<void> => {
 	return window.electron.ipcRenderer.invoke('delete-fs-item', path)
 }
+
+export const renameFSItem = async (oldPath: string, newPath: string): Promise<void> => {
+	return window.electron.ipcRenderer.invoke('rename-fs-item', { oldPath, newPath })
+}

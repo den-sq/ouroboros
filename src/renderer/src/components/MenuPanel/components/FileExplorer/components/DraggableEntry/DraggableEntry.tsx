@@ -4,13 +4,18 @@ import { FileSystemNode } from '@renderer/contexts/DirectoryContext'
 
 import styles from './DraggableEntry.module.css'
 import { MouseEvent, useState } from 'react'
+import EditFileEntry from '../FileEntry/EditFileEntry'
 
 function DraggableEntry({
 	node,
-	handleContextMenu
+	handleContextMenu,
+	editPath,
+	handleChange
 }: {
 	node: FileSystemNode
 	handleContextMenu: (event: MouseEvent, data?: FileSystemNode | undefined) => void
+	editPath: string | null
+	handleChange: (event: InputEvent) => void
 }): JSX.Element {
 	// Determine the type of the entry
 	const type = node.children ? 'folder' : node.name.endsWith('.tif') ? 'image' : 'file'
@@ -28,6 +33,8 @@ function DraggableEntry({
 			source: 'file-explorer'
 		}
 	})
+
+	const isEdited = editPath === node.path
 
 	return (
 		<div>
@@ -47,16 +54,25 @@ function DraggableEntry({
 						/>
 					</svg>
 				)}
-				<div
-					ref={setNodeRef}
-					{...listeners}
-					{...attributes}
-					onContextMenu={(e) => {
-						handleContextMenu(e as MouseEvent, node)
-					}}
-				>
-					<FileEntry name={node.name} path={node.path} type={type} />
-				</div>
+				{!isEdited ? (
+					<div
+						ref={setNodeRef}
+						{...listeners}
+						{...attributes}
+						onContextMenu={(e) => {
+							handleContextMenu(e as MouseEvent, node)
+						}}
+					>
+						<FileEntry name={node.name} path={node.path} type={type} />
+					</div>
+				) : (
+					<EditFileEntry
+						name={node.name}
+						path={node.path}
+						type={type}
+						handleChange={handleChange}
+					/>
+				)}
 			</div>
 			{!isEmpty && !isCollapsed && node.children && (
 				<div className={styles.children}>
@@ -65,6 +81,8 @@ function DraggableEntry({
 							node={child}
 							key={child.path}
 							handleContextMenu={handleContextMenu}
+							editPath={editPath}
+							handleChange={handleChange}
 						/>
 					))}
 				</div>
