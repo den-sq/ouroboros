@@ -52,15 +52,15 @@ export const addFSEventHandlers = (ipcMain: IpcMain, getMainWindow: () => Browse
 				isDirectory = stats.isDirectory()
 			}
 
-			const relativePath = targetPath.replace(folderPath, '').replace(/^\//, '')
+			const relativePath = targetPath.replace(folderPath, '').replace(/^[\/\\]/, '')
 
 			let relativePathNext = ''
 			if (targetPathNext) {
-				relativePathNext = targetPathNext.replace(folderPath, '').replace(/^\//, '')
+				relativePathNext = targetPathNext.replace(folderPath, '').replace(/^[\/\\]/, '')
 			}
 
 			// Make sure the path is not the root folder
-			if (relativePath === '') return
+			if (relativePath === '' || relativePath.length === 0) return
 
 			// Split the path by the separator
 			const pathParts = relativePath.split(sep)
