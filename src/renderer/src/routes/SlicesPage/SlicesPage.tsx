@@ -19,6 +19,11 @@ import { safeParse } from 'valibot'
 import SliceStatusResultSchema from '@renderer/schemas/slice-status-result-schema'
 import NeuroglancerJSONSchema from '@renderer/schemas/neuroglancer-json-schema'
 import SliceVisualizationResultSchema from '@renderer/schemas/slice-visualization-result-schema'
+import ConfigurationJSONSchema, {
+	ConfigurationJSON
+} from '@renderer/schemas/configuration-json-schema'
+import { DragContext } from '@renderer/contexts/DragContext'
+import { useDroppable } from '@dnd-kit/core'
 
 const SLICE_RENDER_PROPORTION = 0.01
 
@@ -32,21 +37,44 @@ function SlicesPage(): JSX.Element {
 		onSubmit,
 		visualizationData,
 		onEntryChange,
-		onHeaderDrop
+		onHeaderDrop,
+		setDropNodeRef,
+		isOver
 	} = useSlicePageState()
 
 	return (
 		<div className={styles.slicePage}>
-			<VisualizePanel>
-				{visualizationData ? (
-					<VisualizeSlicing
-						{...visualizationData}
-						useEveryNthRect={Math.floor(
-							visualizationData.rects.length * SLICE_RENDER_PROPORTION
-						)}
-					/>
+			<div ref={setDropNodeRef} style={{ position: 'relative' }}>
+				{isOver ? (
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 448 512"
+						width="40px"
+						style={{
+							position: 'absolute',
+							top: '50%',
+							left: '50%',
+							transform: 'translate(-50%, -50%)',
+							zIndex: '1000'
+						}}
+					>
+						<path
+							fill="white"
+							d="M256 80c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 144L48 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l144 0 0 144c0 17.7 14.3 32 32 32s32-14.3 32-32l0-144 144 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-144 0 0-144z"
+						/>
+					</svg>
 				) : null}
-			</VisualizePanel>
+				<VisualizePanel>
+					{visualizationData ? (
+						<VisualizeSlicing
+							{...visualizationData}
+							useEveryNthRect={Math.floor(
+								visualizationData.rects.length * SLICE_RENDER_PROPORTION
+							)}
+						/>
+					) : null}
+				</VisualizePanel>
+			</div>
 			<ProgressPanel progress={progress} connected={connected} />
 			<OptionsPanel
 				entries={entries}
@@ -63,18 +91,11 @@ function useSlicePageState(): {
 	connected: boolean
 	entries: (Entry | CompoundEntry)[]
 	onSubmit: () => Promise<void>
-	visualizationData: {
-		rects: {
-			topLeft: number[]
-			topRight: number[]
-			bottomRight: number[]
-			bottomLeft: number[]
-		}[]
-		boundingBoxes: { min: number[]; max: number[] }[]
-		linkRects: number[]
-	} | null
+	visualizationData: VisualizationOutput | null
 	onEntryChange: (entry: Entry) => Promise<void>
 	onHeaderDrop: (content: string) => Promise<void>
+	setDropNodeRef: (node: HTMLElement | null) => void
+	isOver: boolean
 } {
 	const {
 		connected,
@@ -101,16 +122,62 @@ function useSlicePageState(): {
 	} = useStreamListener(SLICE_STREAM)
 
 	const { results: visualizationResults } = useFetchListener('/slice_visualization/')
-	const [visualizationData, setVisualizationData] = useState<{
-		rects: {
-			topLeft: number[]
-			topRight: number[]
-			bottomRight: number[]
-			bottomLeft: number[]
-		}[]
-		boundingBoxes: { min: number[]; max: number[] }[]
-		linkRects: number[]
-	} | null>(null)
+	const [visualizationData, setVisualizationData] = useState<VisualizationOutput | null>(null)
+
+	const { clearDragEvent, parentChildData } = useContext(DragContext)
+	const { isOver, setNodeRef: setDropNodeRef } = useDroppable({
+		id: 'slice-visualize'
+	})
+
+	useEffect(() => {
+		const handleDrop = async (): Promise<void> => {
+			if (parentChildData) {
+				const item = parentChildData[1]
+
+				if (
+					item.data.current?.source === 'file-explorer' &&
+					parentChildData[0].toString() === 'slice-visualize'
+				) {
+					// Check if the file is a JSON file
+					if (!item.data.current.name.endsWith('.json')) {
+						addAlert(
+							'Invalid JSON file. Only -configuration.json files are currently supported for visualization.',
+							'error'
+						)
+						return
+					}
+
+					// Read the JSON file
+					readFile('', item.id.toString()).then((data) => {
+						let json = null
+
+						try {
+							json = JSON.parse(data)
+						} catch (e) {
+							addAlert(
+								'Invalid JSON file. Only -configuration.json files are currently supported for visualization.',
+								'error'
+							)
+							return
+						}
+
+						const jsonResult = safeParse(ConfigurationJSONSchema, json)
+
+						if (jsonResult.success) {
+							const data = convertConfigJSONToProps(jsonResult.output)
+
+							setVisualizationData(data)
+						}
+					})
+
+					// Clear the drag event
+					clearDragEvent()
+				}
+			}
+		}
+
+		handleDrop()
+	}, [isOver, parentChildData])
 
 	useEffect(() => {
 		const visualizationDataResult = safeParse(
@@ -312,21 +379,27 @@ function useSlicePageState(): {
 		onSubmit,
 		visualizationData,
 		onEntryChange,
-		onHeaderDrop
+		onHeaderDrop,
+		setDropNodeRef,
+		isOver
 	}
 }
 
-function visualizationDataToProps(
-	visualizationData: {
-		rects: number[][][]
-		bounding_boxes: { min: number[]; max: number[] }[]
-		link_rects: number[]
-	} | null
-): {
+type VisualizationInput = {
+	rects: number[][][]
+	bounding_boxes: { min: number[]; max: number[] }[]
+	link_rects: number[]
+}
+
+type VisualizationOutput = {
 	rects: { topLeft: number[]; topRight: number[]; bottomRight: number[]; bottomLeft: number[] }[]
 	boundingBoxes: { min: number[]; max: number[] }[]
 	linkRects: number[]
-} | null {
+}
+
+function visualizationDataToProps(
+	visualizationData: VisualizationInput | null
+): VisualizationOutput | null {
 	if (!visualizationData) {
 		return null
 	}
@@ -341,3 +414,17 @@ function visualizationDataToProps(
 }
 
 export default SlicesPage
+
+function convertConfigJSONToProps(configJSON: ConfigurationJSON): VisualizationOutput {
+	const rects = configJSON.slice_rects
+	const boundingBoxes = configJSON.volume_cache.bounding_boxes.map((box) => {
+		return { min: [box.x_min, box.y_min, box.z_min], max: [box.x_max, box.y_max, box.z_max] }
+	})
+	const linkRects = configJSON.volume_cache.link_rects
+
+	return visualizationDataToProps({
+		rects,
+		bounding_boxes: boundingBoxes,
+		link_rects: linkRects
+	})!
+}

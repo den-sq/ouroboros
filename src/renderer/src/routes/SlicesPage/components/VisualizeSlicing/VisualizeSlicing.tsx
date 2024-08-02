@@ -31,6 +31,8 @@ export type BoundingBoxType = {
 
 export const RAINBOW_GRADIENT = makeRainbowGradient(10)
 
+const SHOW_BBOXES = false
+
 // TODO maybe add grid
 
 // https://github.com/We-Gold/ouroboros/blob/b67033cf3155a5ee6a3356f649b5df84d667fb6c/ouroboros/pipeline/render_slices_pipeline.py
@@ -39,13 +41,15 @@ function VisualizeSlicing({
 	boundingBoxes,
 	linkRects,
 	useEveryNthRect,
-	colors
+	colors,
+	showBboxes = SHOW_BBOXES
 }: {
 	rects: Rect[]
 	boundingBoxes: BoundingBoxType[]
 	linkRects: number[]
 	useEveryNthRect?: number
 	colors?: string[]
+	showBboxes?: boolean
 }): JSX.Element {
 	if (useEveryNthRect === undefined) {
 		useEveryNthRect = 1
@@ -142,16 +146,17 @@ function VisualizeSlicing({
 				<OrbitControls target={center as Vector3} />
 
 				{sliceElements}
-				{boundingBoxes.map((boundingBox, i) => {
-					return (
-						<BoundingBox
-							key={i}
-							boundingBox={boundingBox}
-							color={'white'}
-							opacity={0.5}
-						/>
-					)
-				})}
+				{showBboxes &&
+					boundingBoxes.map((boundingBox, i) => {
+						return (
+							<BoundingBox
+								key={i}
+								boundingBox={boundingBox}
+								color={'white'}
+								opacity={0.5}
+							/>
+						)
+					})}
 			</Canvas>
 		</div>
 	)
