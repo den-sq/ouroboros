@@ -89,6 +89,7 @@ function useBackprojectPageState(): {
 		}
 	}, [streamDone, streamError])
 
+	////// HANDLE OPTIONS PANEL FORM SUBMISSION //////
 	const onSubmit = async (): Promise<void> => {
 		if (!connected || !directoryPath) {
 			return
@@ -148,6 +149,7 @@ function useBackprojectPageState(): {
 		)
 	}
 
+	////// HANDLE FILE DROP ON HEADER IN OPTIONS PANEL //////
 	const onHeaderDrop = async (content: string): Promise<void> => {
 		if (!directoryPath || !content || content === '') return
 

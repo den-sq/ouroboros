@@ -6,10 +6,15 @@ from fastapi.responses import JSONResponse
 import asyncio
 import uuid
 
+from ouroboros.common.file_system import (
+    load_options_for_slice,
+    load_options_for_slice_docker,
+)
+from ouroboros.common.pipelines import visualization_pipeline
 from ouroboros.common.server_types import BackProjectTask, SliceTask
 
 
-def create_api(app: FastAPI):
+def create_api(app: FastAPI, docker: bool = False):
     """
     Create the API for the Ouroboros server.
 
@@ -17,6 +22,8 @@ def create_api(app: FastAPI):
     ----------
     app : FastAPI
         The FastAPI server.
+    docker : bool, optional
+        Whether the server is running in a Docker container, by default False
     """
 
     tasks = {}
@@ -35,6 +42,20 @@ def create_api(app: FastAPI):
 
     @app.get("/slice_visualization/")
     async def get_slice_visualization(task_id: str):
+        """
+        Get the slice visualization data for an existing task.
+
+        Parameters
+        ----------
+        task_id : str
+            The ID of the task.
+
+        Returns
+        -------
+        JSONResponse
+            The slice visualization data.
+        """
+
         result = {
             "data": None,
             "error": None,
@@ -63,6 +84,66 @@ def create_api(app: FastAPI):
         else:
             result["error"] = "Item ID Not Found"
             return JSONResponse(result, status_code=404)
+
+    @app.get("/create_slice_visualization/")
+    async def on_demand_slice_visualization(options: str):
+        """
+        Create the slice visualization data from the options.
+
+        Parameters
+        ----------
+        options : str
+            The options for slicing the volume.
+
+        Returns
+        -------
+        JSONResponse
+            The slice visualization data.
+        """
+
+        result = {
+            "data": None,
+            "error": None,
+        }
+
+        try:
+            load_result = (
+                load_options_for_slice_docker(options)
+                if docker
+                else load_options_for_slice(options)
+            )
+        except BaseException as e:
+            result["error"] = f"Error loading options: {str(e)}"
+            return JSONResponse(result, status_code=400)
+
+        if isinstance(result, str):
+            result["error"] = slice_options
+            return JSONResponse(result, status_code=400)
+
+        slice_options = load_result[0] if docker else load_result
+
+        pipeline, input_data = visualization_pipeline(slice_options)
+
+        _, error = pipeline.process(input_data)
+
+        if error:
+            result["error"] = error
+            return JSONResponse(result, status_code=400)
+
+        data = {
+            "rects": input_data.slice_rects.tolist(),
+            "bounding_boxes": [
+                {
+                    "min": [bbox.x_min, bbox.y_min, bbox.z_min],
+                    "max": [bbox.x_max, bbox.y_max, bbox.z_max],
+                }
+                for bbox in input_data.volume_cache.bounding_boxes
+            ],
+            "link_rects": input_data.volume_cache.link_rects,
+        }
+        result["data"] = data
+
+        return JSONResponse(result, status_code=200)
 
     @app.post("/backproject/")
     async def add_backproject_task(

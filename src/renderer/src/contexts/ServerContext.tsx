@@ -39,6 +39,9 @@ export const ServerContext = createContext<ServerContextValue>(null as any)
 function useServerContextProvider(baseURL = DEFAULT_SERVER_URL): ServerContextValue {
 	const [fetchStates, setFetchStates] = useState<Map<string, FetchResult>>(new Map())
 	const [streamStates, setStreamStates] = useState<Map<string, StreamResult>>(new Map())
+	const [abortControllers, setAbortControllers] = useState<Map<string, AbortController>>(
+		new Map()
+	)
 
 	const setFetchStatesHelper = useCallback(
 		({
@@ -169,8 +172,14 @@ function useServerContextProvider(baseURL = DEFAULT_SERVER_URL): ServerContextVa
 			})
 
 			try {
-				const response = await fetch(fullURL, options)
+				const abortController = new AbortController()
+				const signal = abortController.signal
+
+				const response = await fetch(fullURL, { ...options, signal })
 				const data = await response.json()
+
+				// Add the abort controller to the state
+				setAbortControllers((prev) => new Map(prev.set(relativeURL, abortController)))
 
 				setFetchStatesHelper({
 					relativeURL,
@@ -190,13 +199,27 @@ function useServerContextProvider(baseURL = DEFAULT_SERVER_URL): ServerContextVa
 		[getFullURL]
 	)
 
-	const clearFetch = useCallback((relativeURL: string) => {
-		setFetchStatesHelper({
-			relativeURL,
-			results: null,
-			error: { status: false, message: '' }
-		})
-	}, [])
+	const clearFetch = useCallback(
+		(relativeURL: string) => {
+			setFetchStatesHelper({
+				relativeURL,
+				results: null,
+				error: { status: false, message: '' }
+			})
+
+			const abortController = abortControllers.get(relativeURL)
+
+			// Abort the fetch request if it is still pending
+			if (abortController) {
+				abortController.abort()
+				setAbortControllers((prev) => {
+					prev.delete(relativeURL)
+					return new Map(prev)
+				})
+			}
+		},
+		[abortControllers]
+	)
 
 	const performStream = useCallback(
 		(relativeURL: string, query: Record<string, any> = {}): Promise<void> => {

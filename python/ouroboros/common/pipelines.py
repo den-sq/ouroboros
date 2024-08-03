@@ -86,3 +86,35 @@ def backproject_pipeline(
     default_input_data = PipelineInput(config_file_path=backproject_options.config_path)
 
     return pipeline, default_input_data
+
+
+def visualization_pipeline(slice_options: SliceOptions):
+    """
+    Creates a pipeline for visualizing the slicing process.
+
+    Parameters
+    ----------
+    slice_options : SliceOptions
+        The options for slicing the volume.
+    verbose : bool, optional
+        Whether to show a progress bar for the pipeline, by default False
+
+    Returns
+    -------
+    tuple[Pipeline, PipelineInput]
+        The pipeline for slicing the volume and the default input data for the pipeline
+    """
+
+    pipeline = Pipeline(
+        [
+            ParseJSONPipelineStep(),
+            SlicesGeometryPipelineStep(),
+            VolumeCachePipelineStep(),
+        ]
+    )
+
+    default_input_data = PipelineInput(
+        slice_options=slice_options, json_path=slice_options.neuroglancer_json
+    )
+
+    return pipeline, default_input_data

@@ -52,10 +52,12 @@ export const addFSEventHandlers = (ipcMain: IpcMain, getMainWindow: () => Browse
 				isDirectory = stats.isDirectory()
 			}
 
+			// eslint-disable-next-line no-useless-escape
 			const relativePath = targetPath.replace(folderPath, '').replace(/^[\/\\]/, '')
 
 			let relativePathNext = ''
 			if (targetPathNext) {
+				// eslint-disable-next-line no-useless-escape
 				relativePathNext = targetPathNext.replace(folderPath, '').replace(/^[\/\\]/, '')
 			}
 

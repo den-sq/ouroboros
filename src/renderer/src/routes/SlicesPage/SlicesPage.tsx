@@ -29,9 +29,12 @@ const SLICE_RENDER_PROPORTION = 0.01
 
 const SLICE_STREAM = '/slice_status_stream/'
 
+const SLICE_STEP_NAME = 'SliceParallelPipelineStep'
+
 function SlicesPage(): JSX.Element {
 	const {
 		progress,
+		boundingBoxProgress,
 		connected,
 		entries,
 		onSubmit,
@@ -71,6 +74,7 @@ function SlicesPage(): JSX.Element {
 							useEveryNthRect={Math.floor(
 								visualizationData.rects.length * SLICE_RENDER_PROPORTION
 							)}
+							bboxPercent={boundingBoxProgress}
 						/>
 					) : null}
 				</VisualizePanel>
@@ -88,6 +92,7 @@ function SlicesPage(): JSX.Element {
 
 function useSlicePageState(): {
 	progress: [string, number][]
+	boundingBoxProgress: number
 	connected: boolean
 	entries: (Entry | CompoundEntry)[]
 	onSubmit: () => Promise<void>
@@ -121,14 +126,18 @@ function useSlicePageState(): {
 		done: streamDone
 	} = useStreamListener(SLICE_STREAM)
 
-	const { results: visualizationResults } = useFetchListener('/slice_visualization/')
 	const [visualizationData, setVisualizationData] = useState<VisualizationOutput | null>(null)
+
+	const { results: onDemandVisualizationResults } = useFetchListener(
+		'/create_slice_visualization/'
+	)
 
 	const { clearDragEvent, parentChildData } = useContext(DragContext)
 	const { isOver, setNodeRef: setDropNodeRef } = useDroppable({
 		id: 'slice-visualize'
 	})
 
+	////// HANDLE CONFIGURATION JSON FILE DROP ONTO VISUALIZATION PANEL //////
 	useEffect(() => {
 		const handleDrop = async (): Promise<void> => {
 			if (parentChildData) {
@@ -179,16 +188,17 @@ function useSlicePageState(): {
 		handleDrop()
 	}, [isOver, parentChildData])
 
+	// Update the visualization data when new data is received
 	useEffect(() => {
 		const visualizationDataResult = safeParse(
 			SliceVisualizationResultSchema,
-			visualizationResults
+			onDemandVisualizationResults
 		)
 
 		if (visualizationDataResult.success) {
 			setVisualizationData(visualizationDataToProps(visualizationDataResult.output.data))
 		}
-	}, [visualizationResults])
+	}, [onDemandVisualizationResults])
 
 	// Listen to the status stream for the active task
 	useEffect(() => {
@@ -213,15 +223,64 @@ function useSlicePageState(): {
 		if (streamError?.status) {
 			addAlert(streamError.message, 'error')
 		}
-
-		const results = safeParse(SliceResultSchema, sliceResults)
-
-		if (streamDone && results.success) {
-			// Get the visualization data
-			performFetch('/slice_visualization/', results.output)
-		}
 	}, [streamDone, streamError])
 
+	const saveOptionsToFile = async (): Promise<string | undefined> => {
+		if (!connected || !directoryPath) {
+			return
+		}
+
+		const optionsObject = entries[0].toObject()
+
+		// Convert relative paths to absolute paths if necessary
+		const outputFolder = optionsObject['output_file_folder'].startsWith('.')
+			? await join(directoryPath, optionsObject['output_file_folder'])
+			: optionsObject['output_file_folder']
+
+		// Add the absolute output folder to the options object
+		optionsObject['output_file_folder'] = outputFolder
+
+		const outputName = optionsObject['output_file_name']
+
+		// Validate options
+		if (
+			!optionsObject['output_file_folder'] ||
+			!outputName ||
+			!optionsObject['neuroglancer_json'] ||
+			optionsObject['output_file_folder'] === '' ||
+			outputName === '' ||
+			optionsObject['neuroglancer_json'] === ''
+		) {
+			return
+		}
+
+		const modifiedName = `${outputName}-slice-options.json`
+
+		// Save options to file
+		await writeFile(outputFolder, modifiedName, JSON.stringify(optionsObject, null, 4))
+
+		const outputOptions = await join(outputFolder, modifiedName)
+
+		return outputOptions
+	}
+
+	const requestVisualization = async (): Promise<void> => {
+		if (!connected || !directoryPath) {
+			return
+		}
+
+		if (onDemandVisualizationResults) clearFetch('/create_slice_visualization/')
+
+		// Save the options to a file
+		const outputOptions = await saveOptionsToFile()
+
+		if (!outputOptions) return
+
+		// Run the visualization
+		performFetch('/create_slice_visualization/', { options: outputOptions })
+	}
+
+	////// HANDLE ENTRY CHANGES IN OPTIONS PANEL /////////
 	const onEntryChange = async (entry: Entry): Promise<void> => {
 		if (entry.name === 'neuroglancer_json' && directoryPath) {
 			if (entry.value === '') return
@@ -280,8 +339,27 @@ function useSlicePageState(): {
 				addAlert('Invalid Neuroglancer JSON', 'error')
 			}
 		}
+
+		// Request visualization when the Neuroglancer JSON, slice dimensions, or bounding box params are changed
+		const visualizationEntries = [
+			'neuroglancer_json',
+			'neuroglancer_annotation_layer',
+			'slice_width',
+			'slice_height',
+			'dist_between_slices',
+			'bounding_box',
+			'max_depth',
+			'target_slices_per_box'
+		]
+
+		const streamInProgress = !streamDone && progress.length > 0
+
+		if (visualizationEntries.includes(entry.name) && entry.value !== '' && !streamInProgress) {
+			requestVisualization()
+		}
 	}
 
+	//////// HANDLE OPTIONS FORM SUBMISSION /////////
 	const onSubmit = async (): Promise<void> => {
 		if (!connected || !directoryPath) {
 			return
@@ -298,41 +376,15 @@ function useSlicePageState(): {
 			})
 		}
 
-		const optionsObject = entries[0].toObject()
+		const outputOptions = await saveOptionsToFile()
 
-		// Convert relative paths to absolute paths if necessary
-		const outputFolder = optionsObject['output_file_folder'].startsWith('.')
-			? await join(directoryPath, optionsObject['output_file_folder'])
-			: optionsObject['output_file_folder']
-
-		// Add the absolute output folder to the options object
-		optionsObject['output_file_folder'] = outputFolder
-
-		const outputName = optionsObject['output_file_name']
-
-		// Validate options
-		if (
-			!optionsObject['output_file_folder'] ||
-			!outputName ||
-			!optionsObject['neuroglancer_json'] ||
-			optionsObject['output_file_folder'] === '' ||
-			outputName === '' ||
-			optionsObject['neuroglancer_json'] === ''
-		) {
-			return
-		}
-
-		const modifiedName = `${outputName}-slice-options.json`
-
-		// Save options to file
-		await writeFile(outputFolder, modifiedName, JSON.stringify(optionsObject, null, 4))
-
-		const outputOptions = await join(outputFolder, modifiedName)
+		if (!outputOptions) return
 
 		// Run the slice generation
 		performFetch('/slice/', { options: outputOptions }, { method: 'POST' })
 	}
 
+	////// HANDLE FILE DROP ONTO HEADER OF OPTIONS PANEL //////
 	const onHeaderDrop = async (content: string): Promise<void> => {
 		if (!directoryPath || !content || content === '') return
 
@@ -372,8 +424,13 @@ function useSlicePageState(): {
 		}
 	}
 
+	const boundingBoxProgress = visualizationData
+		? (progress.find(([name]) => name === SLICE_STEP_NAME) ?? [SLICE_STEP_NAME, 0.0])[1]
+		: 0.0
+
 	return {
 		progress,
+		boundingBoxProgress,
 		connected,
 		entries,
 		onSubmit,

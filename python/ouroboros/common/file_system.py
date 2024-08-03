@@ -56,7 +56,7 @@ def load_options_for_backproject_docker(
 
     # Copy the file to the docker volume
     files = [{"sourcePath": options_path, "targetPath": target_path}]
-    success, error = asyncio.run(copy_to_volume(files))
+    success, error = copy_to_volume(files)
 
     if not success:
         return error
@@ -75,7 +75,7 @@ def load_options_for_backproject_docker(
         {"sourcePath": options.config_path, "targetPath": target_path},
     ]
 
-    success, error = asyncio.run(copy_to_volume(files))
+    success, error = copy_to_volume(files)
 
     if not success:
         return error
@@ -125,13 +125,13 @@ def save_output_for_backproject_docker(
         {"sourcePath": host_output_file, "targetPath": target_path},
         {"sourcePath": host_output_config_file, "targetPath": target_path},
     ]
-    success, error = asyncio.run(copy_to_host(files))
+    success, error = copy_to_host(files)
 
     if not success:
         return error
 
     # Clear the plugin folder
-    asyncio.run(clear_plugin_folder())
+    clear_plugin_folder()
 
 
 def load_options_for_slice(options_path: str) -> SliceOptions | str:
@@ -175,7 +175,7 @@ def load_options_for_slice_docker(
 
     # Copy the file to the docker volume
     files = [{"sourcePath": options_path, "targetPath": target_path}]
-    success, error = asyncio.run(copy_to_volume(files))
+    success, error = copy_to_volume(files)
 
     if not success:
         return error
@@ -207,7 +207,7 @@ def load_options_for_slice_docker(
         }
     ]
 
-    success, error = asyncio.run(copy_to_volume(files))
+    success, error = copy_to_volume(files)
 
     if not success:
         return error
@@ -246,10 +246,10 @@ def save_output_for_slice_docker(
         {"sourcePath": host_output_file, "targetPath": target_path},
         {"sourcePath": host_output_config_file, "targetPath": target_path},
     ]
-    success, error = asyncio.run(copy_to_host(files))
+    success, error = copy_to_host(files)
 
     if not success:
         return error
 
     # Clear the plugin folder
-    asyncio.run(clear_plugin_folder())
+    clear_plugin_folder()

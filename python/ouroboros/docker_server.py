@@ -13,7 +13,7 @@ app = create_server(docker=True)
 
 tasks = {}
 
-create_api(app)
+create_api(app, docker=True)
 
 
 def main():

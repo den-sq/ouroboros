@@ -11,7 +11,7 @@ def get_volume_path():
     return f"/volume/{PLUGIN_NAME}/"
 
 
-async def copy_to_volume(files):
+def copy_to_volume(files):
     """
     Copy host files to the main server's volume folder.
 
@@ -33,10 +33,10 @@ async def copy_to_volume(files):
         "files": files,
     }
 
-    return await request_volume_server("copy-to-volume", data)
+    return request_volume_server("copy-to-volume", data)
 
 
-async def copy_to_host(files):
+def copy_to_host(files):
     """
     Copy files from the main server's volume folder to the host.
 
@@ -58,10 +58,10 @@ async def copy_to_host(files):
         "files": files,
     }
 
-    return await request_volume_server("copy-to-host", data)
+    return request_volume_server("copy-to-host", data)
 
 
-async def clear_plugin_folder():
+def clear_plugin_folder():
     """
     Clear the main server's plugin folder.
 
@@ -77,10 +77,10 @@ async def clear_plugin_folder():
         "pluginFolderName": "main",
     }
 
-    return await request_volume_server("clear-plugin-folder", data)
+    return request_volume_server("clear-plugin-folder", data)
 
 
-async def request_volume_server(path, data):
+def request_volume_server(path, data):
     """
     Send a request to the main server's volume server.
 
