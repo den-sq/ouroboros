@@ -149,10 +149,12 @@ function deleteFilesFromVolumeFolder(volumeName, targetFolder) {
 	// Construct the Docker command
 	const command = `
     docker run --rm -v ${volumeName}:/volume alpine sh -c "
-    rm -rf '${targetFolderPath}'"
+    rm -rf ${targetFolderPath}"
 `
 		.replace(/\s+/g, ' ')
 		.trim()
+
+	console.log(command)
 
 	return command
 }
