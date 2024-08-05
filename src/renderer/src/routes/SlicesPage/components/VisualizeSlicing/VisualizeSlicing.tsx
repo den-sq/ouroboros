@@ -29,30 +29,24 @@ export type BoundingBoxType = {
 	max: Point
 }
 
-export const RAINBOW_GRADIENT = makeRainbowGradient(10)
-
 // https://github.com/We-Gold/ouroboros/blob/b67033cf3155a5ee6a3356f649b5df84d667fb6c/ouroboros/pipeline/render_slices_pipeline.py
 function VisualizeSlicing({
 	rects,
 	boundingBoxes,
 	linkRects,
 	useEveryNthRect,
-	colors,
+	customColors,
 	bboxPercent = 0.0
 }: {
 	rects: Rect[]
 	boundingBoxes: BoundingBoxType[]
 	linkRects: number[]
 	useEveryNthRect?: number
-	colors?: string[]
+	customColors?: string[]
 	bboxPercent?: number
 }): JSX.Element {
 	if (useEveryNthRect === undefined) {
 		useEveryNthRect = 1
-	}
-
-	if (colors === undefined) {
-		colors = RAINBOW_GRADIENT
 	}
 
 	const boundingBoxIndicesBySliceOrder = useMemo(() => {
@@ -69,6 +63,24 @@ function VisualizeSlicing({
 
 		return indexMap
 	}, [boundingBoxes])
+
+	const oneSlicePerBoundingBox = useMemo(() => {
+		const sliceCount = new Array(boundingBoxes.length).fill(0)
+
+		linkRects.forEach((boundingBoxIndex) => {
+			sliceCount[boundingBoxIndex]++
+		})
+
+		return sliceCount.some((count) => count <= 1)
+	}, [boundingBoxes, linkRects])
+
+	const colors = useMemo(() => {
+		if (customColors) return customColors
+
+		return oneSlicePerBoundingBox
+			? makeRainbowGradient(Math.floor(rects.length / useEveryNthRect))
+			: makeRainbowGradient(16)
+	}, [customColors, oneSlicePerBoundingBox])
 
 	const bounds = useMemo(
 		() =>
@@ -120,10 +132,20 @@ function VisualizeSlicing({
 			if (i % useEveryNthRect !== 0) {
 				return null
 			}
-			const color = colors[boundingBoxIndicesBySliceOrder[linkRects[i]] % colors.length]
+
+			const index = oneSlicePerBoundingBox ? Math.floor(i / useEveryNthRect) : linkRects[i]
+
+			const color = colors[boundingBoxIndicesBySliceOrder[index] % colors.length]
 			return <Slice key={i} rect={rect} color={color} opacity={0.5} />
 		})
-	}, [rects, useEveryNthRect, colors, boundingBoxIndicesBySliceOrder, linkRects])
+	}, [
+		rects,
+		useEveryNthRect,
+		colors,
+		boundingBoxIndicesBySliceOrder,
+		linkRects,
+		oneSlicePerBoundingBox
+	])
 
 	const [gl, setGL] = useState<WebGLRenderer | null>(null)
 
