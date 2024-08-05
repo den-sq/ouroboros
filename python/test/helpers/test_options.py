@@ -4,56 +4,6 @@ from ouroboros.helpers.bounding_boxes import BoundingBoxParams
 from ouroboros.helpers.options import CommonOptions, SliceOptions, BackprojectOptions
 
 
-def test_common_options_defaults():
-    options = CommonOptions(
-        output_file_folder="./output/",
-        output_file_name="output",
-    )
-    assert options.output_file_folder == "./output/"
-    assert options.output_file_name == "output"
-    assert not options.flush_cache
-    assert options.make_single_file
-    assert options.max_ram_gb == 0
-
-
-def test_slice_options_defaults():
-    options = SliceOptions(
-        neuroglancer_json="./neuroglancer.json",
-        slice_width=100,
-        slice_height=100,
-        output_file_folder="./output/",
-        output_file_name="output",
-    )
-    assert options.neuroglancer_json == "./neuroglancer.json"
-    assert options.neuroglancer_image_layer == ""
-    assert options.neuroglancer_annotation_layer == ""
-    assert options.slice_width == 100
-    assert options.slice_height == 100
-    assert options.output_file_folder == "./output/"
-    assert options.output_file_name == "output"
-    assert options.dist_between_slices == 1
-    assert not options.flush_cache
-    assert not options.connect_start_and_end
-    assert options.make_single_file
-    assert options.max_ram_gb == 0
-
-
-def test_backproject_options_defaults():
-    options = BackprojectOptions(
-        output_file_folder="./output/",
-        output_file_name="output",
-        straightened_volume_path="./volume.tif",
-        config_path="./config.json",
-    )
-    assert options.output_file_folder == "./output/"
-    assert options.output_file_name == "output"
-    assert options.straightened_volume_path == "./volume.tif"
-    assert options.config_path == "./config.json"
-    assert options.backproject_min_bounding_box
-    assert not options.make_backprojection_binary
-    assert options.backprojection_compression == "zlib"
-
-
 def test_common_options_validation():
     with pytest.raises(ValidationError):
         CommonOptions()

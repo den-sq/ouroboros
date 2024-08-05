@@ -58,3 +58,20 @@ class BackprojectOptions(CommonOptions):
     backprojection_compression: str = (
         "zlib"  # Compression type for the backprojected file
     )
+
+
+DEFAULT_SLICE_OPTIONS = SliceOptions(
+    slice_width=100,
+    slice_height=100,
+    output_file_folder="./output/",
+    output_file_name="sample",
+    neuroglancer_json="./neuroglancer.json",
+)
+
+DEFAULT_BACKPROJECT_OPTIONS = BackprojectOptions(
+    output_file_folder="./output/",
+    output_file_name="sample",
+    straightened_volume_path="./sample.tif",
+    config_path="./sample-configuration.json",
+    make_single_file=False,
+)

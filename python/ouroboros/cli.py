@@ -3,7 +3,12 @@ from multiprocessing import freeze_support
 import argparse
 
 from ouroboros.common.pipelines import backproject_pipeline, slice_pipeline
-from ouroboros.helpers.options import BackprojectOptions, SliceOptions
+from ouroboros.helpers.options import (
+    DEFAULT_BACKPROJECT_OPTIONS,
+    DEFAULT_SLICE_OPTIONS,
+    BackprojectOptions,
+    SliceOptions,
+)
 
 import json
 
@@ -104,19 +109,8 @@ def handle_backproject(args):
 
 def handle_sample_options():
     # Create sample options files
-    sample_slice_options = SliceOptions(
-        slice_width=100,
-        slice_height=100,
-        output_file_folder="./output/",
-        output_file_name="sample",
-        neuroglancer_json="./neuroglancer.json",
-    )
-    sample_backproject_options = BackprojectOptions(
-        output_file_folder="./output/",
-        output_file_name="sample",
-        straightened_volume_path="./sample.tif",
-        config_path="./sample-configuration.json",
-    )
+    sample_slice_options = DEFAULT_SLICE_OPTIONS
+    sample_backproject_options = DEFAULT_BACKPROJECT_OPTIONS
 
     # Save the sample options files
     sample_slice_options.save_to_json("./sample-slice-options.json")

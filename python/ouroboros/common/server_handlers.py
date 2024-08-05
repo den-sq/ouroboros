@@ -100,7 +100,7 @@ def handle_backproject_docker(task: BackProjectTask):
         task.status = "error"
         return
 
-    options, host_output_file, host_output_config_file = load_result
+    options, host_output_file, host_output_config_file, host_output_slices = load_result
 
     backproject_result = handle_backproject_core(task, options)
 
@@ -110,7 +110,7 @@ def handle_backproject_docker(task: BackProjectTask):
         return
 
     save_result = save_output_for_backproject_docker(
-        host_output_file, host_output_config_file
+        host_output_file, host_output_config_file, host_output_slices=host_output_slices
     )
 
     if save_result:

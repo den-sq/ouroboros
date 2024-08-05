@@ -37,7 +37,7 @@ def load_options_for_backproject(options_path: str) -> BackprojectOptions | str:
 
 def load_options_for_backproject_docker(
     options_path: str, target_path: str = "./"
-) -> tuple[BackprojectOptions, str, str] | str:
+) -> tuple[BackprojectOptions, str, str, str | None] | str:
     """
     Loads the options for backprojecting a volume and copies the necessary files to the docker volume.
 
@@ -50,8 +50,9 @@ def load_options_for_backproject_docker(
 
     Returns
     -------
-    tuple[BackprojectOptions, str, str] | str
-        The options for backprojecting the volume, the host path to the output file, and the host path to the config file.
+    tuple[BackprojectOptions, str, str, str | None] | str
+        The options for backprojecting the volume, the host path to the output file, the host path to the config file,
+        and the host path to the slices folder if the output is not a single file.
     """
 
     # Copy the file to the docker volume
@@ -85,6 +86,13 @@ def load_options_for_backproject_docker(
     host_output_file = combine_unknown_folder(
         host_output_folder, options.output_file_name + "-backprojected.tif"
     )
+    host_output_slices = (
+        combine_unknown_folder(
+            host_output_folder, options.output_file_name + "-backprojected"
+        )
+        if options.make_single_file is False
+        else None
+    )
     host_output_config_file = options.config_path
 
     # Define the path to the copied straightened volume and config files in the docker volume
@@ -96,11 +104,14 @@ def load_options_for_backproject_docker(
     # Modify the output file folder to be in the docker volume
     options.output_file_folder = get_volume_path()
 
-    return options, host_output_file, host_output_config_file
+    return options, host_output_file, host_output_config_file, host_output_slices
 
 
 def save_output_for_backproject_docker(
-    host_output_file: str, host_output_config_file: str, target_path: str = "./"
+    host_output_file: str,
+    host_output_config_file: str,
+    host_output_slices=None,
+    target_path: str = "./",
 ) -> None | str:
     """
     Saves the output files for backprojecting a volume to the host.
@@ -111,6 +122,8 @@ def save_output_for_backproject_docker(
         The path to the output file on the host.
     host_output_config_file : str
         The path to the config file on the host.
+    host_output_slices : str, optional
+        The path to the slices folder on the host, by default None
     target_path : str, optional
         The path to the target folder in the docker volume, by default "./"
 
@@ -125,6 +138,10 @@ def save_output_for_backproject_docker(
         {"sourcePath": host_output_file, "targetPath": target_path},
         {"sourcePath": host_output_config_file, "targetPath": target_path},
     ]
+
+    if host_output_slices is not None:
+        files.append({"sourcePath": host_output_slices, "targetPath": target_path})
+
     success, error = copy_to_host(files)
 
     if not success:

@@ -195,7 +195,7 @@ export class BackprojectOptionsFile extends CompoundEntry {
 			new Entry('output_file_folder', 'Output File Folder', './', 'filePath'),
 			new Entry('output_file_name', 'Output File Name', 'sample', 'string'),
 			new Entry('backprojection_compression', 'Backprojection Compression', 'zlib', 'string'),
-			new Entry('make_single_file', 'Output Single File', true, 'boolean').withHidden(),
+			new Entry('make_single_file', 'Output Single File', false, 'boolean'),
 			new Entry('backproject_min_bounding_box', 'Output Min Bounding Box', true, 'boolean'),
 			new Entry('make_backprojection_binary', 'Binary Backprojection', false, 'boolean'),
 			new Entry('flush_cache', 'Flush CloudVolume Cache', false, 'boolean').withHidden(),
