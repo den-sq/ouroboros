@@ -56,6 +56,37 @@ class BackprojectPipelineStep(PipelineStep):
 
         straightened_volume_path = input_tiff_path
 
+        # Make sure the straightened volume exists
+        if not os.path.exists(straightened_volume_path):
+            return (
+                f"The straightened volume does not exist at {straightened_volume_path}."
+            )
+
+        # Make sure the straightened volume is an uncompressed tif file.
+        # If not, convert it to an uncompressed tif file.
+        try:
+            mmap = make_tiff_memmap(straightened_volume_path, mode="r")
+            del mmap
+        except BaseException as e:
+            # Create a new path for the straightened volume
+            new_straightened_volume_path = join_path(
+                config.output_file_folder,
+                f"{config.output_file_name}-temp-straightened.tif",
+            )
+
+            # Save the straightened volume to a new tif file
+            with tifffile.TiffWriter(
+                new_straightened_volume_path
+            ) as tif, tifffile.TiffFile(straightened_volume_path) as tif_in:
+                for i in range(len(tif_in.pages)):
+                    tif.save(
+                        tif_in.pages[i].asarray(),
+                        contiguous=True,
+                        compression=None,
+                    )
+
+            straightened_volume_path = new_straightened_volume_path
+
         volume_paths = [None] * len(volume_cache.bounding_boxes)
         volume_memmaps = [None] * len(volume_cache.bounding_boxes)
 
@@ -150,10 +181,14 @@ class BackprojectPipelineStep(PipelineStep):
         # Determine the number of digits needed for the tif file names
         num_digits = len(str(volume_shape[axis] - 1))
 
-        has_multiple_channels = volume_cache.has_color_channels()
+        # Determine the number of channels in the straightened volume
+        temp_straightened_volume = make_tiff_memmap(straightened_volume_path, mode="r")
         num_channels = (
-            None if not has_multiple_channels else volume_cache.get_num_channels()
+            None
+            if temp_straightened_volume.ndim == 3
+            else temp_straightened_volume.shape[-1]
         )
+        has_multiple_channels = num_channels is not None
 
         # Write the chunks to tif files
         for i, (chunk_bounding_box, bounding_boxes) in enumerate(chunks_and_boxes):
@@ -317,9 +352,12 @@ def process_bounding_box(
     start = time.perf_counter()
     straightened_volume = make_tiff_memmap(straightened_volume_path, mode="r")
     num_channels = (
-        None if len(straightened_volume.shape) == 3 else straightened_volume.shape[-1]
+        None if straightened_volume.ndim == 3 else straightened_volume.shape[-1]
     )
-    slice_width, slice_height = straightened_volume.shape[1], straightened_volume.shape[2]
+    slice_width, slice_height = (
+        straightened_volume.shape[1],
+        straightened_volume.shape[2],
+    )
     durations["memmap"].append(time.perf_counter() - start)
 
     # Get the slices from the straightened volume
@@ -334,9 +372,7 @@ def process_bounding_box(
     start = time.perf_counter()
     grids = np.array(
         [
-            generate_coordinate_grid_for_rect(
-                slice_rects[i], slice_width, slice_height
-            )
+            generate_coordinate_grid_for_rect(slice_rects[i], slice_width, slice_height)
             for i in slice_indices
         ]
     )
