@@ -3,7 +3,11 @@ from ouroboros.helpers.slice import (
     slice_volume_from_grids,
 )
 from ouroboros.helpers.volume_cache import VolumeCache
-from ouroboros.helpers.files import join_path
+from ouroboros.helpers.files import (
+    format_slice_output_file,
+    format_slice_output_multiple,
+    join_path,
+)
 from .pipeline import PipelineStep
 from ouroboros.helpers.options import SliceOptions
 import numpy as np
@@ -52,11 +56,15 @@ class SliceParallelPipelineStep(PipelineStep):
 
         # Create a folder with the same name as the output file
         folder_name = join_path(
-            config.output_file_folder, f"{config.output_file_name}-slices"
+            config.output_file_folder,
+            format_slice_output_multiple(config.output_file_name),
         )
-        os.makedirs(folder_name, exist_ok=True)
+
+        if config.make_single_file:
+            os.makedirs(folder_name, exist_ok=True)
+
         output_file_path = join_path(
-            config.output_file_folder, config.output_file_name + ".tif"
+            config.output_file_folder, format_slice_output_file(config.output_file_name)
         )
 
         # Create an empty tiff to store the slices

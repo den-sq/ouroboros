@@ -9,6 +9,9 @@ from .spline import Spline
 
 INDEXING = "xy"
 
+NO_COLOR_CHANNELS_DIMENSIONS = 3
+COLOR_CHANNELS_DIMENSIONS = NO_COLOR_CHANNELS_DIMENSIONS + 1
+
 
 def calculate_slice_rects(
     times: np.ndarray, spline: Spline, width, height, spline_points=None
@@ -143,14 +146,14 @@ def slice_volume_from_grids(
     normalized_grid = normalized_grid.reshape(-1, 3).T
 
     # Check if volume has color channels
-    has_color_channels = volume.ndim == 4
+    has_color_channels, num_channels = detect_color_channels(volume)
 
     if has_color_channels:
         # Initialize an empty list to store slices from each channel
         channel_slices = []
 
         # Iterate over each color channel
-        for channel in range(volume.shape[-1]):
+        for channel in range(num_channels):
             # Extract the current channel
             current_channel = volume[..., channel]
 
@@ -202,9 +205,7 @@ def write_slices_to_volume(
     weights = slice_coords - coords_floor
 
     # Check if volume has color channels
-    has_color_channels = volume.ndim == 4
-
-    num_channels = volume.shape[-1] if has_color_channels else 1
+    has_color_channels, num_channels = detect_color_channels(volume)
 
     for channel in range(num_channels):
         # Initialize the accumulation arrays
@@ -269,3 +270,25 @@ def make_volume_binary(volume: np.ndarray, dtype=np.uint8) -> np.ndarray:
     """
 
     return (volume > 0).astype(dtype)
+
+
+def detect_color_channels(data: np.ndarray, none_value=1):
+    """
+    Detect the number of color channels in a volume.
+
+    Parameters:
+    ----------
+        data (numpy.ndarray): The volume data.
+        none_value (int): The value to return if the volume has no color channels.
+
+    Returns:
+    -------
+        tuple: A tuple containing the following:
+            - has_color_channels (bool): Whether the volume has color channels.
+            - num_color_channels (int): The number of color channels in the volume.
+    """
+
+    has_color_channels = data.ndim == COLOR_CHANNELS_DIMENSIONS
+    num_color_channels = data.shape[-1] if has_color_channels else none_value
+
+    return has_color_channels, num_color_channels

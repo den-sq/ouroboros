@@ -1,6 +1,13 @@
 import os
 from tifffile import imwrite
 from ouroboros.helpers.files import (
+    format_backproject_output_file,
+    format_backproject_output_multiple,
+    format_backproject_resave_volume,
+    format_backproject_tempvolumes,
+    format_slice_output_config_file,
+    format_slice_output_file,
+    format_slice_output_multiple,
     load_and_save_tiff_from_slices,
     get_sorted_tif_files,
     join_path,
@@ -100,3 +107,38 @@ def test_combine_unknown_folder_win_slash():
     filename = "file.txt"
     combined = combine_unknown_folder(directory, filename)
     assert combined == "C:\\path\\to\\directory\\file.txt"
+
+
+def test_format_slice_output_file():
+    result = format_slice_output_file("test")
+    assert isinstance(result, str)
+
+
+def test_format_slice_output_multiple():
+    result = format_slice_output_multiple("test")
+    assert isinstance(result, str)
+
+
+def test_format_slice_output_config_file():
+    result = format_slice_output_config_file("test")
+    assert isinstance(result, str)
+
+
+def test_format_backproject_output_file():
+    result = format_backproject_output_file("test")
+    assert isinstance(result, str)
+
+
+def test_format_backproject_output_multiple():
+    result = format_backproject_output_multiple("test")
+    assert isinstance(result, str)
+
+
+def test_format_backproject_tempvolumes():
+    result = format_backproject_tempvolumes("test")
+    assert isinstance(result, str)
+
+
+def test_format_backproject_resave_volume():
+    result = format_backproject_resave_volume("test")
+    assert isinstance(result, str)

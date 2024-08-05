@@ -102,6 +102,7 @@ def get_sorted_tif_files(directory):
 def join_path(*args):
     return str(Path(*args))
 
+
 def combine_unknown_folder(directory_path: str, filename: str) -> str:
     """
     Combine a directory path and a filename into a single path.
@@ -129,3 +130,31 @@ def combine_unknown_folder(directory_path: str, filename: str) -> str:
             directory_path += "\\"
 
     return directory_path + filename
+
+
+def format_slice_output_file(output_name: str):
+    return output_name + ".tif"
+
+
+def format_slice_output_multiple(output_name: str):
+    return output_name + "-slices"
+
+
+def format_slice_output_config_file(output_name: str):
+    return output_name + "-configuration.json"
+
+
+def format_backproject_output_file(output_name: str):
+    return output_name + "-backprojected.tif"
+
+
+def format_backproject_output_multiple(output_name: str):
+    return output_name + "-backprojected"
+
+
+def format_backproject_tempvolumes(output_name: str):
+    return output_name + "-tempvolumes"
+
+
+def format_backproject_resave_volume(output_name: str):
+    return output_name + "-temp-straightened.tif"

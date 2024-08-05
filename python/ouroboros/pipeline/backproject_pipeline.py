@@ -1,5 +1,6 @@
-from ouroboros.helpers.memory_usage import calculate_gigabytes_from_dimensions
+from ouroboros.helpers.memory_usage import GIGABYTE, calculate_gigabytes_from_dimensions
 from ouroboros.helpers.slice import (
+    detect_color_channels,
     generate_coordinate_grid_for_rect,
     make_volume_binary,
     write_slices_to_volume,
@@ -9,6 +10,9 @@ from ouroboros.helpers.bounding_boxes import BoundingBox
 from .pipeline import PipelineStep
 from ouroboros.helpers.options import BackprojectOptions
 from ouroboros.helpers.files import (
+    format_backproject_output_multiple,
+    format_backproject_resave_volume,
+    format_backproject_tempvolumes,
     get_sorted_tif_files,
     join_path,
     load_and_save_tiff_from_slices,
@@ -75,7 +79,7 @@ class BackprojectPipelineStep(PipelineStep):
             # Create a new path for the straightened volume
             new_straightened_volume_path = join_path(
                 config.output_file_folder,
-                f"{config.output_file_name}-temp-straightened.tif",
+                format_backproject_resave_volume(config.output_file_name),
             )
 
             # Save the straightened volume to a new tif file
@@ -106,7 +110,8 @@ class BackprojectPipelineStep(PipelineStep):
 
         # Create a folder to hold the temporary volume files
         temp_folder_path = join_path(
-            config.output_file_folder, f"{config.output_file_name}-tempvolumes"
+            config.output_file_folder,
+            format_backproject_tempvolumes(config.output_file_name),
         )
         os.makedirs(temp_folder_path, exist_ok=True)
 
@@ -161,7 +166,7 @@ class BackprojectPipelineStep(PipelineStep):
             DEFAULT_CHUNK_SIZE
             if config.max_ram_gb == 0
             else int(
-                (config.max_ram_gb * 1024**3)
+                (config.max_ram_gb * GIGABYTE)
                 / calculate_chunk_size(config, volume_cache)
             )
         )
@@ -182,7 +187,8 @@ class BackprojectPipelineStep(PipelineStep):
 
         # Save the backprojected volume to a series of tif files
         folder_path = join_path(
-            config.output_file_folder, f"{config.output_file_name}-backprojected"
+            config.output_file_folder,
+            format_backproject_output_multiple(config.output_file_name),
         )
         if os.path.exists(folder_path):
             shutil.rmtree(folder_path)
@@ -197,12 +203,10 @@ class BackprojectPipelineStep(PipelineStep):
 
         # Determine the number of channels in the straightened volume
         temp_straightened_volume = make_tiff_memmap(straightened_volume_path, mode="r")
-        num_channels = (
-            None
-            if temp_straightened_volume.ndim == 3
-            else temp_straightened_volume.shape[-1]
+        has_multiple_channels, num_channels = detect_color_channels(
+            temp_straightened_volume, none_value=None
         )
-        has_multiple_channels = num_channels is not None
+        del temp_straightened_volume
 
         # Write the chunks to tif files
         for i, (chunk_bounding_box, bounding_boxes) in enumerate(chunks_and_boxes):
@@ -310,7 +314,8 @@ class BackprojectPipelineStep(PipelineStep):
         # Delete the temporary volume files
         shutil.rmtree(
             join_path(
-                config.output_file_folder, config.output_file_name + "-tempvolumes"
+                config.output_file_folder,
+                format_backproject_tempvolumes(config.output_file_name),
             )
         )
 
@@ -365,9 +370,7 @@ def process_bounding_box(
     # Load the straightened volume
     start = time.perf_counter()
     straightened_volume = make_tiff_memmap(straightened_volume_path, mode="r")
-    num_channels = (
-        None if straightened_volume.ndim == 3 else straightened_volume.shape[-1]
-    )
+    _, num_channels = detect_color_channels(straightened_volume, none_value=None)
     slice_width, slice_height = (
         straightened_volume.shape[1],
         straightened_volume.shape[2],
@@ -406,7 +409,7 @@ def process_bounding_box(
     start = time.perf_counter()
     file_path = join_path(
         config.output_file_folder,
-        f"{config.output_file_name}-tempvolumes",
+        format_backproject_tempvolumes(config.output_file_name),
         f"{index}.tif",
     )
     tifffile.imwrite(file_path, volume, software="ouroboros")
@@ -442,7 +445,7 @@ def calculate_chunk_size(config, volume_cache, axis=0):
         volume_cache.get_volume_dtype(),
     )
 
-    return int((config.max_ram_gb * 1024**3) / bounding_box_memory_usage)
+    return int((config.max_ram_gb * GIGABYTE) / bounding_box_memory_usage)
 
 
 def create_volume_chunks(

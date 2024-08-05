@@ -1,4 +1,5 @@
 from ouroboros.helpers.memory_usage import (
+    GIGABYTE,
     calculate_gigabytes_in_array,
     calculate_gigabytes_from_dimensions,
 )
@@ -8,7 +9,7 @@ import numpy as np
 
 def test_calculate_gigabytes_in_array():
     # Create a numpy array with 1 GB size
-    array = np.zeros(int((1024**3) / np.dtype(np.float64).itemsize), dtype=np.float64)
+    array = np.zeros(int((GIGABYTE) / np.dtype(np.float64).itemsize), dtype=np.float64)
 
     # Calculate the expected result
     expected_result = 1.0

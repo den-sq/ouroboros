@@ -3,6 +3,7 @@ import pytest
 from ouroboros.helpers.bounding_boxes import BoundingBox
 from ouroboros.helpers.slice import (
     calculate_slice_rects,
+    detect_color_channels,
     generate_coordinate_grid_for_rect,
     make_volume_binary,
     slice_volume_from_grids,
@@ -212,3 +213,34 @@ def test_make_volume_binary():
     assert binary_volume.shape == volume.shape
     assert binary_volume.dtype == np.uint8
     assert np.array_equal(binary_volume, expected_binary_volume)
+
+
+def test_detect_color_channels_no_channels():
+    data = np.random.rand(10, 10, 10)  # 3D array
+    has_color_channels, num_color_channels = detect_color_channels(data)
+    assert not has_color_channels
+    assert num_color_channels == 1
+
+
+def test_detect_color_channels_with_channels():
+    data = np.random.rand(10, 10, 10, 3)  # 4D array with 3 color channels
+    has_color_channels, num_color_channels = detect_color_channels(data)
+    assert has_color_channels
+    assert num_color_channels == 3
+
+
+def test_detect_color_channels_with_different_channels():
+    data = np.random.rand(10, 10, 10, 4)  # 4D array with 4 color channels
+    has_color_channels, num_color_channels = detect_color_channels(data)
+    assert has_color_channels
+    assert num_color_channels == 4
+
+
+def test_detect_color_channels_custom_none_value():
+    data = np.random.rand(10, 10, 10)  # 3D array
+    none_value = 0
+    has_color_channels, num_color_channels = detect_color_channels(
+        data, none_value=none_value
+    )
+    assert not has_color_channels
+    assert num_color_channels == none_value

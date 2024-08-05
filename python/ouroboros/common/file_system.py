@@ -6,7 +6,14 @@ from ouroboros.common.volume_server_interface import (
     copy_to_host,
     copy_to_volume,
 )
-from ouroboros.helpers.files import combine_unknown_folder
+from ouroboros.helpers.files import (
+    combine_unknown_folder,
+    format_backproject_output_file,
+    format_backproject_output_multiple,
+    format_slice_output_config_file,
+    format_slice_output_file,
+    format_slice_output_multiple,
+)
 from ouroboros.helpers.options import BackprojectOptions, SliceOptions
 
 
@@ -83,11 +90,12 @@ def load_options_for_backproject_docker(
     # Define the output file paths
     host_output_folder = options.output_file_folder
     host_output_file = combine_unknown_folder(
-        host_output_folder, options.output_file_name + "-backprojected.tif"
+        host_output_folder, format_backproject_output_file(options.output_file_name)
     )
     host_output_slices = (
         combine_unknown_folder(
-            host_output_folder, options.output_file_name + "-backprojected"
+            host_output_folder,
+            format_backproject_output_multiple(options.output_file_name),
         )
         if options.make_single_file is False
         else None
@@ -210,17 +218,19 @@ def load_options_for_slice_docker(
 
     host_output_folder = slice_options.output_file_folder
     host_output_file = combine_unknown_folder(
-        host_output_folder, slice_options.output_file_name + ".tif"
+        host_output_folder, format_slice_output_file(slice_options.output_file_name)
     )
     host_output_slices = (
         combine_unknown_folder(
-            host_output_folder, slice_options.output_file_name + "-slices"
+            host_output_folder,
+            format_slice_output_multiple(slice_options.output_file_name),
         )
         if slice_options.make_single_file is False
         else None
     )
     host_output_config_file = combine_unknown_folder(
-        host_output_folder, slice_options.output_file_name + "-configuration.json"
+        host_output_folder,
+        format_slice_output_config_file(slice_options.output_file_name),
     )
 
     # Modify the output file folder to be in the docker volume
