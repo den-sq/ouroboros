@@ -173,7 +173,7 @@ export class SliceOptionsFile extends CompoundEntry {
 			new Entry('output_file_folder', 'Output File Folder', './', 'filePath'),
 			new Entry('output_file_name', 'Output File Name', 'sample', 'string'),
 			new Entry('dist_between_slices', 'Distance Between Slices', 1, 'number'),
-			new Entry('make_single_file', 'Output Single File', true, 'boolean').withHidden(),
+			new Entry('make_single_file', 'Output Single File', true, 'boolean'),
 			new Entry('connect_start_and_end', 'Connect Endpoints', false, 'boolean'),
 			new Entry('flush_cache', 'Flush CloudVolume Cache', false, 'boolean').withHidden(),
 			new CompoundEntry('bounding_box_params', 'Bounding Box Parameters', [

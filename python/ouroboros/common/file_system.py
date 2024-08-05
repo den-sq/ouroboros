@@ -134,12 +134,16 @@ def save_output_for_backproject_docker(
 
     # Copy the output files to the host
     files = [
-        {"sourcePath": host_output_file, "targetPath": target_path},
+        {
+            "sourcePath": (
+                host_output_slices
+                if host_output_slices is not None
+                else host_output_file
+            ),
+            "targetPath": target_path,
+        },
         {"sourcePath": host_output_config_file, "targetPath": target_path},
     ]
-
-    if host_output_slices is not None:
-        files.append({"sourcePath": host_output_slices, "targetPath": target_path})
 
     success, error = copy_to_host(files)
 
@@ -172,7 +176,7 @@ def load_options_for_slice(options_path: str) -> SliceOptions | str:
 
 def load_options_for_slice_docker(
     options_path: str, target_path: str = "./"
-) -> tuple[SliceOptions, str, str] | str:
+) -> tuple[SliceOptions, str, str, str | None] | str:
     """
     Loads the options for slicing a volume and copies the necessary files to the docker volume.
 
@@ -185,7 +189,7 @@ def load_options_for_slice_docker(
 
     Returns
     -------
-    tuple[SliceOptions, str, str] | str
+    tuple[SliceOptions, str, str, str | None] | str
         The options for slicing the volume, the host path to the output file, and the host path to the config file.
     """
 
@@ -207,6 +211,13 @@ def load_options_for_slice_docker(
     host_output_folder = slice_options.output_file_folder
     host_output_file = combine_unknown_folder(
         host_output_folder, slice_options.output_file_name + ".tif"
+    )
+    host_output_slices = (
+        combine_unknown_folder(
+            host_output_folder, slice_options.output_file_name + "-slices"
+        )
+        if slice_options.make_single_file is False
+        else None
     )
     host_output_config_file = combine_unknown_folder(
         host_output_folder, slice_options.output_file_name + "-configuration.json"
@@ -233,11 +244,14 @@ def load_options_for_slice_docker(
         slice_options.neuroglancer_json
     )
 
-    return slice_options, host_output_file, host_output_config_file
+    return slice_options, host_output_file, host_output_config_file, host_output_slices
 
 
 def save_output_for_slice_docker(
-    host_output_file: str, host_output_config_file: str, target_path: str = "./"
+    host_output_file: str,
+    host_output_config_file: str,
+    host_output_slices=None,
+    target_path: str = "./",
 ) -> None | str:
     """
     Saves the output files for slicing a volume to the host.
@@ -248,6 +262,8 @@ def save_output_for_slice_docker(
         The path to the output file on the host.
     host_output_config_file : str
         The path to the config file on the host.
+    host_output_slices : str, optional
+        The path to the slices folder on the host, by default None
     target_path : str, optional
         The path to the target folder in the docker volume, by default "./"
 
@@ -259,7 +275,14 @@ def save_output_for_slice_docker(
 
     # Copy the output files to the host
     files = [
-        {"sourcePath": host_output_file, "targetPath": target_path},
+        {
+            "sourcePath": (
+                host_output_slices
+                if host_output_slices is not None
+                else host_output_file
+            ),
+            "targetPath": target_path,
+        },
         {"sourcePath": host_output_config_file, "targetPath": target_path},
     ]
     success, error = copy_to_host(files)

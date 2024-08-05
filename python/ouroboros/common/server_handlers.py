@@ -46,7 +46,9 @@ def handle_slice_docker(task: SliceTask):
         task.status = "error"
         return
 
-    slice_options, host_output_file, host_output_config_file = load_result
+    slice_options, host_output_file, host_output_config_file, host_output_slices = (
+        load_result
+    )
 
     slice_result = handle_slice_core(task, slice_options)
 
@@ -56,7 +58,7 @@ def handle_slice_docker(task: SliceTask):
         return
 
     save_result = save_output_for_slice_docker(
-        host_output_file, host_output_config_file
+        host_output_file, host_output_config_file, host_output_slices=host_output_slices
     )
 
     if save_result:

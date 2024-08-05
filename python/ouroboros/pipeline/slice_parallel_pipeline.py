@@ -3,12 +3,12 @@ from ouroboros.helpers.slice import (
     slice_volume_from_grids,
 )
 from ouroboros.helpers.volume_cache import VolumeCache
-from ouroboros.helpers.files import join_path, load_and_save_tiff_from_slices
+from ouroboros.helpers.files import join_path
 from .pipeline import PipelineStep
 from ouroboros.helpers.options import SliceOptions
 import numpy as np
 import concurrent.futures
-from tifffile import imwrite
+from tifffile import imwrite, memmap
 import os
 import multiprocessing
 import time
@@ -58,6 +58,45 @@ class SliceParallelPipelineStep(PipelineStep):
         output_file_path = join_path(
             config.output_file_folder, config.output_file_name + ".tif"
         )
+
+        # Create an empty tiff to store the slices
+        if config.make_single_file:
+            # Make sure slice rects is not empty
+            if len(slice_rects) == 0:
+                return "No slice rects were provided."
+
+            try:
+                resolution = volume_cache.get_resolution_um()[:2]
+                resolutionunit = "MICROMETER"
+
+                # Determine the dimensions of the image
+                has_color_channels = volume_cache.has_color_channels()
+                num_color_channels = (
+                    volume_cache.get_num_channels() if has_color_channels else None
+                )
+
+                # Create a single tif file with the same dimensions as the slices
+                temp_shape = (
+                    slice_rects.shape[0],
+                    config.slice_width,
+                    config.slice_height,
+                ) + ((num_color_channels,) if has_color_channels else ())
+                temp_data = np.zeros(temp_shape, dtype=volume_cache.get_volume_dtype())
+
+                imwrite(
+                    output_file_path,
+                    temp_data,
+                    software="ouroboros",
+                    resolution=resolution,
+                    resolutionunit=resolutionunit,
+                    photometric=(
+                        "rgb"
+                        if has_color_channels and num_color_channels > 1
+                        else "minisblack"
+                    ),
+                )
+            except BaseException as e:
+                return f"Error creating single tif file: {e}"
 
         # Calculate the number of digits needed to store the number of slices
         num_digits = len(str(len(slice_rects) - 1))
@@ -115,6 +154,11 @@ class SliceParallelPipelineStep(PipelineStep):
                                 slice_rects,
                                 self.num_threads,
                                 num_digits,
+                                single_output_path=(
+                                    output_file_path
+                                    if config.make_single_file
+                                    else None
+                                ),
                             )
                         )
 
@@ -154,21 +198,6 @@ class SliceParallelPipelineStep(PipelineStep):
         except BaseException as e:
             return f"Error downloading data: {e}"
 
-        if config.make_single_file:
-            try:
-                resolution = volume_cache.get_resolution_um()[:2]
-                resolutionunit = "MICROMETER"
-
-                load_and_save_tiff_from_slices(
-                    folder_name,
-                    output_file_path,
-                    delete_intermediate=self.delete_intermediate,
-                    resolution=resolution,
-                    resolutionunit=resolutionunit,
-                )
-            except BaseException as e:
-                return f"Error creating single tif file: {e}"
-
         # Update the pipeline input with the output file path
         pipeline_input.output_file_path = output_file_path
 
@@ -189,7 +218,13 @@ def thread_worker_iterative(
 
 
 def process_worker_save_parallel(
-    config, folder_name, processing_data, slice_rects, num_threads, num_digits
+    config,
+    folder_name,
+    processing_data,
+    slice_rects,
+    num_threads,
+    num_digits,
+    single_output_path=None,
 ):
     volume, bounding_box, slice_indices, volume_index = processing_data
 
@@ -221,20 +256,27 @@ def process_worker_save_parallel(
     )
     durations["slice_volume"].append(time.perf_counter() - start)
 
-    # Using a ThreadPoolExecutor within the process for saving slices
-    with concurrent.futures.ThreadPoolExecutor(
-        max_workers=num_threads
-    ) as thread_executor:
-        futures = []
+    if single_output_path is None:
+        # Using a ThreadPoolExecutor within the process for saving slices
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=num_threads
+        ) as thread_executor:
+            futures = []
 
-        for i, slice_i in zip(slice_indices, slices):
-            start = time.perf_counter()
-            filename = join_path(folder_name, f"{str(i).zfill(num_digits)}.tif")
-            futures.append(thread_executor.submit(save_thread, filename, slice_i))
-            durations["save"].append(time.perf_counter() - start)
+            for i, slice_i in zip(slice_indices, slices):
+                start = time.perf_counter()
+                filename = join_path(folder_name, f"{str(i).zfill(num_digits)}.tif")
+                futures.append(thread_executor.submit(save_thread, filename, slice_i))
+                durations["save"].append(time.perf_counter() - start)
 
-        for future in concurrent.futures.as_completed(futures):
-            future.result()
+            for future in concurrent.futures.as_completed(futures):
+                future.result()
+    else:
+        # Save the slices to a previously created tiff file
+        mmap = memmap(single_output_path)
+        mmap[slice_indices] = slices
+        mmap.flush()
+        del mmap
 
     durations["total_process"].append(time.perf_counter() - start_total)
 
