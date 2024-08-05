@@ -12,7 +12,13 @@ import {
 } from '../plugins'
 import Watcher from 'watcher'
 import { makeExtraWindow } from '../helpers'
-import { PLUGIN_WINDOW } from '..'
+
+const PLUGIN_WINDOW = {
+	name: 'Manage Plugins',
+	width: 550,
+	height: 400,
+	path: '#/extras/plugins'
+}
 
 export function addPluginEventHandlers(
 	ipcMain: IpcMain,

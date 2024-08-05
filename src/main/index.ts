@@ -3,9 +3,6 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
-import { ChildProcess, execFile } from 'child_process'
-import { existsSync } from 'fs'
-
 import { BACKGROUND_COLOR } from '../main/helpers'
 import { initializePlugins, PluginDetail, stopAllPlugins } from './plugins'
 import { startPluginFileServer, stopPluginFileServer } from './servers/file-server'
@@ -18,16 +15,11 @@ import {
 	stopMainServerProduction
 } from './servers/main-server'
 import { startVolumeServer, stopVolumeServer } from './servers/volume-server'
+import { initLogging } from './logging'
 
-export const PLUGIN_WINDOW = {
-	name: 'Manage Plugins',
-	width: 550,
-	height: 400,
-	path: '#/extras/plugins'
-}
+initLogging()
 
 let mainWindow: Electron.BrowserWindow
-let mainServer: ChildProcess
 
 const pluginDetails: PluginDetail[] = []
 
@@ -35,6 +27,8 @@ const getMainWindow = (): BrowserWindow => mainWindow
 const getPluginDetails = (): PluginDetail[] => pluginDetails
 
 function createWindow(): void {
+	console.info('Starting Ouroboros')
+
 	mainWindow = new BrowserWindow({
 		show: false,
 		...(process.platform === 'linux' ? { icon } : {}),
@@ -64,30 +58,6 @@ function createWindow(): void {
 		mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
 	} else {
 		mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
-	}
-
-	// Run the Python Server with execFile
-	// Note: this is no longer the default behavior
-	// but it still works if the server is present
-	if (!is.dev) {
-		const serverPath = join(
-			__dirname,
-			`../../resources/ouroboros-server${process.platform === 'win32' ? '.exe' : ''}`
-		)
-
-		// Check that the server exists
-		if (!existsSync(serverPath)) {
-			console.error('Server not found')
-		} else {
-			mainServer = execFile(serverPath)
-
-			mainServer.stderr?.on('data', (data) => {
-				console.error(data.toString())
-			})
-			mainServer.stdout?.on('data', (data) => {
-				console.log(data.toString())
-			})
-		}
 	}
 
 	// Start all plugins
@@ -132,8 +102,6 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', async () => {
-	mainServer?.kill()
-
 	try {
 		// Stop all plugins and other servers before quitting
 		await Promise.all([

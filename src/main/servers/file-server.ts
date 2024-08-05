@@ -1,10 +1,13 @@
 import { join } from 'path'
 import { getPluginFolder } from '../plugins'
 import { ChildProcess, fork } from 'child_process'
+import { scope } from '../logging'
 
 let pluginFileServer: ChildProcess
 const port = 3000
 const pluginFileServerURL: string = `http://127.0.0.1:${port}`
+
+const logger = scope('file-server')
 
 /**
  * Starts a file server to serve plugin files
@@ -16,6 +19,10 @@ export async function startPluginFileServer(): Promise<void> {
 		pluginFolder,
 		`${port}`
 	])
+
+	pluginFileServer.on('error', (error) => {
+		logger.error(error)
+	})
 }
 
 export async function stopPluginFileServer(): Promise<void> {

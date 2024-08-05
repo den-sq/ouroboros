@@ -1,11 +1,14 @@
 import { join } from 'path'
 import { ChildProcess, fork } from 'child_process'
+import { scope } from '../logging'
 
 let volumeServer: ChildProcess
 const port = 3001
 const volumeServerURL: string = `http://127.0.0.1:${port}`
 
 const VOLUME = 'ouroboros-volume'
+
+const logger = scope('volume-server')
 
 /**
  * Starts a serve that facilitates copying files from the host
@@ -15,6 +18,10 @@ export async function startVolumeServer(): Promise<void> {
 	volumeServer = fork(join(__dirname, '../../resources/processes/volume-server-script.mjs'), [
 		`${port}`
 	])
+
+	volumeServer.on('error', (error) => {
+		logger.error(error)
+	})
 }
 
 export async function stopVolumeServer(): Promise<void> {
