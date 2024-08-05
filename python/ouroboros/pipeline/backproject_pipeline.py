@@ -8,7 +8,11 @@ from ouroboros.helpers.volume_cache import VolumeCache
 from ouroboros.helpers.bounding_boxes import BoundingBox
 from .pipeline import PipelineStep
 from ouroboros.helpers.options import BackprojectOptions
-from ouroboros.helpers.files import join_path, load_and_save_tiff_from_slices
+from ouroboros.helpers.files import (
+    get_sorted_tif_files,
+    join_path,
+    load_and_save_tiff_from_slices,
+)
 
 import concurrent.futures
 import tifffile
@@ -75,15 +79,25 @@ class BackprojectPipelineStep(PipelineStep):
             )
 
             # Save the straightened volume to a new tif file
-            with tifffile.TiffWriter(
-                new_straightened_volume_path
-            ) as tif, tifffile.TiffFile(straightened_volume_path) as tif_in:
-                for i in range(len(tif_in.pages)):
-                    tif.save(
-                        tif_in.pages[i].asarray(),
-                        contiguous=True,
-                        compression=None,
-                    )
+            with tifffile.TiffWriter(new_straightened_volume_path) as tif:
+                if straightened_volume_path.endswith(".tif"):
+                    # Read the single tif file
+                    with tifffile.TiffFile(straightened_volume_path) as tif_in:
+                        for i in range(len(tif_in.pages)):
+                            tif.save(
+                                tif_in.pages[i].asarray(),
+                                contiguous=True,
+                                compression=None,
+                            )
+                else:
+                    # Read the tif files from the folder
+                    images = get_sorted_tif_files(straightened_volume_path)
+                    for image in images:
+                        tif.save(
+                            tifffile.imread(join_path(straightened_volume_path, image)),
+                            contiguous=True,
+                            compression=None,
+                        )
 
             straightened_volume_path = new_straightened_volume_path
 
