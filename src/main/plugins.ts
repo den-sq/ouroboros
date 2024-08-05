@@ -218,7 +218,15 @@ export async function startAllPlugins(): Promise<PluginDetail[]> {
 	const plugins = await getPluginList(pluginFolder, true)
 
 	const dockerCheck = await checkDocker()
-	let alerted = false
+
+	if (!dockerCheck.available) {
+		console.error(dockerCheck.error)
+
+		dialog.showErrorBox(
+			'Docker Not Found',
+			'Docker was not found on your system. Start Docker if it is installed, or download it.'
+		)
+	}
 
 	const pluginDetails: PluginDetail[] = []
 
@@ -228,29 +236,17 @@ export async function startAllPlugins(): Promise<PluginDetail[]> {
 		if (!json) return
 
 		// Try to start the docker container
-		if (json.dockerCompose) {
-			if (!dockerCheck.available) {
-				console.error(dockerCheck.error)
-
-				if (!alerted) {
-					dialog.showErrorBox(
-						'Docker Not Found',
-						`Docker was not found on your system. Start Docker if it is installed, otherwise please install Docker to use Ouroboros with plugin "${json.pluginName}".`
+		if (json.dockerCompose && dockerCheck.available) {
+			startDockerCompose({
+				cwd: join(plugin.folder),
+				config: join(plugin.folder, json.dockerCompose),
+				onError: (err) => {
+					console.log(
+						`An error occurred while starting plugin ${json.pluginName}'s Dockerfile:`,
+						err
 					)
-					alerted = true
 				}
-			} else {
-				startDockerCompose({
-					cwd: join(plugin.folder),
-					config: join(plugin.folder, json.dockerCompose),
-					onError: (err) => {
-						console.log(
-							`An error occurred while starting plugin ${json.pluginName}'s Dockerfile:`,
-							err
-						)
-					}
-				})
-			}
+			})
 		}
 
 		const localPluginDetails: PluginDetail = {
