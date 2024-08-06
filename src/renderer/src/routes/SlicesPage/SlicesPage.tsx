@@ -228,9 +228,7 @@ function useSlicePageState(): SlicePageState {
 	}, [streamDone, streamError])
 
 	const saveOptionsToFile = async (): Promise<string | undefined> => {
-		if (!connected || !directoryPath) {
-			return
-		}
+		if (!directoryPath) return
 
 		const optionsObject = entries[0].toObject()
 
@@ -267,9 +265,7 @@ function useSlicePageState(): SlicePageState {
 	}
 
 	const requestVisualization = async (): Promise<void> => {
-		if (!connected || !directoryPath) {
-			return
-		}
+		if (!directoryPath) return
 
 		if (onDemandVisualizationResults) clearFetch('/create_slice_visualization/')
 

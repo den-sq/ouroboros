@@ -37,11 +37,15 @@ export type ServerContextValue = {
 export const ServerContext = createContext<ServerContextValue>(null as any)
 
 function useServerContextProvider(baseURL = DEFAULT_SERVER_URL): ServerContextValue {
+	const [connected, setConnected] = useState(false)
+	const retryDelay = 5000 // Delay between checks in milliseconds
+
 	const [fetchStates, setFetchStates] = useState<Map<string, FetchResult>>(new Map())
 	const [streamStates, setStreamStates] = useState<Map<string, StreamResult>>(new Map())
 	const [abortControllers, setAbortControllers] = useState<Map<string, AbortController>>(
 		new Map()
 	)
+	const [fetchQueue, setFetchQueue] = useState<unknown[][]>([])
 
 	const setFetchStatesHelper = useCallback(
 		({
@@ -110,39 +114,6 @@ function useServerContextProvider(baseURL = DEFAULT_SERVER_URL): ServerContextVa
 		[]
 	)
 
-	const [connected, setConnected] = useState(false)
-	const retryDelay = 5000 // Delay between checks in milliseconds
-
-	useEffect(() => {
-		const delay = (ms: number): Promise<void> =>
-			new Promise((resolve) => setTimeout(resolve, ms))
-
-		let isMounted = true // Flag to manage cleanup
-
-		const checkServerStatus = async (): Promise<void> => {
-			while (isMounted) {
-				try {
-					const response = await fetch(baseURL)
-					if (response.ok) {
-						setConnected(true)
-					} else {
-						setConnected(false)
-					}
-				} catch (error) {
-					setConnected(false) // Ensure disconnected state on error
-				}
-				await delay(retryDelay) // Wait before next check
-			}
-		}
-
-		checkServerStatus()
-
-		// Cleanup function to stop polling when component unmounts
-		return (): void => {
-			isMounted = false
-		}
-	}, [baseURL, retryDelay])
-
 	const getFullURL = useCallback(
 		(relativeURL: string, query = {}) => {
 			// Append query parameters to the URL
@@ -164,6 +135,12 @@ function useServerContextProvider(baseURL = DEFAULT_SERVER_URL): ServerContextVa
 
 	const performFetch = useCallback(
 		async (relativeURL: string, query: Record<string, any> = {}, options: RequestInit = {}) => {
+			// Enqueue the fetch request if the server is not connected
+			if (!connected) {
+				setFetchQueue((prev) => [...prev, [relativeURL, query, options]])
+				return
+			}
+
 			const fullURL = getFullURL(relativeURL, query)
 
 			setFetchStatesHelper({
@@ -196,7 +173,7 @@ function useServerContextProvider(baseURL = DEFAULT_SERVER_URL): ServerContextVa
 				})
 			}
 		},
-		[getFullURL]
+		[getFullURL, connected, fetchQueue]
 	)
 
 	const clearFetch = useCallback(
@@ -344,6 +321,55 @@ function useServerContextProvider(baseURL = DEFAULT_SERVER_URL): ServerContextVa
 
 		return { results, error, done }
 	}
+
+	// Process the fetch queue
+	useEffect(() => {
+		if (fetchQueue.length === 0 || !connected) return
+
+		const [relativeURL, query, options] = fetchQueue[0] as [
+			string,
+			Record<string, any>,
+			RequestInit
+		]
+
+		// Make sure the request is not already enqueued
+		if (fetchQueue.slice(1).some((item) => item[0] === relativeURL)) {
+			setFetchQueue((prev) => prev.slice(1))
+			return
+		}
+
+		performFetch(relativeURL, query, options).finally(() => {
+			setFetchQueue((prev) => prev.slice(1))
+		})
+	}, [connected, fetchQueue, performFetch])
+
+	// Check server connection status
+	useEffect(() => {
+		const delay = (ms: number): Promise<void> =>
+			new Promise((resolve) => setTimeout(resolve, ms))
+
+		let isMounted = true // Flag to manage cleanup
+
+		const checkServerStatus = async (): Promise<void> => {
+			while (isMounted) {
+				try {
+					const response = await fetch(baseURL)
+					if (response.ok) setConnected(true)
+					else setConnected(false)
+				} catch (error) {
+					setConnected(false) // Ensure disconnected state on error
+				}
+				await delay(retryDelay) // Wait before next check
+			}
+		}
+
+		checkServerStatus()
+
+		// Cleanup function to stop polling when component unmounts
+		return (): void => {
+			isMounted = false
+		}
+	}, [baseURL, retryDelay])
 
 	return {
 		baseURL,
