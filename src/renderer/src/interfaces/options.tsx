@@ -172,6 +172,8 @@ export class SliceOptionsFile extends CompoundEntry {
 			new Entry('slice_height', 'Slice Height', 120, 'number'),
 			new Entry('output_file_folder', 'Output File Folder', './', 'filePath'),
 			new Entry('output_file_name', 'Output File Name', 'sample', 'string'),
+			new Entry('annotation_mip_level', 'Annotation MIP Level', 0, 'number'),
+			new Entry('output_mip_level', 'Output MIP Level', 0, 'number'),
 			new Entry('dist_between_slices', 'Distance Between Slices', 1, 'number'),
 			new Entry('make_single_file', 'Output Single File', true, 'boolean'),
 			new Entry('connect_start_and_end', 'Connect Endpoints', false, 'boolean'),

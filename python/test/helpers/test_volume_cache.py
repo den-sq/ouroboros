@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from ouroboros.helpers.volume_cache import (
     VolumeCache,
     CloudVolumeInterface,
+    get_mip_volume_sizes,
 )
 from ouroboros.helpers.bounding_boxes import BoundingBox
 
@@ -15,7 +16,7 @@ def mock_cloud_volume():
         mock_cv.dtype = "uint8"
         mock_cv.shape = (100, 100, 100, 3)
         mock_cv.cache.flush = MagicMock()
-        mock_cv.mip_volume_size = lambda mip: (100, 100, 100, 3)
+        mock_cv.mip_volume_size = lambda mip: (100, 100, 100)
         yield mock_cv
 
 
@@ -115,7 +116,7 @@ def test_cloud_volume_interface_to_dict(cloud_volume_interface):
 
 def test_cloud_volume_interface_get_volume_shape(cloud_volume_interface):
     shape = cloud_volume_interface.get_volume_shape(0)
-    assert shape == (100, 100, 100, 3)
+    assert shape == (100, 100, 100)
 
 
 def test_cloud_volume_interface_get_resolution_nm(cloud_volume_interface):
@@ -154,7 +155,7 @@ def test_volume_cache_get_available_mips(volume_cache):
 
 
 def test_volume_cache_get_shape(volume_cache):
-    assert volume_cache.get_volume_shape() == (100, 100, 100, 3)
+    assert volume_cache.get_volume_shape() == (100, 100, 100)
 
 
 def test_request_volume_for_slice(volume_cache):
@@ -186,3 +187,22 @@ def test_create_processing_data(volume_cache):
         assert processing_data[1] == volume_cache.bounding_boxes[0]
         assert processing_data[2] == [0]
         assert processing_data[3] == 0
+
+
+def test_get_mip_volume_sizes(mock_cloud_volume):
+    with patch.object(mock_cloud_volume, "mip_volume_size") as mock_mip_volume_size:
+        mock_mip_volume_size.return_value = (100, 100, 100)
+
+        sizes = get_mip_volume_sizes("test_source_url")
+
+        assert sizes == {0: (100, 100, 100), 1: (100, 100, 100), 2: (100, 100, 100)}
+
+
+def test_get_mip_volume_sizes_error(mock_cloud_volume):
+    with patch.object(mock_cloud_volume, "mip_volume_size") as mock_mip_volume_size:
+        mock_mip_volume_size.return_value = (100, 100, 100)
+        mock_mip_volume_size.side_effect = Exception
+
+        sizes = get_mip_volume_sizes("test_source_url")
+
+        assert sizes == {}

@@ -35,6 +35,7 @@ class VolumeCachePipelineStep(PipelineStep):
             link_rects,
             cloud_volume_interface,
             flush_cache=config.flush_cache,
+            mip=config.output_mip_level,
         )
 
         # Update the pipeline input with the volume cache

@@ -32,6 +32,8 @@ class SliceOptions(CommonOptions):
     connect_start_and_end: bool = (
         False  # Whether to connect the start and end of the given annotation points
     )
+    annotation_mip_level: int = 0  # MIP level for the annotation layer
+    output_mip_level: int = 0  # MIP level for the output image layer
 
     @field_serializer("bounding_box_params")
     def serialize_bounding_box_params(self, value: BoundingBoxParams):

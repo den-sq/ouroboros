@@ -52,7 +52,7 @@ def convert_points_between_volumes(
     Parameters
     ----------
         points : np.ndarray
-            The points to convert.
+            The points to convert. (N, 3)
         source_shape : tuple
             The shape of the volume that the points are currently in.
         target_shape : tuple

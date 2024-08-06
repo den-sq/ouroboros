@@ -219,3 +219,25 @@ class CloudVolumeInterface:
 
     def flush_cache(self):
         self.cv.cache.flush()
+
+
+def get_mip_volume_sizes(source_url: str) -> dict:
+    """
+    Get the volume sizes for all available MIPs.
+
+    Parameters:
+    ----------
+        source_url (str): The URL of the cloud volume.
+
+    Returns:
+    -------
+        dict: A dictionary containing the volume sizes for all available MIPs.
+    """
+
+    try:
+        cv = CloudVolumeInterface(source_url)
+        result = {mip: cv.get_volume_shape(mip) for mip in cv.available_mips}
+    except BaseException:
+        return {}
+
+    return result
