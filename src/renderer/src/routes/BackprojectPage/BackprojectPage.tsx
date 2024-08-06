@@ -31,13 +31,15 @@ function BackprojectPage(): JSX.Element {
 	)
 }
 
-function useBackprojectPageState(): {
+type BackprojectPageState = {
 	progress: [string, number][]
 	connected: boolean
 	entries: (Entry | CompoundEntry)[]
 	onSubmit: () => Promise<void>
 	onHeaderDrop: (content: string) => Promise<void>
-} {
+}
+
+function useBackprojectPageState(): BackprojectPageState {
 	const {
 		connected,
 		performFetch,

@@ -20,7 +20,6 @@
 }
 
 body {
-	min-height: 100vh;
 	color: var(--primary-text);
 	background: var(--window-background);
 	line-height: 1.6;

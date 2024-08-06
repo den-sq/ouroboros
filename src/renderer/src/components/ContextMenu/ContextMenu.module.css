@@ -9,6 +9,7 @@
 	border: 1px solid rgba(100, 100, 100, 0.35);
 	box-sizing: border-box;
 	font-size: 1rem;
+	z-index: 999999;
 }
 
 .options {

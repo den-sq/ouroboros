@@ -90,7 +90,7 @@ function SlicesPage(): JSX.Element {
 	)
 }
 
-function useSlicePageState(): {
+type SlicePageState = {
 	progress: [string, number][]
 	boundingBoxProgress: number
 	connected: boolean
@@ -101,7 +101,9 @@ function useSlicePageState(): {
 	onHeaderDrop: (content: string) => Promise<void>
 	setDropNodeRef: (node: HTMLElement | null) => void
 	isOver: boolean
-} {
+}
+
+function useSlicePageState(): SlicePageState {
 	const {
 		connected,
 		performFetch,
