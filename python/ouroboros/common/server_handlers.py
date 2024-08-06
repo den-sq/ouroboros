@@ -6,6 +6,7 @@ from ouroboros.common.file_system import (
     save_output_for_backproject_docker,
     save_output_for_slice_docker,
 )
+from ouroboros.common.logging import get_logger
 from ouroboros.common.pipelines import backproject_pipeline, slice_pipeline
 from ouroboros.common.server_types import BackProjectTask, SliceTask, Task
 
@@ -25,6 +26,10 @@ def handle_slice_core(task: SliceTask, slice_options):
 
     if error:
         return error
+
+    # Log the pipeline statistics
+    get_logger().info("Slice Pipeline Statistics:")
+    get_logger().info(pipeline.get_step_statistics())
 
 
 def handle_slice(task: SliceTask):
@@ -81,6 +86,10 @@ def handle_backproject_core(task: BackProjectTask, options):
 
     if error:
         return error
+
+    # Log the pipeline statistics
+    get_logger().info("Backproject Pipeline Statistics:")
+    get_logger().info(pipeline.get_step_statistics())
 
 
 def handle_backproject(task: BackProjectTask):

@@ -1,4 +1,9 @@
+import json
 from pydantic import BaseModel, ValidationError
+
+
+def pretty_json_output(obj: object) -> str:
+    return json.dumps(obj, indent=4)
 
 
 def model_with_json(cls):

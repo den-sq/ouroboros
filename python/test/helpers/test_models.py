@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from ouroboros.helpers.models import (
     model_with_json,
+    pretty_json_output,
 )
 
 
@@ -62,3 +63,9 @@ def test_file_not_found(tmp_path):
 
     loaded_sample = SampleModel.load_from_json(json_path)
     assert loaded_sample.startswith("File not found at")
+
+
+def test_pretty_json_output():
+    obj = {"key": "value"}
+    pretty_json = pretty_json_output(obj)
+    assert pretty_json == '{\n    "key": "value"\n}'

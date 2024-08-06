@@ -3,14 +3,13 @@ from multiprocessing import freeze_support
 import argparse
 
 from ouroboros.common.pipelines import backproject_pipeline, slice_pipeline
+from ouroboros.helpers.models import pretty_json_output
 from ouroboros.helpers.options import (
     DEFAULT_BACKPROJECT_OPTIONS,
     DEFAULT_SLICE_OPTIONS,
     BackprojectOptions,
     SliceOptions,
 )
-
-import json
 
 
 def main():
@@ -87,7 +86,7 @@ def handle_slice(args):
         print("\nCalculation Statistics:\n")
 
         for stat in pipeline.get_step_statistics():
-            print(json.dumps(stat, indent=4), "\n")
+            print(pretty_json_output(stat), "\n")
 
 
 def handle_backproject(args):
@@ -104,7 +103,7 @@ def handle_backproject(args):
         print("\nCalculation Statistics:\n")
 
         for stat in pipeline.get_step_statistics():
-            print(json.dumps(stat, indent=4), "\n")
+            print(pretty_json_output(stat), "\n")
 
 
 def handle_sample_options():
