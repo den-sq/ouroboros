@@ -369,6 +369,7 @@ class BackprojectPipelineStep(PipelineStep):
                 compression=config.backprojection_compression,
                 max_ram_gb=config.max_ram_gb,
                 order=config.upsample_order,
+                binary=config.make_backprojection_binary,
             )
 
             if error is not None:
@@ -559,6 +560,7 @@ def rescale_mip_volume(
     compression=None,
     max_ram_gb=0,
     order=2,
+    binary=False,
 ) -> str | None:
     """
     Rescale the volume to the mip level.
@@ -583,6 +585,9 @@ def rescale_mip_volume(
         The default is 0.
     order : int, optional
         The order of the interpolation.
+        The default is 2.
+    binary : bool, optional
+        Whether to make the backprojected volume binary.
 
     Returns
     -------
@@ -606,6 +611,7 @@ def rescale_mip_volume(
             file_name=output_name + ".tif",
             max_ram_gb=max_ram_gb,
             order=order,
+            binary=binary,
         )
 
     return rescale_folder_tif(
@@ -617,6 +623,7 @@ def rescale_mip_volume(
         folder_name=output_name,
         max_ram_gb=max_ram_gb,
         order=order,
+        binary=binary,
     )
 
 
@@ -629,6 +636,7 @@ def rescale_single_tif(
     compression=None,
     max_ram_gb=0,
     order=1,
+    binary=False,
 ):
     with tifffile.TiffFile(single_path) as tif:
         tif_shape = (len(tif.pages),) + tif.pages[0].shape
@@ -666,6 +674,9 @@ def rescale_single_tif(
 
                 layers = scipy.ndimage.zoom(tif_layer, scaling_factors, order=order)
 
+                if binary:
+                    layers = make_volume_binary(layers)
+
                 size = layers.shape[0]
 
                 # Save the layers to the tif file
@@ -689,6 +700,7 @@ def rescale_folder_tif(
     compression=None,
     max_ram_gb=0,
     order=1,
+    binary=False,
 ):
     # Create output folder if it doesn't exist
     output_folder = folder_name
@@ -735,6 +747,9 @@ def rescale_folder_tif(
         )
 
         layers = scipy.ndimage.zoom(tif, scaling_factors, order=order)
+
+        if binary:
+            layers = make_volume_binary(layers)
 
         size = layers.shape[0]
 
