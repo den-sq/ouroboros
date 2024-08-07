@@ -1,3 +1,5 @@
+import scipy
+import scipy.ndimage
 from ouroboros.helpers.memory_usage import GIGABYTE, calculate_gigabytes_from_dimensions
 from ouroboros.helpers.slice import (
     detect_color_channels,
@@ -5,7 +7,7 @@ from ouroboros.helpers.slice import (
     make_volume_binary,
     write_slices_to_volume,
 )
-from ouroboros.helpers.volume_cache import VolumeCache
+from ouroboros.helpers.volume_cache import VolumeCache, get_mip_volume_sizes
 from ouroboros.helpers.bounding_boxes import BoundingBox
 from .pipeline import PipelineStep
 from ouroboros.helpers.options import BackprojectOptions
@@ -346,6 +348,37 @@ class BackprojectPipelineStep(PipelineStep):
             except BaseException as e:
                 return f"Error creating single tif file: {e}"
 
+        # Rescale the backprojected volume to the output mip level
+        if pipeline_input.slice_options.output_mip_level != config.output_mip_level:
+            output_name = f"{folder_path}-temp"
+
+            error = rescale_mip_volume(
+                pipeline_input.source_url,
+                pipeline_input.slice_options.output_mip_level,
+                config.output_mip_level,
+                single_path=(
+                    None if config.make_single_file is False else folder_path + ".tif"
+                ),
+                folder_path=(folder_path if config.make_single_file is False else None),
+                output_name=output_name,
+                compression=config.backprojection_compression,
+            )
+
+            if error is not None:
+                return error
+
+            # Remove the original backprojected volume
+            if config.make_single_file:
+                os.remove(folder_path + ".tif")
+            else:
+                shutil.rmtree(folder_path)
+
+            # Rename the rescaled volume
+            if config.make_single_file:
+                os.rename(output_name + ".tif", folder_path + ".tif")
+            else:
+                os.rename(output_name, folder_path)
+
         # Update the pipeline input with the output file path
         pipeline_input.backprojected_folder_path = folder_path
 
@@ -507,3 +540,179 @@ def create_volume_chunks(
         chunks_and_boxes.append((bounding_box, chunk_boxes))
 
     return chunks_and_boxes
+
+
+def rescale_mip_volume(
+    source_url,
+    current_mip,
+    target_mip,
+    single_path=None,
+    folder_path=None,
+    output_name="out",
+    compression=None,
+) -> str | None:
+    """
+    Rescale the volume to the mip level.
+
+    Parameters
+    ----------
+    source_url : str
+        The URL of the volume.
+    current_mip : int
+        The current mip level of the volume.
+    target_mip : int
+        The target mip level of the volume.
+    single_path : str
+        The path to the single tif file.
+    folder_path : str
+        The path to the folder containing the tif files.
+    compression : str, optional
+        The compression to use for the resulting tif file.
+        The default is None.
+
+    Returns
+    -------
+    str | None
+        Error message if an error occurred.
+    """
+
+    if single_path is None and folder_path is None:
+        return "Either single_path or folder_path must be provided."
+
+    if target_mip == current_mip:
+        return None
+
+    if single_path is not None:
+        return rescale_single_tif(
+            source_url,
+            current_mip,
+            target_mip,
+            single_path,
+            compression=compression,
+            file_name=output_name + ".tif",
+        )
+
+    return rescale_folder_tif(
+        source_url,
+        current_mip,
+        target_mip,
+        folder_path,
+        compression=compression,
+        folder_name=output_name,
+    )
+
+
+def rescale_single_tif(
+    source_url,
+    current_mip,
+    target_mip,
+    single_path,
+    file_name="out.tif",
+    compression=None,
+):
+    with tifffile.TiffFile(single_path) as tif:
+        tif_shape = (len(tif.pages),) + tif.pages[0].shape
+
+        scaling_factors, _ = calculate_scaling_factors(
+            source_url, current_mip, target_mip, tif_shape
+        )
+
+        with tifffile.TiffWriter(file_name) as output_volume:
+            for i in range(tif_shape[0]):
+                tif_layer = tif.pages[i].asarray()
+
+                # Give the tif a new 0th dimension so that it can be resized along all axes
+                tif_layer = np.expand_dims(tif_layer, axis=0)
+
+                layers = scipy.ndimage.zoom(tif_layer, scaling_factors, order=3)
+
+                size = layers.shape[0]
+
+                # Save the layers to the tif file
+                for j in range(size):
+                    output_volume.write(
+                        layers[j],
+                        contiguous=compression is None or compression == "none",
+                        compression=compression,
+                        software="ouroboros",
+                    )
+
+    return None
+
+
+def rescale_folder_tif(
+    source_url,
+    current_mip,
+    target_mip,
+    folder_path,
+    folder_name="out",
+    compression=None,
+):
+    # Create output folder if it doesn't exist
+    output_folder = folder_name
+    os.makedirs(output_folder, exist_ok=True)
+
+    tifs = get_sorted_tif_files(folder_path)
+
+    if len(tifs) == 0:
+        return "No tif files found in the folder."
+
+    # Determine the shape of the tif stack
+    new_shape = (len(tifs), *tifffile.imread(join_path(folder_path, tifs[0])).shape)
+
+    scaling_factors, resolution_factors = calculate_scaling_factors(
+        source_url, current_mip, target_mip, new_shape
+    )
+
+    num_digits = len(str(len(tifs)))
+
+    first_index = int(tifs[0].split(".")[0])
+
+    output_index = int(first_index * resolution_factors[0])
+
+    # Resize the volume
+    for i in range(len(tifs)):
+        tif = tifffile.imread(join_path(folder_path, tifs[i]))
+
+        # Give the tif a new 0th dimension so that it can be resized along all axes
+        tif = np.expand_dims(tif, axis=0)
+
+        layers = scipy.ndimage.zoom(tif, scaling_factors, order=3)
+
+        size = layers.shape[0]
+
+        # Write the layers to new tif files
+        for j in range(size):
+            tifffile.imwrite(
+                join_path(output_folder, f"{str(output_index).zfill(num_digits)}.tif"),
+                layers[j],
+                contiguous=True if compression is None else False,
+                compression=compression,
+            )
+            output_index += 1
+
+    return None
+
+
+def calculate_scaling_factors(source_url, current_mip, target_mip, tif_shape):
+    # Determine the current and target resolutions
+    mip_sizes = get_mip_volume_sizes(source_url)
+
+    current_resolution = mip_sizes[current_mip]
+    target_resolution = mip_sizes[target_mip]
+
+    # Determine the scaling factor for each axis as a tuple
+    resolution_factors = tuple(
+        max(target_resolution[i] / current_resolution[i], 1)
+        for i in range(len(target_resolution))
+    )
+
+    has_color_channels = len(tif_shape) == 4
+    num_channels = tif_shape[-1] if has_color_channels else 1
+
+    # Determine the scaling factor for each axis as a tuple
+    scaling_factors = resolution_factors + (
+        (num_channels,) if has_color_channels else ()
+    )
+
+    return scaling_factors, resolution_factors

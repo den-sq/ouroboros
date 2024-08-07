@@ -12,6 +12,7 @@ class CommonOptions(BaseModel):
     flush_cache: bool = False  # Whether to flush the cache after processing
     make_single_file: bool = True  # Whether to save the output to a single file
     max_ram_gb: int = 0  # Maximum amount of RAM to use in GB (0 means no limit)
+    output_mip_level: int = 0  # MIP level for the output image layer
 
 
 @model_with_json
@@ -33,7 +34,6 @@ class SliceOptions(CommonOptions):
         False  # Whether to connect the start and end of the given annotation points
     )
     annotation_mip_level: int = 0  # MIP level for the annotation layer
-    output_mip_level: int = 0  # MIP level for the output image layer
 
     @field_serializer("bounding_box_params")
     def serialize_bounding_box_params(self, value: BoundingBoxParams):
