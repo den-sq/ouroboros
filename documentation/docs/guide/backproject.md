@@ -30,6 +30,22 @@ By default, the slicing output tiff image is backprojected into the space of its
 
 The offset of the minimum bounding box is stored in the output tiff's description metadata. It is also stored in the configuration file (which is modified by the backproject step).
 
+### Slicing Options
+
+📁 - Drag and drop files from File Explorer panel into this option.
+
+- 📁 `Straightened Volume File` - Path to the volume of slices to backproject (e.g. the output tif of the slicing step).
+- 📁 `Slice Configuration File` - Path to the `-configuration.json` file which includes information generated during slicing needed for backprojection.
+- 📁 `Output File Folder` - The folder to save all the resulting files into.
+- `Output File Name` - Base name for all output files.
+- `Output MIP Level` - The mip level to output the backprojection in (essentially an upsample option). Use this if you downsampled in the slicing step.
+- `Upsample Order` - The interpolation order Ouroboros uses to interpolate values from a lower MIP level. If you check the binary option, feel free to set this to 0.
+- `Backprojection Compression` - The compression option to use for the backprojected tiff(s). Recommended options: `none`, `zlib`, `zstd`.
+- `Output Single File` - Whether to output one tiff stack file or a folder of files.
+- `Output Min Bounding Box` - Save only the minimum volume needed to contain the backprojected slices. The offset will be stored in the `-configuration.json` file under `backprojection_offset`. This value is the (x_min, y_min, z_min).
+- `Binary Backprojection` - Whether or not to binarize all the values of the backprojection. Enable this to backproject a segmentation.
+- `Max RAM (GB)` - 0 indicates no RAM limit. Setting a RAM limit allows Ouroboros to optimize performance and avoid overusing RAM.
+
 ### How Does Backprojection Work?
 
 A large amount of helpful data is saved in `*-configuration.json` file after the slicing process. This data contains all of the rectangle corners from slicing, and the bounding boxes the slices are associated with. With this data, Ouroboros recalculates the 2D coordinate grids of 3D points for each slice.

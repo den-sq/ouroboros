@@ -14,6 +14,28 @@ Slicing is one of the primary features of Ouroboros, available in the CLI and th
 
 ![Reusing Options from a Previous Run](../assets/slicing/Slice%20Page%20Options%20Demo.gif)
 
+
+### Slicing Options
+
+📁 - Drag and drop files from File Explorer panel into this option.
+
+- 📁 `Neuroglancer JSON` - Path to the Neuroglancer configuration JSON file (exported from Neuroglancer with `{}` icon, or through the Neuroglancer Plugin)
+- `Neuroglancer Image Layer` - Select Neuroglancer image layer to slice from.
+- `Neuroglancer Annotation Layer` - Select Neuroglancer annotation layer to slice from.
+- `Slice Width` - The output width of each slice image.
+- `Slice Height` - The output height of each slice image.
+- 📁 `Output File Folder` - The folder to save all the resulting files into.
+- `Output File Name` - Base name for all output files.
+- `Annotation MIP Level` - The annotation layer's MIP level. 
+- `Output MIP Level` - The mip level to output slices in (essentially a downsample option).
+- `Distance Between Slices` - The distance between each slice along the annotation path.
+- `Output Single File` - Whether to output one tiff stack file or a folder of files.
+- `Connect Endpoints` - Connect the first point in the path to the last point. This is not recommended.
+- `Bounding Box Parameters`
+    - `Max Depth` - The maximum depth for binary space partitioning. It is not recommended to change this option unless you encounter RAM issues.
+    - `Target Slices Per Box` - If you are running on a low-RAM system, or you are taking very large slices, you may want to decrease this.
+- `Max RAM (GB)` - 0 indicates no RAM limit. Setting a RAM limit allows Ouroboros to optimize performance and avoid overusing RAM.
+
 ### How Does Slicing Work?
 
 **Spline Fitting**
