@@ -29,3 +29,21 @@ export const renameFSItem = async (oldPath: string, newPath: string): Promise<vo
 export const moveFSItem = async (oldPath: string, newPath: string): Promise<void> => {
 	return renameFSItem(oldPath, newPath)
 }
+
+export const assumeSeparator = (path: string): string => {
+	return path.includes('/') ? '/' : '\\'
+}
+
+export const basename = (path: string): string => {
+	return path.split(assumeSeparator(path)).pop() || ''
+}
+
+export const directory = (path: string): string => {
+	const separator = assumeSeparator(path)
+
+	return path.split(separator).slice(0, -1).join(separator)
+}
+
+export const isPathFile = (path: string): boolean => {
+	return basename(path).includes('.')
+}

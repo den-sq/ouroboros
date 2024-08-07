@@ -2,17 +2,25 @@ import Header from '@renderer/components/Header/Header'
 import styles from './FileExplorer.module.css'
 import FileEntry from './components/FileEntry/FileEntry'
 import { DragOverlay, useDroppable } from '@dnd-kit/core'
-import { MouseEvent, useCallback, useContext, useEffect, useState } from 'react'
+import { MouseEvent, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import DraggableEntry from './components/DraggableEntry/DraggableEntry'
 import { DragContext } from '@renderer/contexts/DragContext'
 import { DirectoryContext, FileSystemNode } from '@renderer/contexts/DirectoryContext'
 import useContextMenu from '@renderer/hooks/use-context-menu'
 import ContextMenu, { ContextMenuAction } from '@renderer/components/ContextMenu/ContextMenu'
-import { deleteFSItem, join, moveFSItem, newFolder, renameFSItem } from '@renderer/interfaces/file'
+import {
+	deleteFSItem,
+	join,
+	moveFSItem,
+	newFolder,
+	renameFSItem,
+	isPathFile,
+	directory
+} from '@renderer/interfaces/file'
 
 function FileExplorer(): JSX.Element {
 	const { clearDragEvent, parentChildData, active } = useContext(DragContext)
-	const { nodes, directoryName, directoryPath } = useContext(DirectoryContext)
+	const { nodes, directoryName, directoryPath, setDirectory } = useContext(DirectoryContext)
 	const { point, clicked, data, handleContextMenu } = useContextMenu<FileSystemNode>()
 
 	const [renamePath, setRenamePath] = useState<string | null>(null)
@@ -144,13 +152,72 @@ function FileExplorer(): JSX.Element {
 		handleDrop()
 	}, [isOver, parentChildData, directoryPath])
 
+	const dropFileRef = useRef<HTMLDivElement>(null)
+
+	// Set the drop node ref
+	useEffect(() => {
+		setDropNodeRef(dropFileRef.current)
+	}, [dropFileRef])
+
+	const [customDragOver, setCustomDragOver] = useState(false)
+
+	useEffect(() => {
+		const handleDrop = async (event: DragEvent): Promise<void> => {
+			event.preventDefault()
+
+			setCustomDragOver(false)
+
+			if (!event.dataTransfer) return
+
+			const files = event.dataTransfer.files
+
+			// Determine if the dropped item is a folder
+			const item = files[0]
+
+			const isFolder = item.type === '' || !isPathFile(item.path)
+
+			if (isFolder) {
+				// Send the folder to the main process
+				setDirectory(item.path)
+			} else {
+				// Get the folder path
+				const folderPath = directory(item.path)
+
+				setDirectory(folderPath)
+			}
+		}
+
+		const handleDragOver = (event: DragEvent): void => {
+			event.preventDefault()
+			setCustomDragOver(true)
+		}
+		const handleDragLeave = (event: DragEvent): void => {
+			event.preventDefault()
+			setCustomDragOver(false)
+		}
+
+		if (dropFileRef.current) {
+			dropFileRef.current.addEventListener('drop', handleDrop)
+			dropFileRef.current.addEventListener('dragover', handleDragOver)
+			dropFileRef.current.addEventListener('dragleave', handleDragLeave)
+		}
+
+		return (): void => {
+			if (dropFileRef.current) {
+				dropFileRef.current.removeEventListener('drop', handleDrop)
+				dropFileRef.current.removeEventListener('dragover', handleDragOver)
+				dropFileRef.current.removeEventListener('dragleave', handleDragLeave)
+			}
+		}
+	}, [directoryPath, dropFileRef])
+
 	return (
 		<>
 			{clicked && <ContextMenu {...point} actions={contextActions} />}
 			<div className={styles.fileExplorerPanel}>
 				<div
 					className={styles.fileExplorerInnerPanel}
-					ref={setDropNodeRef}
+					ref={dropFileRef}
 					onContextMenu={(e) => {
 						if (!directoryName || !directoryPath) return
 
@@ -165,12 +232,12 @@ function FileExplorer(): JSX.Element {
 				>
 					{directoryName ? (
 						<>
-							<Header text={directoryName} highlight={isOver} />
+							<Header text={directoryName} highlight={isOver || customDragOver} />
 							<div>{fileEntries}</div>
 						</>
 					) : (
 						<>
-							<Header text={'Files'} />
+							<Header text={'Files'} highlight={customDragOver} />
 							<div className={`poppins-medium ${styles.helpText}`}>
 								File &gt; Open Folder
 							</div>

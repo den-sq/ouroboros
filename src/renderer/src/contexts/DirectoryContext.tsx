@@ -5,6 +5,7 @@ export type DirectoryContextValue = {
 	nodes: NodeChildren
 	directoryPath: string | null
 	directoryName: string | null
+	setDirectory: (directory: string) => void
 }
 
 export const DirectoryContext = createContext<DirectoryContextValue>(null as never)
@@ -37,20 +38,24 @@ function DirectoryProvider({ children }: { children: React.ReactNode }): JSX.Ele
 	const [directoryPath, setDirectoryPath] = useState<string | null>(null)
 	const [nodes, setNodes] = useState<NodeChildren>({})
 
+	const setDirectory = useCallback((directory: string): void => {
+		if (!directory || directory.length === 0) return
+
+		setDirectoryPath(directory)
+
+		// Clean up the directory name
+		const directorySplit = directory.split(/[/\\]/)
+		setDirectoryName(directorySplit[directorySplit.length - 1])
+
+		// Clear the folder contents
+		setNodes({})
+	}, [])
+
 	useEffect(() => {
 		const clearSelectedFolderListener = window.electron.ipcRenderer.on(
 			'selected-folder',
 			(_, directory) => {
-				if (!directory || directory.length === 0) return
-
-				setDirectoryPath(directory)
-
-				// Clean up the directory name
-				const directorySplit = directory.split(/[/\\]/)
-				setDirectoryName(directorySplit[directorySplit.length - 1])
-
-				// Clear the folder contents
-				setNodes({})
+				setDirectory(directory)
 			}
 		)
 
@@ -76,7 +81,7 @@ function DirectoryProvider({ children }: { children: React.ReactNode }): JSX.Ele
 	}, [directoryPath])
 
 	return (
-		<DirectoryContext.Provider value={{ nodes, directoryPath, directoryName }}>
+		<DirectoryContext.Provider value={{ nodes, directoryPath, directoryName, setDirectory }}>
 			{children}
 		</DirectoryContext.Provider>
 	)
