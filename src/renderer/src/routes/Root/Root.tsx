@@ -7,7 +7,7 @@ import { Outlet } from 'react-router-dom'
 
 import styles from './Root.module.css'
 import TestingPluginProvider from '@renderer/contexts/TestingPluginContext'
-import { IFrameManager } from '@renderer/interfaces/iframe'
+import { IFrameProvider } from '@renderer/contexts/IFrameContext'
 
 function Root(): JSX.Element {
 	return (
@@ -16,13 +16,14 @@ function Root(): JSX.Element {
 				<AlertProvider>
 					<ServerProvider>
 						<DirectoryProvider>
-							<DragProvider>
-								<div className={styles.rootArea}>
-									<MenuPanel />
-									<Outlet />
-									<IFrameManager />
-								</div>
-							</DragProvider>
+							<IFrameProvider>
+								<DragProvider>
+									<div className={styles.rootArea}>
+										<MenuPanel />
+										<Outlet />
+									</div>
+								</DragProvider>
+							</IFrameProvider>
 						</DirectoryProvider>
 					</ServerProvider>
 				</AlertProvider>

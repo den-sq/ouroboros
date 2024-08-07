@@ -8,11 +8,17 @@ import {
 	SendDirectoryContents
 } from '@renderer/schemas/iframe-message-schema'
 import { safeParse } from 'valibot'
-import { readFile, writeFile } from './file'
-import { useContext, useEffect, useState } from 'react'
+import { readFile, writeFile } from '../interfaces/file'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { DirectoryContext } from '@renderer/contexts/DirectoryContext'
 
-export function IFrameManager(): JSX.Element {
+export type IFrameContextValue = {
+	broadcast: (message: IFrameMessage) => void
+}
+
+export const IFrameContext = createContext<IFrameContextValue>(null as never)
+
+export function IFrameProvider({ children }: { children: React.ReactNode }): JSX.Element {
 	// Define allowed origins
 	const allowedOrigins: string[] = ['http://localhost', 'http://127.0.0.1', 'http://0.0.0.0']
 
@@ -44,6 +50,17 @@ export function IFrameManager(): JSX.Element {
 	// Access the directory context
 	const data = useContext(DirectoryContext)
 
+	const broadcast = useCallback(
+		(message: IFrameMessage): void => {
+			iframes.forEach((iframe) => {
+				iframe.postMessage(message, {
+					targetOrigin: '*'
+				})
+			})
+		},
+		[iframes]
+	)
+
 	useEffect(() => {
 		if (!data) return
 
@@ -57,12 +74,8 @@ export function IFrameManager(): JSX.Element {
 		}
 
 		// Send the directory info to the iframes
-		iframes.forEach((iframe) => {
-			iframe.postMessage(message, {
-				targetOrigin: '*'
-			})
-		})
-	}, [data, iframes])
+		broadcast(message)
+	}, [data, broadcast])
 
 	useEffect(() => {
 		const listener = (event: MessageEvent): void => {
@@ -96,7 +109,7 @@ export function IFrameManager(): JSX.Element {
 		}
 	}, [])
 
-	return <></>
+	return <IFrameContext.Provider value={{ broadcast }}>{children}</IFrameContext.Provider>
 }
 
 async function handleReadFileRequest(

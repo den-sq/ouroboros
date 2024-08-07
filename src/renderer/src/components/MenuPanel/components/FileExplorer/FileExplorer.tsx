@@ -15,12 +15,17 @@ import {
 	newFolder,
 	renameFSItem,
 	isPathFile,
-	directory
+	directory,
+	readFile
 } from '@renderer/interfaces/file'
+import { parseNeuroglancerJSON } from '@renderer/schemas/neuroglancer-json-schema'
+import { IFrameContext } from '@renderer/contexts/IFrameContext'
+import { SendNeuroglancerJSON } from '@renderer/schemas/iframe-message-schema'
 
 function FileExplorer(): JSX.Element {
 	const { clearDragEvent, parentChildData, active } = useContext(DragContext)
 	const { nodes, directoryName, directoryPath, setDirectory } = useContext(DirectoryContext)
+	const { broadcast } = useContext(IFrameContext)
 	const { point, clicked, data, handleContextMenu } = useContextMenu<FileSystemNode>()
 
 	const [renamePath, setRenamePath] = useState<string | null>(null)
@@ -161,6 +166,26 @@ function FileExplorer(): JSX.Element {
 
 	const [customDragOver, setCustomDragOver] = useState(false)
 
+	const trySendFileToIframe = useCallback(
+		async (path: string): Promise<void> => {
+			const neuroglancerJSONContent = await readFile('', path)
+
+			const { error } = parseNeuroglancerJSON(neuroglancerJSONContent)
+
+			if (error) return
+
+			const message: SendNeuroglancerJSON = {
+				type: 'send-neuroglancer-json',
+				data: {
+					contents: neuroglancerJSONContent
+				}
+			}
+
+			broadcast(message)
+		},
+		[broadcast]
+	)
+
 	useEffect(() => {
 		const handleDrop = async (event: DragEvent): Promise<void> => {
 			event.preventDefault()
@@ -184,6 +209,8 @@ function FileExplorer(): JSX.Element {
 				const folderPath = directory(item.path)
 
 				setDirectory(folderPath)
+
+				trySendFileToIframe(item.path)
 			}
 		}
 
@@ -209,7 +236,7 @@ function FileExplorer(): JSX.Element {
 				dropFileRef.current.removeEventListener('dragleave', handleDragLeave)
 			}
 		}
-	}, [directoryPath, dropFileRef])
+	}, [directoryPath, dropFileRef, trySendFileToIframe])
 
 	return (
 		<>

@@ -57,3 +57,12 @@ export const SaveFileRequestSchema = object({
 })
 
 export type SaveFileRequest = InferOutput<typeof SaveFileRequestSchema>
+
+export const SendNeuroglancerJSONSchema = object({
+	type: pipe(string(), includes('send-neuroglancer-json')),
+	data: object({
+		contents: string()
+	})
+})
+
+export type SendNeuroglancerJSON = InferOutput<typeof SendNeuroglancerJSONSchema>

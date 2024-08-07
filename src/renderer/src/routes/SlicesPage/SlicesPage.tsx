@@ -18,7 +18,7 @@ import VisualizeSlicing from './components/VisualizeSlicing/VisualizeSlicing'
 import SliceResultSchema from '@renderer/schemas/slice-result-schema'
 import { safeParse } from 'valibot'
 import SliceStatusResultSchema from '@renderer/schemas/slice-status-result-schema'
-import NeuroglancerJSONSchema from '@renderer/schemas/neuroglancer-json-schema'
+import { parseNeuroglancerJSON } from '@renderer/schemas/neuroglancer-json-schema'
 import SliceVisualizationResultSchema from '@renderer/schemas/slice-visualization-result-schema'
 import ConfigurationJSONSchema, {
 	ConfigurationJSON
@@ -300,56 +300,43 @@ function useSlicePageState(): SlicePageState {
 
 			const neuroglancerJSONContent = await readFile('', entry.value as string)
 
-			if (!neuroglancerJSONContent || neuroglancerJSONContent === '') {
-				addAlert('Invalid Neuroglancer JSON', 'error')
+			const { result, error } = parseNeuroglancerJSON(neuroglancerJSONContent)
+
+			if (error) {
+				addAlert(error, 'error')
 				return
 			}
 
-			let json = ''
+			const imageLayers: { type: string; name: string }[] = []
+			const annotationLayers: { type: string; name: string }[] = []
 
-			try {
-				json = JSON.parse(neuroglancerJSONContent)
-			} catch (e) {
-				addAlert('Invalid Neuroglancer JSON', 'error')
-				return
+			// Read all image and annotation layers from the Neuroglancer JSON
+			for (const layer of result['layers']) {
+				if (layer.type === 'image' && layer.name !== '') {
+					imageLayers.push(layer)
+				} else if (layer.type === 'annotation' && layer.name !== '') {
+					annotationLayers.push(layer)
+				}
 			}
 
-			const jsonResult = safeParse(NeuroglancerJSONSchema, json)
+			// Update the options for the image and annotation layer entries
+			if (entries[0] instanceof CompoundEntry) {
+				entries[0].getEntries().forEach((entry) => {
+					if (entry.name === 'neuroglancer_image_layer' && entry instanceof Entry) {
+						entry.options = imageLayers.map((layer) => layer.name)
 
-			if (jsonResult.success) {
-				const imageLayers: { type: string; name: string }[] = []
-				const annotationLayers: { type: string; name: string }[] = []
+						if (imageLayers.length > 0) entry.value = imageLayers[0].name
+					} else if (
+						entry.name === 'neuroglancer_annotation_layer' &&
+						entry instanceof Entry
+					) {
+						entry.options = annotationLayers.map((layer) => layer.name)
 
-				// Read all image and annotation layers from the Neuroglancer JSON
-				for (const layer of jsonResult.output['layers']) {
-					if (layer.type === 'image' && layer.name !== '') {
-						imageLayers.push(layer)
-					} else if (layer.type === 'annotation' && layer.name !== '') {
-						annotationLayers.push(layer)
+						if (annotationLayers.length > 0) entry.value = annotationLayers[0].name
 					}
-				}
+				})
 
-				// Update the options for the image and annotation layer entries
-				if (entries[0] instanceof CompoundEntry) {
-					entries[0].getEntries().forEach((entry) => {
-						if (entry.name === 'neuroglancer_image_layer' && entry instanceof Entry) {
-							entry.options = imageLayers.map((layer) => layer.name)
-
-							if (imageLayers.length > 0) entry.value = imageLayers[0].name
-						} else if (
-							entry.name === 'neuroglancer_annotation_layer' &&
-							entry instanceof Entry
-						) {
-							entry.options = annotationLayers.map((layer) => layer.name)
-
-							if (annotationLayers.length > 0) entry.value = annotationLayers[0].name
-						}
-					})
-
-					setEntries([...entries])
-				}
-			} else {
-				addAlert('Invalid Neuroglancer JSON', 'error')
+				setEntries([...entries])
 			}
 		}
 
