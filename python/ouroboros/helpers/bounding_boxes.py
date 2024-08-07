@@ -246,11 +246,7 @@ class BoundingBox:
         return np.zeros(shape, dtype=dtype)
 
     def calculate_volume(self):
-        return (
-            (self.x_max - self.x_min)
-            * (self.y_max - self.y_min)
-            * (self.z_max - self.z_min)
-        )
+        return np.prod(self.get_shape())
 
     def should_be_divided(self, utilized_volume):
         return utilized_volume < (1 - DEFAULT_SPLIT_THRESHOLD) * self.calculate_volume()

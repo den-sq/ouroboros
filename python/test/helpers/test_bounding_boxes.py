@@ -111,7 +111,7 @@ def test_bounding_box_calculate_volume():
     rect = np.array([[0, 0, 0], [1, 1, 1]])
     bbox = BoundingBox(rect)
     volume = bbox.calculate_volume()
-    assert volume == 1
+    assert volume == 8
 
 
 def test_to_empty_volume():
