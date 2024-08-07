@@ -158,3 +158,15 @@ def format_backproject_tempvolumes(output_name: str):
 
 def format_backproject_resave_volume(output_name: str):
     return output_name + "-temp-straightened.tif"
+
+
+def format_tiff_name(i: int, num_digits: int) -> str:
+    return f"{str(i).zfill(num_digits)}.tif"
+
+
+def parse_tiff_name(tiff_name: str) -> int:
+    return int(tiff_name.split(".")[0])
+
+
+def num_digits_for_n_files(n: int):
+    return len(str(n - 1))

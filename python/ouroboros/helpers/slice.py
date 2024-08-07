@@ -288,7 +288,30 @@ def detect_color_channels(data: np.ndarray, none_value=1):
             - num_color_channels (int): The number of color channels in the volume.
     """
 
-    has_color_channels = data.ndim == COLOR_CHANNELS_DIMENSIONS
-    num_color_channels = data.shape[-1] if has_color_channels else none_value
+    has_color_channels, num_color_channels = detect_color_channels_shape(
+        data.shape, none_value
+    )
+
+    return has_color_channels, num_color_channels
+
+
+def detect_color_channels_shape(shape: tuple, none_value=1):
+    """
+    Detect the number of color channels in a volume.
+
+    Parameters:
+    ----------
+        shape (tuple): The shape of the volume data.
+        none_value (int): The value to return if the volume has no color channels.
+
+    Returns:
+    -------
+        tuple: A tuple containing the following:
+            - has_color_channels (bool): Whether the volume has color channels.
+            - num_color_channels (int): The number of color channels in the volume.
+    """
+
+    has_color_channels = len(shape) == COLOR_CHANNELS_DIMENSIONS
+    num_color_channels = shape[-1] if has_color_channels else none_value
 
     return has_color_channels, num_color_channels

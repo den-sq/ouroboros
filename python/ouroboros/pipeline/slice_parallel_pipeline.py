@@ -6,7 +6,9 @@ from ouroboros.helpers.volume_cache import VolumeCache
 from ouroboros.helpers.files import (
     format_slice_output_file,
     format_slice_output_multiple,
+    format_tiff_name,
     join_path,
+    num_digits_for_n_files,
 )
 from .pipeline import PipelineStep
 from ouroboros.helpers.options import SliceOptions
@@ -107,7 +109,7 @@ class SliceParallelPipelineStep(PipelineStep):
                 return f"Error creating single tif file: {e}"
 
         # Calculate the number of digits needed to store the number of slices
-        num_digits = len(str(len(slice_rects) - 1))
+        num_digits = num_digits_for_n_files(len(slice_rects))
 
         # Create a queue to hold downloaded data for processing
         data_queue = multiprocessing.Queue()
@@ -273,7 +275,7 @@ def process_worker_save_parallel(
 
             for i, slice_i in zip(slice_indices, slices):
                 start = time.perf_counter()
-                filename = join_path(folder_name, f"{str(i).zfill(num_digits)}.tif")
+                filename = join_path(folder_name, format_tiff_name(i, num_digits))
                 futures.append(thread_executor.submit(save_thread, filename, slice_i))
                 durations["save"].append(time.perf_counter() - start)
 

@@ -3,6 +3,7 @@ import scipy.ndimage
 from ouroboros.helpers.memory_usage import GIGABYTE, calculate_gigabytes_from_dimensions
 from ouroboros.helpers.slice import (
     detect_color_channels,
+    detect_color_channels_shape,
     generate_coordinate_grid_for_rect,
     make_volume_binary,
     write_slices_to_volume,
@@ -15,9 +16,12 @@ from ouroboros.helpers.files import (
     format_backproject_output_multiple,
     format_backproject_resave_volume,
     format_backproject_tempvolumes,
+    format_tiff_name,
     get_sorted_tif_files,
     join_path,
     load_and_save_tiff_from_slices,
+    num_digits_for_n_files,
+    parse_tiff_name,
 )
 
 import concurrent.futures
@@ -201,7 +205,7 @@ class BackprojectPipelineStep(PipelineStep):
         volume_shape = volume_cache.get_volume_shape()
 
         # Determine the number of digits needed for the tif file names
-        num_digits = len(str(volume_shape[axis] - 1))
+        num_digits = num_digits_for_n_files(volume_shape[axis])
 
         # Determine the number of channels in the straightened volume
         temp_straightened_volume = make_tiff_memmap(straightened_volume_path, mode="r")
@@ -234,7 +238,7 @@ class BackprojectPipelineStep(PipelineStep):
                 slice_index = 0
                 for j in slice_range:
                     tifffile.imwrite(
-                        join_path(folder_path, f"{str(j).zfill(num_digits)}.tif"),
+                        join_path(folder_path, format_tiff_name(j, num_digits)),
                         np.take(chunk_volume, slice_index, axis=axis),
                         contiguous=True,
                         compression=config.backprojection_compression,
@@ -298,7 +302,7 @@ class BackprojectPipelineStep(PipelineStep):
             slice_index = 0
             for j in slice_range:
                 tifffile.imwrite(
-                    join_path(folder_path, f"{str(j).zfill(num_digits)}.tif"),
+                    join_path(folder_path, format_tiff_name(j, num_digits)),
                     np.take(chunk_volume, slice_index, axis=axis),
                     contiguous=True,
                     compression=config.backprojection_compression,
@@ -664,9 +668,9 @@ def rescale_folder_tif(
         source_url, current_mip, target_mip, new_shape
     )
 
-    num_digits = len(str(len(tifs)))
+    num_digits = num_digits_for_n_files(len(tifs))
 
-    first_index = int(tifs[0].split(".")[0])
+    first_index = parse_tiff_name(tifs[0])
 
     output_index = int(first_index * resolution_factors[0])
 
@@ -684,7 +688,7 @@ def rescale_folder_tif(
         # Write the layers to new tif files
         for j in range(size):
             tifffile.imwrite(
-                join_path(output_folder, f"{str(output_index).zfill(num_digits)}.tif"),
+                join_path(output_folder, format_tiff_name(output_index, num_digits)),
                 layers[j],
                 contiguous=True if compression is None else False,
                 compression=compression,
@@ -707,8 +711,7 @@ def calculate_scaling_factors(source_url, current_mip, target_mip, tif_shape):
         for i in range(len(target_resolution))
     )
 
-    has_color_channels = len(tif_shape) == 4
-    num_channels = tif_shape[-1] if has_color_channels else 1
+    has_color_channels, num_channels = detect_color_channels_shape(tif_shape)
 
     # Determine the scaling factor for each axis as a tuple
     scaling_factors = resolution_factors + (

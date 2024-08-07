@@ -8,10 +8,13 @@ from ouroboros.helpers.files import (
     format_slice_output_config_file,
     format_slice_output_file,
     format_slice_output_multiple,
+    format_tiff_name,
     load_and_save_tiff_from_slices,
     get_sorted_tif_files,
     join_path,
     combine_unknown_folder,
+    num_digits_for_n_files,
+    parse_tiff_name,
 )
 
 
@@ -142,3 +145,21 @@ def test_format_backproject_tempvolumes():
 def test_format_backproject_resave_volume():
     result = format_backproject_resave_volume("test")
     assert isinstance(result, str)
+
+
+def test_format_tiff_name():
+    result = format_tiff_name(1, 3)
+    assert isinstance(result, str)
+    assert result == f"{str(1).zfill(3)}.tif"
+
+
+def test_parse_tiff_name():
+    result = parse_tiff_name("001.tif")
+    assert isinstance(result, int)
+    assert result == 1
+
+
+def test_num_digits_for_n_files():
+    result = num_digits_for_n_files(100)
+    assert isinstance(result, int)
+    assert result == 2
