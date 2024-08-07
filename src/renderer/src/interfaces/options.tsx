@@ -209,3 +209,32 @@ export class BackprojectOptionsFile extends CompoundEntry {
 		this.setValue(values)
 	}
 }
+
+/**
+ * Finds all paths to a given type in a compound entry.
+ *
+ * @param entry The entry to search
+ * @param targetType The type to search for
+ * @returns An array of paths to the target type
+ */
+export function findPathsToType(
+	entry: CompoundEntry | Entry,
+	targetType: EntryValueType
+): string[][] {
+	const queue: { node: CompoundEntry | Entry; path: string[] }[] = [{ node: entry, path: [] }]
+	const paths: string[][] = []
+
+	while (queue.length > 0) {
+		const { node, path } = queue.shift()!
+
+		if (node instanceof Entry && node.type === targetType) {
+			paths.push(path)
+		} else if (node instanceof CompoundEntry) {
+			for (const entry of node.getEntries()) {
+				queue.push({ node: entry, path: [...path, entry.name] })
+			}
+		}
+	}
+
+	return paths
+}

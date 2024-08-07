@@ -7,7 +7,8 @@ import {
 	CompoundEntry,
 	Entry,
 	BackprojectOptionsFile,
-	CompoundValueType
+	CompoundValueType,
+	findPathsToType
 } from '@renderer/interfaces/options'
 import { useContext, useEffect, useState } from 'react'
 import { DirectoryContext } from '@renderer/contexts/DirectoryContext'
@@ -110,13 +111,27 @@ function useBackprojectPageState(): BackprojectPageState {
 
 		const optionsObject = entries[0].toObject()
 
-		// Convert relative paths to absolute paths if necessary
-		const outputFolder = optionsObject['output_file_folder'].startsWith('.')
-			? await join(directoryPath, optionsObject['output_file_folder'])
-			: optionsObject['output_file_folder']
+		const pathsToFilePathType = findPathsToType(entries[0], 'filePath')
 
-		// Add the absolute output folder to the options object
-		optionsObject['output_file_folder'] = outputFolder
+		// Make all file paths absolute
+		for (const path of pathsToFilePathType) {
+			let current = optionsObject
+
+			// Traverse the object to find the entry with the path
+			for (let i = 0; i < path.length - 1; i++) current = current[path[i]]
+
+			const name = path[path.length - 1]
+
+			// Convert relative paths to absolute paths if necessary
+			const filePathValue = current[name].startsWith('.')
+				? await join(directoryPath, current[name])
+				: current[name]
+
+			// Add the absolute path to the options object
+			current[name] = filePathValue
+		}
+
+		const outputFolder = optionsObject['output_file_folder']
 
 		const outputName = optionsObject['output_file_name']
 
