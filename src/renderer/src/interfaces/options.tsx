@@ -197,6 +197,7 @@ export class BackprojectOptionsFile extends CompoundEntry {
 			new Entry('output_file_folder', 'Output File Folder', './', 'filePath'),
 			new Entry('output_file_name', 'Output File Name', 'sample', 'string'),
 			new Entry('output_mip_level', 'Output MIP Level', 0, 'number'),
+			new Entry('upsample_order', 'Upsample Order (2 = Quadratic)', 2, 'number'),
 			new Entry('backprojection_compression', 'Backprojection Compression', 'zlib', 'string'),
 			new Entry('make_single_file', 'Output Single File', false, 'boolean'),
 			new Entry('backproject_min_bounding_box', 'Output Min Bounding Box', true, 'boolean'),

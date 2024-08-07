@@ -1,6 +1,8 @@
 import scipy
 import scipy.ndimage
-from ouroboros.helpers.memory_usage import GIGABYTE, calculate_gigabytes_from_dimensions
+from ouroboros.helpers.memory_usage import (
+    calculate_chunk_size,
+)
 from ouroboros.helpers.slice import (
     detect_color_channels,
     detect_color_channels_shape,
@@ -23,6 +25,8 @@ from ouroboros.helpers.files import (
     num_digits_for_n_files,
     parse_tiff_name,
 )
+
+from ouroboros.common.logging import logger
 
 import concurrent.futures
 import tifffile
@@ -171,10 +175,7 @@ class BackprojectPipelineStep(PipelineStep):
         chunk_size = (
             DEFAULT_CHUNK_SIZE
             if config.max_ram_gb == 0
-            else int(
-                (config.max_ram_gb * GIGABYTE)
-                / calculate_chunk_size(config, volume_cache)
-            )
+            else calculate_backproject_chunk_size(config, volume_cache)
         )
 
         axis = AXIS
@@ -366,6 +367,8 @@ class BackprojectPipelineStep(PipelineStep):
                 folder_path=(folder_path if config.make_single_file is False else None),
                 output_name=output_name,
                 compression=config.backprojection_compression,
+                max_ram_gb=config.max_ram_gb,
+                order=config.upsample_order,
             )
 
             if error is not None:
@@ -465,24 +468,24 @@ def calculate_min_bounding_box(volume_cache):
     return BoundingBox.bound_boxes(volume_cache.bounding_boxes)
 
 
-def calculate_chunk_size(config, volume_cache, axis=0):
+def calculate_backproject_chunk_size(config, volume_cache, axis=0):
     if config.max_ram_gb == 0:
         return DEFAULT_CHUNK_SIZE
 
     bounding_box_shape = (
-        calculate_min_bounding_box(volume_cache).get_shape()[:axis]
-        + calculate_min_bounding_box(volume_cache).get_shape()[axis + 1 :]
+        calculate_min_bounding_box(volume_cache).get_shape()
         if config.backproject_min_bounding_box
-        else volume_cache.get_volume_shape()[:axis]
-        + volume_cache.get_volume_shape()[axis + 1 :]
+        else volume_cache.get_volume_shape()
     )
 
-    bounding_box_memory_usage = calculate_gigabytes_from_dimensions(
+    chunk_size = calculate_chunk_size(
         bounding_box_shape,
         volume_cache.get_volume_dtype(),
+        config.max_ram_gb,
+        axis=axis,
     )
 
-    return int((config.max_ram_gb * GIGABYTE) / bounding_box_memory_usage)
+    return chunk_size
 
 
 def create_volume_chunks(
@@ -554,6 +557,8 @@ def rescale_mip_volume(
     folder_path=None,
     output_name="out",
     compression=None,
+    max_ram_gb=0,
+    order=2,
 ) -> str | None:
     """
     Rescale the volume to the mip level.
@@ -573,6 +578,11 @@ def rescale_mip_volume(
     compression : str, optional
         The compression to use for the resulting tif file.
         The default is None.
+    max_ram_gb : int, optional
+        The maximum amount of RAM to use in GB.
+        The default is 0.
+    order : int, optional
+        The order of the interpolation.
 
     Returns
     -------
@@ -594,6 +604,8 @@ def rescale_mip_volume(
             single_path,
             compression=compression,
             file_name=output_name + ".tif",
+            max_ram_gb=max_ram_gb,
+            order=order,
         )
 
     return rescale_folder_tif(
@@ -603,6 +615,8 @@ def rescale_mip_volume(
         folder_path,
         compression=compression,
         folder_name=output_name,
+        max_ram_gb=max_ram_gb,
+        order=order,
     )
 
 
@@ -613,6 +627,8 @@ def rescale_single_tif(
     single_path,
     file_name="out.tif",
     compression=None,
+    max_ram_gb=0,
+    order=1,
 ):
     with tifffile.TiffFile(single_path) as tif:
         tif_shape = (len(tif.pages),) + tif.pages[0].shape
@@ -621,14 +637,34 @@ def rescale_single_tif(
             source_url, current_mip, target_mip, tif_shape
         )
 
+        # Calculate the output tiff shape
+        output_shape = tuple(
+            int(tif_shape[i] * scaling_factors[i]) for i in range(len(tif_shape))
+        )
+
+        # Note: The chunk size is divided by the scaling factor to account for the
+        # number of slices that need to be loaded to produce chunk_size slices in the output volume
+        chunk_size = max(
+            int(
+                calculate_chunk_size(
+                    output_shape, tif.pages[0].dtype, max_ram_gb=max_ram_gb
+                )
+                / scaling_factors[0]
+            ),
+            1,
+        )
+
         with tifffile.TiffWriter(file_name) as output_volume:
-            for i in range(tif_shape[0]):
-                tif_layer = tif.pages[i].asarray()
+            for i in range(0, tif_shape[0], chunk_size):
+                # Stack the tif layers along the first axis (chunk_size)
+                tif_layer = np.array(
+                    [
+                        tif.pages[j].asarray()
+                        for j in range(i, min(i + chunk_size, tif_shape[0]))
+                    ]
+                )
 
-                # Give the tif a new 0th dimension so that it can be resized along all axes
-                tif_layer = np.expand_dims(tif_layer, axis=0)
-
-                layers = scipy.ndimage.zoom(tif_layer, scaling_factors, order=3)
+                layers = scipy.ndimage.zoom(tif_layer, scaling_factors, order=order)
 
                 size = layers.shape[0]
 
@@ -651,6 +687,8 @@ def rescale_folder_tif(
     folder_path,
     folder_name="out",
     compression=None,
+    max_ram_gb=0,
+    order=1,
 ):
     # Create output folder if it doesn't exist
     output_folder = folder_name
@@ -661,11 +699,23 @@ def rescale_folder_tif(
     if len(tifs) == 0:
         return "No tif files found in the folder."
 
+    sample_tif = tifffile.imread(join_path(folder_path, tifs[0]))
+
     # Determine the shape of the tif stack
-    new_shape = (len(tifs), *tifffile.imread(join_path(folder_path, tifs[0])).shape)
+    new_shape = (len(tifs), *sample_tif.shape)
 
     scaling_factors, resolution_factors = calculate_scaling_factors(
         source_url, current_mip, target_mip, new_shape
+    )
+
+    # Note: The chunk size is divided by the scaling factor to account for the
+    # number of slices that need to be loaded to produce chunk_size slices in the output volume
+    chunk_size = max(
+        int(
+            calculate_chunk_size(new_shape, sample_tif.dtype, max_ram_gb=max_ram_gb)
+            / scaling_factors[0]
+        ),
+        1,
     )
 
     num_digits = num_digits_for_n_files(len(tifs))
@@ -675,13 +725,16 @@ def rescale_folder_tif(
     output_index = int(first_index * resolution_factors[0])
 
     # Resize the volume
-    for i in range(len(tifs)):
-        tif = tifffile.imread(join_path(folder_path, tifs[i]))
+    for i in range(0, len(tifs), chunk_size):
+        # Stack the tif layers along the first axis (chunk_size)
+        tif = np.array(
+            [
+                tifffile.imread(join_path(folder_path, tifs[j]))
+                for j in range(i, min(i + chunk_size, len(tifs)))
+            ]
+        )
 
-        # Give the tif a new 0th dimension so that it can be resized along all axes
-        tif = np.expand_dims(tif, axis=0)
-
-        layers = scipy.ndimage.zoom(tif, scaling_factors, order=3)
+        layers = scipy.ndimage.zoom(tif, scaling_factors, order=order)
 
         size = layers.shape[0]
 
@@ -692,13 +745,16 @@ def rescale_folder_tif(
                 layers[j],
                 contiguous=True if compression is None else False,
                 compression=compression,
+                software="ouroboros",
             )
             output_index += 1
 
     return None
 
 
-def calculate_scaling_factors(source_url, current_mip, target_mip, tif_shape):
+def calculate_scaling_factors(
+    source_url: str, current_mip: int, target_mip: int, tif_shape: tuple
+):
     # Determine the current and target resolutions
     mip_sizes = get_mip_volume_sizes(source_url)
 

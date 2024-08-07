@@ -60,6 +60,7 @@ class BackprojectOptions(CommonOptions):
     backprojection_compression: str = (
         "zlib"  # Compression type for the backprojected file
     )
+    upsample_order: int = 2  # Order of the interpolation for upsampling
 
 
 DEFAULT_SLICE_OPTIONS = SliceOptions(

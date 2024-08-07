@@ -43,3 +43,38 @@ def calculate_gigabytes_from_dimensions(shape: tuple[int], dtype: np.dtype) -> f
     num_bytes = num_elements * dtype_size
 
     return num_bytes / GIGABYTE
+
+
+def calculate_chunk_size(shape: tuple, dtype: np.dtype, max_ram_gb: int = 0, axis=0):
+    """
+    Calculate the chunk size based on the shape and dtype of the volume.
+
+    Parameters
+    ----------
+    shape : tuple
+        The shape of the volume.
+    dtype : numpy.dtype
+        The dtype of the volume.
+    max_ram_gb : int
+        The maximum amount of RAM to use in GB.
+    axis : int, optional
+        The axis along which to calculate the chunk size.
+        The default is 0.
+
+    Returns
+    -------
+    int
+        The chunk size.
+    """
+    # Calculate the memory usage of the volume
+    total_gb = calculate_gigabytes_from_dimensions(shape, dtype)
+
+    # Determine the length of the axis
+    axis_length = shape[axis]
+
+    # Calculate the memory usage along the axis
+    axis_gb = total_gb / axis_length
+
+    # Calculate the chunk size
+    # Note: The max function is used to ensure that the chunk size is at least 1
+    return max(int(max_ram_gb / axis_gb), 1)
