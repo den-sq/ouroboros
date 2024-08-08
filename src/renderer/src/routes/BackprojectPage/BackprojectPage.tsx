@@ -1,7 +1,7 @@
 import OptionsPanel from '@renderer/components/OptionsPanel/OptionsPanel'
 import styles from './BackprojectPage.module.css'
 import VisualizePanel from '@renderer/components/VisualizePanel/VisualizePanel'
-import ProgressPanel from '@renderer/components/ProgressPanel/Progress'
+import ProgressPanel, { ProgressType } from '@renderer/components/ProgressPanel/Progress'
 import { ServerContext } from '@renderer/contexts/ServerContext'
 import {
 	CompoundEntry,
@@ -33,7 +33,7 @@ function BackprojectPage(): JSX.Element {
 }
 
 type BackprojectPageState = {
-	progress: [string, number][]
+	progress: ProgressType[]
 	connected: boolean
 	entries: (Entry | CompoundEntry)[]
 	onSubmit: () => Promise<void>
@@ -58,7 +58,7 @@ function useBackprojectPageState(): BackprojectPageState {
 
 	const { addAlert } = useContext(AlertContext)
 
-	const [progress, setProgress] = useState<[string, number][]>([])
+	const [progress, setProgress] = useState<ProgressType[]>([])
 
 	const { results: backprojectResults } = useFetchListener('/backproject/')
 	const {

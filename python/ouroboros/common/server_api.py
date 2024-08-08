@@ -164,7 +164,9 @@ def create_api(app: FastAPI, docker: bool = False):
             task = tasks[task_id]
             if task.status == "started" or task.status == "done":
                 try:
-                    task.last_progress = tasks[task_id].pipeline.get_steps_progress()
+                    task.last_progress = tasks[
+                        task_id
+                    ].pipeline.get_steps_progress_and_durations()
                 except BaseException as e:
                     task.status = "error"
                     task.error = (

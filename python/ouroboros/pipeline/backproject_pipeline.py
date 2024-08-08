@@ -26,8 +26,6 @@ from ouroboros.helpers.files import (
     parse_tiff_name,
 )
 
-from ouroboros.common.logging import logger
-
 import concurrent.futures
 import tifffile
 import os

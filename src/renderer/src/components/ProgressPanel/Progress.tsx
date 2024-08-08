@@ -2,11 +2,29 @@ import Header from '../Header/Header'
 import ProgressBar from './components/ProgressBar/ProgressBar'
 import ServerConnectedIndicator from './components/ServerConnectedIndicator/ServerConnectedIndicator'
 
-function ProgressPanel({ progress, connected }): JSX.Element {
+/**
+ * [name, progress (0-1), duration (seconds)]
+ */
+export type ProgressType = [string, number, number]
+
+function ProgressPanel({
+	progress,
+	connected
+}: {
+	progress: ProgressType[]
+	connected: boolean
+}): JSX.Element {
 	const progressBars = progress
-		? progress.map((p: any, i: number) => {
-				const [name, _progress] = p
-				return <ProgressBar key={i} progress={_progress * 100} name={name} />
+		? progress.map((p: ProgressType, i: number) => {
+				const [name, _progress, duration] = p
+				return (
+					<ProgressBar
+						key={i}
+						progress={_progress * 100}
+						name={name}
+						duration={duration}
+					/>
+				)
 			})
 		: null
 

@@ -1,7 +1,7 @@
 import OptionsPanel from '@renderer/components/OptionsPanel/OptionsPanel'
 import styles from './SlicesPage.module.css'
 import VisualizePanel from '@renderer/components/VisualizePanel/VisualizePanel'
-import ProgressPanel from '@renderer/components/ProgressPanel/Progress'
+import ProgressPanel, { ProgressType } from '@renderer/components/ProgressPanel/Progress'
 import { ServerContext } from '@renderer/contexts/ServerContext'
 import {
 	CompoundEntry,
@@ -92,7 +92,7 @@ function SlicesPage(): JSX.Element {
 }
 
 type SlicePageState = {
-	progress: [string, number][]
+	progress: ProgressType[]
 	boundingBoxProgress: number
 	connected: boolean
 	entries: (Entry | CompoundEntry)[]
@@ -120,7 +120,7 @@ function useSlicePageState(): SlicePageState {
 
 	const { addAlert } = useContext(AlertContext)
 
-	const [progress, setProgress] = useState<[string, number][]>([])
+	const [progress, setProgress] = useState<ProgressType[]>([])
 
 	const { results: sliceResults } = useFetchListener('/slice/')
 	const {

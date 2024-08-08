@@ -40,6 +40,12 @@ class Pipeline:
     def get_steps_progress(self):
         return [[step.step_name, step.get_progress()] for step in self.steps]
 
+    def get_steps_progress_and_durations(self):
+        return [
+            [step.step_name, step.get_progress(), step.get_duration()]
+            for step in self.steps
+        ]
+
     def get_step_statistics(self):
         return [step.get_time_statistics() for step in self.steps]
 
@@ -56,7 +62,11 @@ class PipelineStep(ABC):
         """
 
         self.step_name = type(self).__name__
-        self.timing = {"pipeline": self.step_name, "custom_times": {}}
+        self.timing = {
+            "pipeline": self.step_name,
+            "custom_times": {},
+            "duration_seconds": 0,
+        }
         self.progress = 0
         self.progress_listener_callables = []
         self.show_progress_bar = False
@@ -118,6 +128,9 @@ class PipelineStep(ABC):
         self.timing["custom_times"] = custom_times_statistics
 
         return self.timing
+
+    def get_duration(self):
+        return self.timing["duration_seconds"]
 
     def add_timing(self, key: str, value: float):
         if key in self.timing:
