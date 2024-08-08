@@ -15,8 +15,8 @@ import { DirectoryContext } from '@renderer/contexts/DirectoryContext'
 import { join, readFile, writeFile } from '@renderer/interfaces/file'
 import { AlertContext } from '@renderer/contexts/AlertContext'
 import { safeParse } from 'valibot'
-import BackprojectResultSchema from '@renderer/schemas/backproject-result-schema'
-import BackprojectStatusResultSchema from '@renderer/schemas/backproject-status-result-schema'
+import { parseBackprojectResult } from '@renderer/schemas/backproject-result-schema'
+import { parseBackprojectStatusResult } from '@renderer/schemas/backproject-status-result-schema'
 
 const BACKPROJECT_STREAM = '/backproject_status_stream/'
 
@@ -69,19 +69,19 @@ function useBackprojectPageState(): BackprojectPageState {
 
 	// Listen to the status stream for the active task
 	useEffect(() => {
-		const results = safeParse(BackprojectResultSchema, backprojectResults)
+		const { result, error } = parseBackprojectResult(backprojectResults)
 
-		if (results.success) {
-			performStream(BACKPROJECT_STREAM, results.output)
+		if (!error) {
+			performStream(BACKPROJECT_STREAM, result)
 		}
 	}, [backprojectResults])
 
 	// Update the progress state when new data is received
 	useEffect(() => {
-		const results = safeParse(BackprojectStatusResultSchema, streamResults)
+		const { result, error } = parseBackprojectStatusResult(streamResults)
 
-		if (results.success && !results.output.error) {
-			setProgress(results.output.progress)
+		if (!error && !result.error) {
+			setProgress(result.progress)
 		}
 	}, [streamResults])
 
@@ -98,11 +98,11 @@ function useBackprojectPageState(): BackprojectPageState {
 			return
 		}
 
-		const results = safeParse(BackprojectResultSchema, backprojectResults)
+		const { result, error } = parseBackprojectResult(backprojectResults)
 
 		// Delete the previous task if it exists
-		if (results.success) {
-			performFetch('/delete/', results.output, { method: 'POST' }).then(() => {
+		if (!error) {
+			performFetch('/delete/', result, { method: 'POST' }).then(() => {
 				// Clear the task once it has been deleted
 				clearFetch('/slice/')
 				clearStream(BACKPROJECT_STREAM)

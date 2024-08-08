@@ -1,10 +1,10 @@
-import { any, BaseIssue, BaseSchema, boolean, number, object, string } from 'valibot'
+import { any, boolean, number, object, string } from 'valibot'
+
+import { Schema } from '@renderer/schemas/schema-helpers'
 
 export type CompoundValueType = { [key: string]: CompoundValueType | ValueType } | ValueType
 export type ValueType = number | string | boolean
 export type EntryValueType = 'number' | 'string' | 'boolean' | 'filePath'
-
-export type Schema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
 
 export class Entry {
 	name: string

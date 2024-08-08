@@ -14,15 +14,15 @@ import { useContext, useEffect, useState } from 'react'
 import { DirectoryContext } from '@renderer/contexts/DirectoryContext'
 import { join, readFile, writeFile } from '@renderer/interfaces/file'
 import { AlertContext } from '@renderer/contexts/AlertContext'
-import VisualizeSlicing from './components/VisualizeSlicing/VisualizeSlicing'
-import SliceResultSchema from '@renderer/schemas/slice-result-schema'
+import VisualizeSlicing, {
+	VisualizationOutput
+} from './components/VisualizeSlicing/VisualizeSlicing'
+import { parseSliceResult } from '@renderer/schemas/slice-result-schema'
 import { safeParse } from 'valibot'
-import SliceStatusResultSchema from '@renderer/schemas/slice-status-result-schema'
+import { parseSliceStatusResult } from '@renderer/schemas/slice-status-result-schema'
 import { parseNeuroglancerJSON } from '@renderer/schemas/neuroglancer-json-schema'
-import SliceVisualizationResultSchema from '@renderer/schemas/slice-visualization-result-schema'
-import ConfigurationJSONSchema, {
-	ConfigurationJSON
-} from '@renderer/schemas/configuration-json-schema'
+import { parseSliceVisualizationToOutputFormat } from '@renderer/schemas/slice-visualization-result-schema'
+import { parseConfigurationJSONToOutputFormat } from '@renderer/schemas/configuration-json-schema'
 import { DragContext } from '@renderer/contexts/DragContext'
 import { useDroppable } from '@dnd-kit/core'
 
@@ -173,12 +173,15 @@ function useSlicePageState(): SlicePageState {
 							return
 						}
 
-						const jsonResult = safeParse(ConfigurationJSONSchema, json)
+						const { result, error } = parseConfigurationJSONToOutputFormat(json)
 
-						if (jsonResult.success) {
-							const data = convertConfigJSONToProps(jsonResult.output)
-
-							setVisualizationData(data)
+						if (!error) {
+							setVisualizationData(result)
+						} else {
+							addAlert(
+								'Invalid JSON file. Only -configuration.json files are currently supported for visualization.',
+								'error'
+							)
 						}
 					})
 
@@ -193,31 +196,30 @@ function useSlicePageState(): SlicePageState {
 
 	// Update the visualization data when new data is received
 	useEffect(() => {
-		const visualizationDataResult = safeParse(
-			SliceVisualizationResultSchema,
+		const { result, error } = parseSliceVisualizationToOutputFormat(
 			onDemandVisualizationResults
 		)
 
-		if (visualizationDataResult.success) {
-			setVisualizationData(visualizationDataToProps(visualizationDataResult.output.data))
+		if (!error) {
+			setVisualizationData(result)
 		}
 	}, [onDemandVisualizationResults])
 
 	// Listen to the status stream for the active task
 	useEffect(() => {
-		const results = safeParse(SliceResultSchema, sliceResults)
+		const { result, error } = parseSliceResult(sliceResults)
 
-		if (results.success) {
-			performStream(SLICE_STREAM, results.output)
+		if (!error) {
+			performStream(SLICE_STREAM, result)
 		}
 	}, [sliceResults])
 
 	// Update the progress state when new data is received
 	useEffect(() => {
-		const results = safeParse(SliceStatusResultSchema, streamResults)
+		const { result, error } = parseSliceStatusResult(streamResults)
 
-		if (results.success && !results.output.error) {
-			setProgress(results.output.progress)
+		if (!error && !result.error) {
+			setProgress(result.progress)
 		}
 	}, [streamResults])
 
@@ -365,11 +367,11 @@ function useSlicePageState(): SlicePageState {
 			return
 		}
 
-		const results = safeParse(SliceResultSchema, sliceResults)
+		const { result, error } = parseSliceResult(sliceResults)
 
 		// Delete the previous task if it exists
-		if (results.success) {
-			performFetch('/delete/', results.output, { method: 'POST' }).then(() => {
+		if (!error) {
+			performFetch('/delete/', result, { method: 'POST' }).then(() => {
 				// Clear the task once it has been deleted
 				clearFetch('/slice/')
 				clearStream(SLICE_STREAM)
@@ -442,46 +444,4 @@ function useSlicePageState(): SlicePageState {
 	}
 }
 
-type VisualizationInput = {
-	rects: number[][][]
-	bounding_boxes: { min: number[]; max: number[] }[]
-	link_rects: number[]
-}
-
-type VisualizationOutput = {
-	rects: { topLeft: number[]; topRight: number[]; bottomRight: number[]; bottomLeft: number[] }[]
-	boundingBoxes: { min: number[]; max: number[] }[]
-	linkRects: number[]
-}
-
-function visualizationDataToProps(
-	visualizationData: VisualizationInput | null
-): VisualizationOutput | null {
-	if (!visualizationData) {
-		return null
-	}
-
-	const rects = visualizationData.rects.map((rect) => {
-		return { topLeft: rect[0], topRight: rect[1], bottomRight: rect[2], bottomLeft: rect[3] }
-	})
-	const boundingBoxes = visualizationData.bounding_boxes
-	const linkRects = visualizationData.link_rects
-
-	return { rects, boundingBoxes, linkRects }
-}
-
 export default SlicesPage
-
-function convertConfigJSONToProps(configJSON: ConfigurationJSON): VisualizationOutput {
-	const rects = configJSON.slice_rects
-	const boundingBoxes = configJSON.volume_cache.bounding_boxes.map((box) => {
-		return { min: [box.x_min, box.y_min, box.z_min], max: [box.x_max, box.y_max, box.z_max] }
-	})
-	const linkRects = configJSON.volume_cache.link_rects
-
-	return visualizationDataToProps({
-		rects,
-		bounding_boxes: boundingBoxes,
-		link_rects: linkRects
-	})!
-}

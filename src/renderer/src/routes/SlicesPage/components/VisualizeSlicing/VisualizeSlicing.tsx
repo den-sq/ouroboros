@@ -15,6 +15,12 @@ import {
 } from 'three'
 import VisualizeIcons from './components/VisualizeIcons/VisualizeIcons'
 
+export type VisualizationOutput = {
+	rects: { topLeft: number[]; topRight: number[]; bottomRight: number[]; bottomLeft: number[] }[]
+	boundingBoxes: { min: number[]; max: number[] }[]
+	linkRects: number[]
+}
+
 export type Point = number[]
 
 export type Rect = {
