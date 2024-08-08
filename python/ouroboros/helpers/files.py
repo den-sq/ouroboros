@@ -144,11 +144,21 @@ def format_slice_output_config_file(output_name: str):
     return output_name + "-configuration.json"
 
 
-def format_backproject_output_file(output_name: str):
+def format_backproject_output_file(output_name: str, offset: tuple[int] | None = None):
+    if offset is not None:
+        offset_str = "-".join(map(str, offset))
+        return output_name + f"-backprojected-{offset_str}.tif"
+
     return output_name + "-backprojected.tif"
 
 
-def format_backproject_output_multiple(output_name: str):
+def format_backproject_output_multiple(
+    output_name: str, offset: tuple[int] | None = None
+):
+    if offset is not None:
+        offset_str = "-".join(map(str, offset))
+        return output_name + f"-backprojected-{offset_str}"
+
     return output_name + "-backprojected"
 
 

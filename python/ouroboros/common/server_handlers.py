@@ -9,6 +9,7 @@ from ouroboros.common.file_system import (
 from ouroboros.common.logging import logger
 from ouroboros.common.pipelines import backproject_pipeline, slice_pipeline
 from ouroboros.common.server_types import BackProjectTask, SliceTask, Task
+from ouroboros.helpers.files import combine_unknown_folder
 
 
 def handle_slice_core(task: SliceTask, slice_options):
@@ -82,7 +83,7 @@ def handle_backproject_core(task: BackProjectTask, options):
 
     task.status = "started"
 
-    _, error = pipeline.process(input_data)
+    output, error = pipeline.process(input_data)
 
     if error:
         return error
@@ -90,6 +91,8 @@ def handle_backproject_core(task: BackProjectTask, options):
     # Log the pipeline statistics
     logger.info("Backproject Pipeline Statistics:")
     logger.info(pipeline.get_step_statistics())
+
+    return output
 
 
 def handle_backproject(task: BackProjectTask):
@@ -111,7 +114,13 @@ def handle_backproject_docker(task: BackProjectTask):
         task.status = "error"
         return
 
-    options, host_output_file, host_output_config_file, host_output_slices = load_result
+    (
+        options,
+        host_output_file,
+        host_output_config_file,
+        host_output_slices,
+        host_output_folder,
+    ) = load_result
 
     backproject_result = handle_backproject_core(task, options)
 
@@ -119,6 +128,15 @@ def handle_backproject_docker(task: BackProjectTask):
         task.error = backproject_result
         task.status = "error"
         return
+    else:
+        if options.make_single_file:
+            host_output_file = combine_unknown_folder(
+                host_output_folder, backproject_result.output_file_path
+            )
+        else:
+            host_output_slices = combine_unknown_folder(
+                host_output_folder, backproject_result.output_file_path
+            )
 
     save_result = save_output_for_backproject_docker(
         host_output_file, host_output_config_file, host_output_slices=host_output_slices

@@ -130,11 +130,21 @@ def test_format_slice_output_config_file():
 def test_format_backproject_output_file():
     result = format_backproject_output_file("test")
     assert isinstance(result, str)
+    assert result == "test-backprojected.tif"
+
+    result = format_backproject_output_file("test", offset=(1, 2, 3))
+    assert isinstance(result, str)
+    assert result == "test-backprojected-1-2-3.tif"
 
 
 def test_format_backproject_output_multiple():
     result = format_backproject_output_multiple("test")
     assert isinstance(result, str)
+    assert result == "test-backprojected"
+
+    result = format_backproject_output_multiple("test", offset=(1, 2, 3))
+    assert isinstance(result, str)
+    assert result == "test-backprojected-1-2-3"
 
 
 def test_format_backproject_tempvolumes():

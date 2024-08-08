@@ -72,7 +72,7 @@ class BackprojectPipelineStep(PipelineStep):
         if not isinstance(slice_rects, np.ndarray):
             return "Input data must contain an array of slice rects."
 
-        straightened_volume_path = input_tiff_path
+        straightened_volume_path = config.straightened_volume_path
 
         # Make sure the straightened volume exists
         if not os.path.exists(straightened_volume_path):
@@ -193,14 +193,28 @@ class BackprojectPipelineStep(PipelineStep):
             pipeline_input.backprojection_offset = f"{min_bounding_box.x_min},{min_bounding_box.y_min},{min_bounding_box.z_min}"
 
         # Save the backprojected volume to a series of tif files
+        offset = (
+            None
+            if not config.backproject_min_bounding_box or not config.offset_in_name
+            else (
+                min_bounding_box.x_min,
+                min_bounding_box.y_min,
+                min_bounding_box.z_min,
+            )
+        )
         folder_path = join_path(
             config.output_file_folder,
-            format_backproject_output_multiple(config.output_file_name),
+            format_backproject_output_multiple(config.output_file_name, offset=offset),
         )
         if os.path.exists(folder_path):
             shutil.rmtree(folder_path)
 
         os.makedirs(folder_path, exist_ok=True)
+
+        # Set the output file name to match the folder path
+        pipeline_input.output_file_path = format_backproject_output_multiple(
+            config.output_file_name, offset=offset
+        ) + (".tif" if config.make_single_file else "")
 
         dtype = volume_cache.get_volume_dtype()
         volume_shape = volume_cache.get_volume_shape()

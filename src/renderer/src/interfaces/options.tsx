@@ -202,6 +202,7 @@ export class BackprojectOptionsFile extends CompoundEntry {
 			new Entry('make_single_file', 'Output Single File', false, 'boolean'),
 			new Entry('backproject_min_bounding_box', 'Output Min Bounding Box', true, 'boolean'),
 			new Entry('make_backprojection_binary', 'Binary Backprojection', false, 'boolean'),
+			new Entry('offset_in_name', 'Offset in Filename', true, 'boolean'),
 			new Entry('flush_cache', 'Flush CloudVolume Cache', false, 'boolean').withHidden(),
 			new Entry('max_ram_gb', 'Max RAM (GB) (0 = no limit)', 0, 'number')
 		])

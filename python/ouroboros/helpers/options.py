@@ -61,6 +61,7 @@ class BackprojectOptions(CommonOptions):
         "zlib"  # Compression type for the backprojected file
     )
     upsample_order: int = 2  # Order of the interpolation for upsampling
+    offset_in_name: bool = True  # Whether to include the offset in the output file name
 
 
 DEFAULT_SLICE_OPTIONS = SliceOptions(

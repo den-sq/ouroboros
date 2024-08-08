@@ -56,9 +56,9 @@ def load_options_for_backproject_docker(
 
     Returns
     -------
-    tuple[BackprojectOptions, str, str, str | None] | str
+    tuple[BackprojectOptions, str, str, str | None, str] | str
         The options for backprojecting the volume, the host path to the output file, the host path to the config file,
-        and the host path to the slices folder if the output is not a single file.
+        the host path to the slices folder if the output is not a single file, and the host output folder.
     """
 
     # Copy the file to the docker volume
@@ -111,7 +111,13 @@ def load_options_for_backproject_docker(
     # Modify the output file folder to be in the docker volume
     options.output_file_folder = get_volume_path()
 
-    return options, host_output_file, host_output_config_file, host_output_slices
+    return (
+        options,
+        host_output_file,
+        host_output_config_file,
+        host_output_slices,
+        host_output_folder,
+    )
 
 
 def save_output_for_backproject_docker(
