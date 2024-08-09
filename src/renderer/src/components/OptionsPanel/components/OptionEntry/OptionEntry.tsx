@@ -5,6 +5,7 @@ import { ValueType, Entry } from '@renderer/interfaces/options'
 import { DragContext } from '@renderer/contexts/DragContext'
 import { DirectoryContext } from '@renderer/contexts/DirectoryContext'
 import { useTooltip } from '@renderer/components/Tooltip/Tooltip'
+import Separator from '@renderer/components/Separator/Separator'
 
 const MIN_WIDTH = 25
 const LABEL_GAP = 15
@@ -199,6 +200,7 @@ function OptionEntry({
 					)}
 				</div>
 			</div>
+			{entry.separator && <Separator />}
 			{tooltip}
 		</>
 	)

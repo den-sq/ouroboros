@@ -14,6 +14,7 @@ export class Entry {
 	options?: string[]
 	hidden: boolean = false
 	description?: string
+	separator: boolean = false
 
 	constructor(
 		name: string,
@@ -36,6 +37,11 @@ export class Entry {
 
 	withDescription(description: string): Entry {
 		this.description = description
+		return this
+	}
+
+	withSeparator(): Entry {
+		this.separator = true
 		return this
 	}
 
@@ -77,6 +83,7 @@ export class CompoundEntry {
 	entryMap: { [key: string]: Entry | CompoundEntry } = {}
 	schema: Schema | null = null
 	hidden: boolean = false
+	separator: boolean = false
 
 	constructor(name: string, label: string, entries: (Entry | CompoundEntry)[]) {
 		this.name = name
@@ -91,6 +98,11 @@ export class CompoundEntry {
 
 	withHidden(): CompoundEntry {
 		this.hidden = true
+		return this
+	}
+
+	withSeparator(): CompoundEntry {
+		this.separator = true
 		return this
 	}
 
@@ -180,7 +192,9 @@ export class SliceOptionsFile extends CompoundEntry {
 				'Neuroglancer Annotation Layer',
 				'',
 				'string'
-			).withDescription('Select Neuroglancer annotation layer to slice from.'),
+			)
+				.withDescription('Select Neuroglancer annotation layer to slice from.')
+				.withSeparator(),
 			new Entry('slice_width', 'Slice Width', 120, 'number').withDescription(
 				'The output width of each slice image.'
 			),
@@ -261,9 +275,11 @@ export class BackprojectOptionsFile extends CompoundEntry {
 			).withDescription(
 				'Path to the volume of slices to backproject (e.g. the output tif of the slicing step).'
 			),
-			new Entry('config_path', 'Slice Configuration File', '', 'filePath').withDescription(
-				'Path to the `-configuration.json` file which includes information generated during slicing needed for backprojection.'
-			),
+			new Entry('config_path', 'Slice Configuration File', '', 'filePath')
+				.withDescription(
+					'Path to the `-configuration.json` file which includes information generated during slicing needed for backprojection.'
+				)
+				.withSeparator(),
 			new Entry('output_file_folder', 'Output File Folder', './', 'filePath').withDescription(
 				'The folder to save all the resulting files into.'
 			),
