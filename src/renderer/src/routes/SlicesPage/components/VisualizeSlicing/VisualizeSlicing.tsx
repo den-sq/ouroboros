@@ -40,6 +40,7 @@ function VisualizeSlicing({
 	rects,
 	boundingBoxes,
 	linkRects,
+	isNew,
 	useEveryNthRect,
 	customColors,
 	bboxPercent = 0.0
@@ -47,6 +48,7 @@ function VisualizeSlicing({
 	rects: Rect[]
 	boundingBoxes: BoundingBoxType[]
 	linkRects: number[]
+	isNew: boolean
 	useEveryNthRect?: number
 	customColors?: string[]
 	bboxPercent?: number
@@ -125,13 +127,19 @@ function VisualizeSlicing({
 	const maxDimension = Math.max(width, height, depth)
 	const distance = maxDimension / (2 * Math.tan((Math.PI / 180) * (FOV / 2)))
 
+	const [lastCameraPosition, setLastCameraPosition] = useState<Vector3 | null>(null)
+
 	// Adjust the camera position to be centered and far enough to see everything
 	// Adding some extra distance to ensure the entire bounding box is visible
-	const cameraPosition = [
+	const calculatedCameraPosition = [
 		center[0],
 		center[1] + distance + maxDimension * 0.5,
 		center[2]
 	] as Vector3
+
+	const cameraPosition = isNew
+		? calculatedCameraPosition
+		: lastCameraPosition || calculatedCameraPosition
 
 	const sliceElements = useMemo(() => {
 		return rects.map((rect, i) => {
@@ -160,6 +168,7 @@ function VisualizeSlicing({
 			<VisualizeIcons gl={gl} />
 			<Canvas gl={{ preserveDrawingBuffer: true }}>
 				<GLSaver setGL={setGL} />
+				<CameraPositionSaver setCameraPosition={setLastCameraPosition} />
 				<PerspectiveCamera
 					fov={FOV}
 					makeDefault
@@ -193,6 +202,20 @@ function GLSaver({ setGL }: { setGL: (gl: WebGLRenderer) => void }): JSX.Element
 	useEffect(() => {
 		setGL(gl)
 	}, [gl])
+
+	return <></>
+}
+
+function CameraPositionSaver({
+	setCameraPosition
+}: {
+	setCameraPosition: (position: Vector3) => void
+}): JSX.Element {
+	const { camera } = useThree()
+
+	useEffect(() => {
+		setCameraPosition(camera.position)
+	}, [camera.position])
 
 	return <></>
 }

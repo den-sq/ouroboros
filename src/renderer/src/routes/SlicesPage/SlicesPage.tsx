@@ -40,6 +40,7 @@ function SlicesPage(): JSX.Element {
 		entries,
 		onSubmit,
 		visualizationData,
+		isNewVisualization,
 		onEntryChange,
 		onHeaderDrop,
 		setDropNodeRef,
@@ -71,6 +72,7 @@ function SlicesPage(): JSX.Element {
 				<VisualizePanel>
 					{visualizationData ? (
 						<VisualizeSlicing
+							isNew={isNewVisualization}
 							{...visualizationData}
 							useEveryNthRect={Math.floor(
 								visualizationData.rects.length * SLICE_RENDER_PROPORTION
@@ -98,6 +100,7 @@ type SlicePageState = {
 	entries: (Entry | CompoundEntry)[]
 	onSubmit: () => Promise<void>
 	visualizationData: VisualizationOutput | null
+	isNewVisualization: boolean
 	onEntryChange: (entry: Entry) => Promise<void>
 	onHeaderDrop: (content: string) => Promise<void>
 	setDropNodeRef: (node: HTMLElement | null) => void
@@ -129,6 +132,7 @@ function useSlicePageState(): SlicePageState {
 		done: streamDone
 	} = useStreamListener(SLICE_STREAM)
 
+	const [isNewVisualization, setIsNewVisualization] = useState(true)
 	const [visualizationData, setVisualizationData] = useState<VisualizationOutput | null>(null)
 
 	const { results: onDemandVisualizationResults } = useFetchListener(
@@ -360,6 +364,11 @@ function useSlicePageState(): SlicePageState {
 
 		if (visualizationEntries.has(entry.name) && entry.value !== '' && !streamInProgress) {
 			requestVisualization()
+
+			// Mark the visualization as new only if the Neuroglancer JSON is changed
+			const isNew =
+				entry.name === 'neuroglancer_json' || entry.name === 'neuroglancer_annotation_layer'
+			setIsNewVisualization(isNew)
 		}
 	}
 
@@ -439,6 +448,7 @@ function useSlicePageState(): SlicePageState {
 		entries,
 		onSubmit,
 		visualizationData,
+		isNewVisualization,
 		onEntryChange,
 		onHeaderDrop,
 		setDropNodeRef,
