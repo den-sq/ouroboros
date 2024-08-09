@@ -174,7 +174,11 @@ export class SliceOptionsFile extends CompoundEntry {
 			new Entry('output_file_name', 'Output File Name', 'sample', 'string'),
 			new Entry('annotation_mip_level', 'Annotation MIP Level', 0, 'number'),
 			new Entry('output_mip_level', 'Output MIP Level', 0, 'number'),
-			new Entry('dist_between_slices', 'Distance Between Slices', 1, 'number'),
+			new CompoundEntry('slicing_params', 'Slicing Parameters', [
+				new Entry('dist_between_slices', 'Distance Between Slices', 1, 'number'),
+				new Entry('use_adaptive_slicing', 'Use Adaptive Slicing', true, 'boolean'),
+				new Entry('adaptive_slicing_ratio', 'Adaptive Slicing Ratio', 0.5, 'number')
+			]),
 			new Entry('make_single_file', 'Output Single File', true, 'boolean'),
 			new Entry('connect_start_and_end', 'Connect Endpoints', false, 'boolean'),
 			new Entry('flush_cache', 'Flush CloudVolume Cache', false, 'boolean').withHidden(),

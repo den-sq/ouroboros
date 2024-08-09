@@ -1,3 +1,4 @@
+from turtle import distance
 import numpy as np
 from ouroboros.helpers.spline import Spline
 from test.sample_data import generate_sample_curve_helix
@@ -224,3 +225,68 @@ def test_calculate_equidistant_parameters_zero():
     raise AssertionError(
         "The method should raise a ValueError if the distance is zero."
     )
+
+
+def test_calculate_adaptive_parameters():
+    # Sample points arranged in a simple curve
+    sample_points = generate_sample_curve_helix()
+
+    # Initialize Spline object
+    spline = Spline(sample_points, degree=3)
+
+    distance_between_points = 1
+
+    # Calculate adaptive parameters
+    adaptive_parameters = spline.calculate_adaptive_parameters(distance_between_points)
+
+    # Assert that the method returns a numpy array
+    assert isinstance(
+        adaptive_parameters, np.ndarray
+    ), "Adaptive parameters should be a numpy array"
+
+
+def test_calculate_adaptive_parameters_zero():
+    # Define a simple curve as sample points
+    sample_points = generate_sample_curve_helix()
+
+    # Initialize Spline object
+    spline = Spline(sample_points, degree=3)
+
+    # Specify the distance between points
+    distance_between_points = 0
+
+    # Calculate equidistant parameters
+    try:
+        spline.calculate_adaptive_parameters(distance_between_points)
+    except ValueError as e:
+        assert str(e) == "The distance between points must be positive and non-zero."
+        return
+
+    raise AssertionError(
+        "The method should raise a ValueError if the distance is zero."
+    )
+
+
+def test_calculate_adaptive_parameters_equidistant():
+    # Sample points arranged in a simple curve
+    sample_points = generate_sample_curve_helix()
+
+    # Initialize Spline object
+    spline = Spline(sample_points, degree=3)
+
+    distance_between_points = 0.1
+
+    # Calculate adaptive parameters (0 biases completely towards equidistant)
+    adaptive_parameters = spline.calculate_adaptive_parameters(
+        distance_between_points, ratio=0
+    )
+
+    # Calculate equidistant parameters
+    equidistant_parameters = spline.calculate_equidistant_parameters(
+        distance_between_points
+    )
+
+    # Assert that the adaptive parameters are close to the equidistant parameters
+    assert np.allclose(
+        adaptive_parameters, equidistant_parameters, atol=0.001
+    ), "Adaptive parameters should be close to equidistant parameters"

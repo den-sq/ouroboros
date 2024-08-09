@@ -15,6 +15,12 @@ class CommonOptions(BaseModel):
     output_mip_level: int = 0  # MIP level for the output image layer
 
 
+class SlicingParams(BaseModel):
+    dist_between_slices: int | float = 1  # Distance between slices
+    use_adaptive_slicing: bool = True  # Whether to use adaptive sampling for slicing
+    adaptive_slicing_ratio: float = 0.5  # Ratio of adaptive slicing
+
+
 @model_with_json
 class SliceOptions(CommonOptions):
     slice_width: int  # Width of the slice
@@ -26,7 +32,7 @@ class SliceOptions(CommonOptions):
     neuroglancer_annotation_layer: (
         str  # Name of the annotation layer in the neuroglancer JSON file
     ) = ""
-    dist_between_slices: int | float = 1  # Distance between slices
+    slicing_params: SlicingParams = SlicingParams()  # Parameters for slicing
     bounding_box_params: BoundingBoxParams = (
         BoundingBoxParams()
     )  # Parameters for generating bounding boxes

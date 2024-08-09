@@ -1,3 +1,4 @@
+from pydantic import BaseModel
 from ouroboros.helpers.coordinates import convert_points_between_volumes
 from ouroboros.helpers.slice import calculate_slice_rects
 from ouroboros.helpers.spline import Spline
@@ -49,9 +50,16 @@ class SlicesGeometryPipelineStep(PipelineStep):
         spline = Spline(sample_points, degree=3)
 
         # Plot equidistant points along the spline
-        equidistant_params = spline.calculate_equidistant_parameters(
-            config.dist_between_slices
-        )
+        if config.slicing_params.use_adaptive_slicing:
+            equidistant_params = spline.calculate_adaptive_parameters(
+                config.slicing_params.dist_between_slices,
+                ratio=config.slicing_params.adaptive_slicing_ratio,
+            )
+        else:
+            equidistant_params = spline.calculate_equidistant_parameters(
+                config.slicing_params.dist_between_slices
+            )
+
         equidistant_points = spline(equidistant_params)
 
         self.update_progress(0.5)

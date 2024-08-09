@@ -9,8 +9,8 @@ class Spline:
 
         self.tck, self.u = self.fit_spline(sample_points, degree=degree)
 
-    def __call__(self, times: np.ndarray):
-        return self.evaluate_spline(self.tck, times)
+    def __call__(self, times: np.ndarray, derivative=0):
+        return self.evaluate_spline(self.tck, times, derivative=derivative)
 
     @staticmethod
     def fit_spline(sample_points: np.ndarray, degree=3):
@@ -220,12 +220,7 @@ class Spline:
                 "The distance between points must be positive and non-zero."
             )
 
-        # Evaluate the B-spline derivative
-        dx, dy, dz = splev(self.u, self.tck, der=1)
-
-        # Compute the cumulative arc length using the derivatives
-        dists = np.linalg.norm([dx, dy, dz], axis=0)
-        arc_length = np.cumsum(dists * np.diff(self.u, prepend=0))
+        arc_length = calculate_arc_length(self, self.u)
         total_length = arc_length[-1]
 
         # Determine the number of points n based on the desired distance d
@@ -236,3 +231,182 @@ class Spline:
         equidistant_params = np.interp(desired_arc_lengths, arc_length, self.u)
 
         return equidistant_params
+
+    def calculate_adaptive_parameters(
+        self,
+        distance_between_points: float,
+        ratio=0.5,
+        calculation_params_ratio=10,
+    ):
+        """
+        Sample spline parameters based on both curvature and arc length.
+
+        Based on: https://doi.org/10.1016/j.cagd.2017.11.004
+
+        Parameters:
+        ----------
+            distance_between_points (float): The distance between consecutive points.
+            ratio (float): The ratio between the curvature and arc length components.
+                1 means equal weight, 0.5 means arc length is twice as important as curvature,
+                and 2 means curvature is twice as important as arc length.
+            calculation_params_ratio (int): The ratio between the number of calculation parameters and the number of points.
+
+        Returns:
+        -------
+            numpy.ndarray:
+        """
+
+        if distance_between_points <= 0:
+            raise ValueError(
+                "The distance between points must be positive and non-zero."
+            )
+
+        # Estimate the total arc length
+        arc_length = calculate_arc_length(self, self.u)
+        total_arc_length = arc_length[-1]
+
+        n_sample_params = int(total_arc_length / distance_between_points) + 1
+
+        # Determine the number of calculation parameters to use
+        n_calculation_params = calculation_params_ratio * n_sample_params
+
+        sample_params = np.linspace(0, 1, n_sample_params)
+        calculation_params = np.linspace(0, 1, n_calculation_params)
+
+        # Sample the spline parameters based on curvature and arc length
+        parameters = adaptive_curvature_parameterization(
+            self, sample_params, calculation_params, ratio=ratio
+        )
+
+        return parameters
+
+
+def calculate_spline_curvature(spline: Spline, t: np.ndarray) -> np.ndarray:
+    """
+    Calculate the curvature of a spline at a given set of points.
+
+    Parameters
+    ----------
+    spline : Spline
+        The spline to evaluate.
+    t : np.ndarray
+        The points at which to evaluate the curvature.
+
+    Returns
+    -------
+    np.ndarray
+        The curvature at each point.
+    """
+    # Calculate the first and second derivatives
+    first_derivative = spline(t, derivative=1).T
+    second_derivative = spline(t, derivative=2).T
+
+    # Calculate the curvature
+    numerator = np.linalg.norm(np.cross(first_derivative, second_derivative), axis=1)
+    denominator = np.linalg.norm(first_derivative) ** 3
+    curvature = numerator / denominator
+
+    return curvature
+
+
+def calculate_curvature_parameterization(spline: Spline, t: np.ndarray) -> np.ndarray:
+    """
+    Calculate the curvature parameterization of a spline at a given set of points.
+
+    Parameters
+    ----------
+    spline : Spline
+        The spline to evaluate.
+    t : np.ndarray
+        The points at which to evaluate the curvature parameterization.
+
+    Returns
+    -------
+    np.ndarray
+        The curvature parameterization at each point.
+    """
+    # Calculate the curvature
+    curvature = calculate_spline_curvature(spline, t)
+
+    # Calculate the first derivative of the curvature
+    first_derivative = spline(t, derivative=1).T
+    len_term = np.linalg.norm(first_derivative)
+
+    # Calculate the cumulative sum of the curvature
+    curvature_sum = np.cumsum(curvature * len_term)
+
+    return curvature_sum
+
+
+def calculate_arc_length(spline: Spline, t: np.ndarray) -> np.ndarray:
+    """
+    Calculate the cumulative arc length of a spline at a given set of points.
+
+    Parameters
+    ----------
+    spline : Spline
+        The spline to evaluate.
+    t : np.ndarray
+        The points at which to evaluate the arc length.
+
+    Returns
+    -------
+    np.ndarray
+        The arc length at each point.
+    """
+
+    # Evaluate the B-spline derivative
+    dx, dy, dz = spline(t, derivative=1)
+
+    # Compute the cumulative arc length using the derivatives
+    dists = np.linalg.norm([dx, dy, dz], axis=0)
+    arc_length = np.cumsum(dists * np.diff(t, prepend=0))
+
+    return arc_length
+
+
+def adaptive_curvature_parameterization(
+    spline: Spline, sample_params: np.ndarray, calculation_params: np.ndarray, ratio=1
+) -> np.ndarray:
+    """
+    Sample spline parameters based on both curvature and arc length.
+
+    Based on: https://doi.org/10.1016/j.cagd.2017.11.004
+
+    Parameters
+    ----------
+    spline : Spline
+        The spline to sample.
+    sample_params : np.ndarray
+        The points at which to sample the spline.
+    calculation_params : np.ndarray
+        The points at which to calculate the curvature and arc length.
+    ratio : float
+        The ratio between the curvature and arc length components.
+
+    Returns
+    -------
+    np.ndarray
+        The sampled parameters.
+    """
+
+    # Convert ratio to weights for the components
+    curvature_weight = ratio / (1 + ratio)
+    arc_length_weight = 1 - curvature_weight
+
+    arc_length = calculate_arc_length(spline, calculation_params)
+    curvature = calculate_curvature_parameterization(spline, calculation_params)
+
+    arc_length_component = arc_length / arc_length[-1]
+    curvature_component = curvature / curvature[-1]
+
+    hybrid_parameter = (
+        arc_length_weight * arc_length_component
+        + curvature_weight * curvature_component
+    )
+
+    # Invert the parameterization axes
+    # Note: This is done because we want more points where the curvature is high
+    # and less points where the curvature is low. This is the opposite of the
+    # original parameterization.
+    return np.interp(sample_params, hybrid_parameter, calculation_params)

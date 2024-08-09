@@ -26,7 +26,7 @@ import { parseConfigurationJSONToOutputFormat } from '@renderer/schemas/configur
 import { DragContext } from '@renderer/contexts/DragContext'
 import { useDroppable } from '@dnd-kit/core'
 
-const SLICE_RENDER_PROPORTION = 0.01
+const SLICE_RENDER_PROPORTION = 0.008
 
 const SLICE_STREAM = '/slice_status_stream/'
 
@@ -343,20 +343,22 @@ function useSlicePageState(): SlicePageState {
 		}
 
 		// Request visualization when the Neuroglancer JSON, slice dimensions, or bounding box params are changed
-		const visualizationEntries = [
+		const visualizationEntries = new Set([
 			'neuroglancer_json',
 			'neuroglancer_annotation_layer',
 			'slice_width',
 			'slice_height',
 			'dist_between_slices',
+			'use_adaptive_slicing',
+			'adaptive_slicing_ratio',
 			'bounding_box',
 			'max_depth',
 			'target_slices_per_box'
-		]
+		])
 
 		const streamInProgress = !streamDone && progress.length > 0
 
-		if (visualizationEntries.includes(entry.name) && entry.value !== '' && !streamInProgress) {
+		if (visualizationEntries.has(entry.name) && entry.value !== '' && !streamInProgress) {
 			requestVisualization()
 		}
 	}
