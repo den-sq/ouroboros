@@ -38,18 +38,25 @@ function DirectoryProvider({ children }: { children: React.ReactNode }): JSX.Ele
 	const [directoryPath, setDirectoryPath] = useState<string | null>(null)
 	const [nodes, setNodes] = useState<NodeChildren>({})
 
-	const setDirectory = useCallback((directory: string): void => {
-		if (!directory || directory.length === 0) return
+	const setDirectory = useCallback(
+		(directory: string): void => {
+			// Make sure the directory is not empty
+			if (!directory || directory.length === 0) return
 
-		setDirectoryPath(directory)
+			// Make sure the directory is not the same as the current directory
+			if (directory === directoryPath) return
 
-		// Clean up the directory name
-		const directorySplit = directory.split(/[/\\]/)
-		setDirectoryName(directorySplit[directorySplit.length - 1])
+			setDirectoryPath(directory)
 
-		// Clear the folder contents
-		setNodes({})
-	}, [])
+			// Clean up the directory name
+			const directorySplit = directory.split(/[/\\]/)
+			setDirectoryName(directorySplit[directorySplit.length - 1])
+
+			// Clear the folder contents
+			setNodes({})
+		},
+		[directoryPath]
+	)
 
 	useEffect(() => {
 		const clearSelectedFolderListener = window.electron.ipcRenderer.on(
