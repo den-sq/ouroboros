@@ -1,0 +1,14 @@
+.tooltip {
+	position: fixed;
+	width: 300px;
+	background-color: rgba(100, 100, 100, 0.3);
+	color: white;
+	border-radius: 0.25rem;
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+	border: 1px solid rgba(100, 100, 100, 0.35);
+	box-sizing: border-box;
+	font-size: 0.95rem;
+	z-index: 999999;
+	padding: 0.1rem 0.4rem;
+}

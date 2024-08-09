@@ -13,6 +13,7 @@ export class Entry {
 	type: EntryValueType
 	options?: string[]
 	hidden: boolean = false
+	description?: string
 
 	constructor(
 		name: string,
@@ -30,6 +31,11 @@ export class Entry {
 
 	withHidden(): Entry {
 		this.hidden = true
+		return this
+	}
+
+	withDescription(description: string): Entry {
+		this.description = description
 		return this
 	}
 
@@ -160,33 +166,84 @@ export class CompoundEntry {
 export class SliceOptionsFile extends CompoundEntry {
 	constructor(values: CompoundValueType = {}) {
 		super('options', 'Options File', [
-			new Entry('neuroglancer_json', 'Neuroglancer JSON', '', 'filePath'),
-			new Entry('neuroglancer_image_layer', 'Neuroglancer Image Layer', '', 'string'),
+			new Entry('neuroglancer_json', 'Neuroglancer JSON', '', 'filePath').withDescription(
+				'Path to the Neuroglancer configuration JSON file (exported from Neuroglancer website or Plugin)'
+			),
+			new Entry(
+				'neuroglancer_image_layer',
+				'Neuroglancer Image Layer',
+				'',
+				'string'
+			).withDescription('Select Neuroglancer image layer to slice from.'),
 			new Entry(
 				'neuroglancer_annotation_layer',
 				'Neuroglancer Annotation Layer',
 				'',
 				'string'
+			).withDescription('Select Neuroglancer annotation layer to slice from.'),
+			new Entry('slice_width', 'Slice Width', 120, 'number').withDescription(
+				'The output width of each slice image.'
 			),
-			new Entry('slice_width', 'Slice Width', 120, 'number'),
-			new Entry('slice_height', 'Slice Height', 120, 'number'),
-			new Entry('output_file_folder', 'Output File Folder', './', 'filePath'),
-			new Entry('output_file_name', 'Output File Name', 'sample', 'string'),
-			new Entry('annotation_mip_level', 'Annotation MIP Level', 0, 'number'),
-			new Entry('output_mip_level', 'Output MIP Level', 0, 'number'),
+			new Entry('slice_height', 'Slice Height', 120, 'number').withDescription(
+				'The output height of each slice image.'
+			),
+			new Entry('output_file_folder', 'Output File Folder', './', 'filePath').withDescription(
+				'The folder to save all the resulting files into.'
+			),
+			new Entry('output_file_name', 'Output File Name', 'sample', 'string').withDescription(
+				'Base name for all output files.'
+			),
+			new Entry('annotation_mip_level', 'Annotation MIP Level', 0, 'number').withDescription(
+				"The annotation layer's MIP level. 0 is the highest resolution."
+			),
+			new Entry('output_mip_level', 'Output MIP Level', 0, 'number').withDescription(
+				'The MIP level to output slices in (essentially a downsample option). 1 is a good starting point.'
+			),
 			new CompoundEntry('slicing_params', 'Slicing Parameters', [
-				new Entry('dist_between_slices', 'Distance Between Slices', 1, 'number'),
-				new Entry('use_adaptive_slicing', 'Use Adaptive Slicing', true, 'boolean'),
-				new Entry('adaptive_slicing_ratio', 'Adaptive Slicing Ratio', 0.5, 'number')
+				new Entry(
+					'dist_between_slices',
+					'Distance Between Slices',
+					1,
+					'number'
+				).withDescription('The distance between each slice along the annotation path.'),
+				new Entry(
+					'use_adaptive_slicing',
+					'Use Adaptive Slicing',
+					true,
+					'boolean'
+				).withDescription(
+					'Rather than just using equidistant slices, add more slices in more curved areas.'
+				),
+				new Entry(
+					'adaptive_slicing_ratio',
+					'Adaptive Slicing Ratio',
+					0.5,
+					'number'
+				).withDescription(
+					'1 indicates to consider distance and curvature equally, 0.5 is biased towards distance, and 2 is biased towards curvature.'
+				)
 			]),
-			new Entry('make_single_file', 'Output Single File', true, 'boolean'),
-			new Entry('connect_start_and_end', 'Connect Endpoints', false, 'boolean'),
+			new Entry('make_single_file', 'Output Single File', true, 'boolean').withDescription(
+				'Whether to output one tiff stack file or a folder of files.'
+			),
+			new Entry('connect_start_and_end', 'Connect Endpoints', false, 'boolean').withHidden(),
 			new Entry('flush_cache', 'Flush CloudVolume Cache', false, 'boolean').withHidden(),
 			new CompoundEntry('bounding_box_params', 'Bounding Box Parameters', [
-				new Entry('max_depth', 'Max Depth', 12, 'number'),
-				new Entry('target_slices_per_box', 'Target Slices per Box', 128, 'number')
+				new Entry('max_depth', 'Max Depth', 12, 'number').withDescription(
+					'The maximum depth for binary space partitioning. It is not recommended to change this option unless you encounter RAM issues.'
+				),
+				new Entry(
+					'target_slices_per_box',
+					'Target Slices per Box',
+					128,
+					'number'
+				).withDescription(
+					'If you are running on a low-RAM system, or you are taking very large slices, you may want to decrease this.'
+				)
 			]),
-			new Entry('max_ram_gb', 'Max RAM (GB) (0 = no limit)', 0, 'number')
+			new Entry('max_ram_gb', 'Max RAM (GB) (0 = no limit)', 0, 'number').withDescription(
+				'0 indicates no RAM limit. Setting a RAM limit allows Ouroboros to optimize performance and avoid overusing RAM.'
+			)
 		])
 
 		this.setValue(values)
@@ -196,19 +253,68 @@ export class SliceOptionsFile extends CompoundEntry {
 export class BackprojectOptionsFile extends CompoundEntry {
 	constructor(values: CompoundValueType = {}) {
 		super('options', 'Options File', [
-			new Entry('straightened_volume_path', 'Straightened Volume File', '', 'filePath'),
-			new Entry('config_path', 'Slice Configuration File', '', 'filePath'),
-			new Entry('output_file_folder', 'Output File Folder', './', 'filePath'),
-			new Entry('output_file_name', 'Output File Name', 'sample', 'string'),
-			new Entry('output_mip_level', 'Output MIP Level', 0, 'number'),
-			new Entry('upsample_order', 'Upsample Order (2 = Quadratic)', 2, 'number'),
-			new Entry('backprojection_compression', 'Backprojection Compression', 'zlib', 'string'),
-			new Entry('make_single_file', 'Output Single File', false, 'boolean'),
-			new Entry('backproject_min_bounding_box', 'Output Min Bounding Box', true, 'boolean'),
-			new Entry('make_backprojection_binary', 'Binary Backprojection', false, 'boolean'),
-			new Entry('offset_in_name', 'Offset in Filename', true, 'boolean'),
+			new Entry(
+				'straightened_volume_path',
+				'Straightened Volume File',
+				'',
+				'filePath'
+			).withDescription(
+				'Path to the volume of slices to backproject (e.g. the output tif of the slicing step).'
+			),
+			new Entry('config_path', 'Slice Configuration File', '', 'filePath').withDescription(
+				'Path to the `-configuration.json` file which includes information generated during slicing needed for backprojection.'
+			),
+			new Entry('output_file_folder', 'Output File Folder', './', 'filePath').withDescription(
+				'The folder to save all the resulting files into.'
+			),
+			new Entry('output_file_name', 'Output File Name', 'sample', 'string').withDescription(
+				'Base name for all output files.'
+			),
+			new Entry('output_mip_level', 'Output MIP Level', 0, 'number').withDescription(
+				'The MIP level to output the backprojection in (essentially an upsample option). Use this if you downsampled in the slicing step.'
+			),
+			new Entry(
+				'upsample_order',
+				'Upsample Order (2 = Quadratic)',
+				2,
+				'number'
+			).withDescription(
+				'The interpolation order Ouroboros uses to interpolate values from a lower MIP level. If you check the binary option, feel free to set this to 0.'
+			),
+			new Entry(
+				'backprojection_compression',
+				'Backprojection Compression',
+				'zlib',
+				'string'
+			).withDescription(
+				'The compression option to use for the backprojected tiff(s). Recommended options: `none`, `zlib`, `zstd`.'
+			),
+			new Entry('make_single_file', 'Output Single File', false, 'boolean').withDescription(
+				'Whether to output one tiff stack file or a folder of files.'
+			),
+			new Entry(
+				'backproject_min_bounding_box',
+				'Output Min Bounding Box',
+				true,
+				'boolean'
+			).withDescription(
+				'Save only the minimum volume needed to contain the backprojected slices. The offset will be stored in the `-configuration.json` file under `backprojection_offset`. This value is the (x_min, y_min, z_min).'
+			),
+			new Entry(
+				'make_backprojection_binary',
+				'Binary Backprojection',
+				false,
+				'boolean'
+			).withDescription(
+				'Whether or not to binarize all the values of the backprojection. Enable this to backproject a segmentation.'
+			),
+			new Entry('offset_in_name', 'Offset in Filename', true, 'boolean').withDescription(
+				'Whether or not to include the (x_min, y_min, z_min) offset for min bounding box in the output file name. Only applies if `Output Min Bounding Box` is true.'
+			),
 			new Entry('flush_cache', 'Flush CloudVolume Cache', false, 'boolean').withHidden(),
-			new Entry('max_ram_gb', 'Max RAM (GB) (0 = no limit)', 0, 'number')
+			new Entry('max_ram_gb', 'Max RAM (GB) (0 = no limit)', 0, 'number').withDescription(
+				'0 indicates no RAM limit. Setting a RAM limit allows Ouroboros to optimize performance and avoid overusing RAM.'
+			)
 		])
 
 		this.setValue(values)

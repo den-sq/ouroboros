@@ -26,14 +26,13 @@ Slicing is one of the primary features of Ouroboros, available in the CLI and th
 - `Slice Height` - The output height of each slice image.
 - 📁 `Output File Folder` - The folder to save all the resulting files into.
 - `Output File Name` - Base name for all output files.
-- `Annotation MIP Level` - The annotation layer's MIP level. 
-- `Output MIP Level` - The mip level to output slices in (essentially a downsample option).
+- `Annotation MIP Level` - The annotation layer's MIP level. 0 is the highest resolution.
+- `Output MIP Level` - The MIP level to output slices in (essentially a downsample option). 1 is a good starting point.
 - `Slicing Parameters`
     - `Distance Between Slices` - The distance between each slice along the annotation path.
     - `Use Adaptive Slicing` - Rather than just using equidistant slices, add more slices in more curved areas.
-    - `Adaptive Slicing Ratio` - 1 means consider distance and curvature equally, 0.5 is biased towards distance, and 2 is biased towards curvature.
+    - `Adaptive Slicing Ratio` - 1 indicates to consider distance and curvature equally, 0.5 is biased towards distance, and 2 is biased towards curvature.
 - `Output Single File` - Whether to output one tiff stack file or a folder of files.
-- `Connect Endpoints` - Connect the first point in the path to the last point. This is not recommended.
 - `Bounding Box Parameters`
     - `Max Depth` - The maximum depth for binary space partitioning. It is not recommended to change this option unless you encounter RAM issues.
     - `Target Slices Per Box` - If you are running on a low-RAM system, or you are taking very large slices, you may want to decrease this.

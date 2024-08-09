@@ -4,6 +4,7 @@ import { useDroppable } from '@dnd-kit/core'
 import { ValueType, Entry } from '@renderer/interfaces/options'
 import { DragContext } from '@renderer/contexts/DragContext'
 import { DirectoryContext } from '@renderer/contexts/DirectoryContext'
+import { useTooltip } from '@renderer/components/Tooltip/Tooltip'
 
 const MIN_WIDTH = 25
 const LABEL_GAP = 15
@@ -26,6 +27,8 @@ function OptionEntry({
 	const inputRef = useRef<HTMLInputElement>(null)
 	const labelRef = useRef<HTMLDivElement>(null)
 	const [labelWidth, setLabelWidth] = useState(0)
+
+	const tooltip = useTooltip(labelRef, entry.description)
 
 	const [inputValue, setInputValue] = useState(initialValue)
 
@@ -157,44 +160,47 @@ function OptionEntry({
 	}
 
 	return (
-		<div ref={setNodeRef} style={style}>
-			<div className={`${styles.optionEntry} poppins-medium`}>
-				<div
-					ref={labelRef}
-					className={`${styles.optionLabel} option-font-size ${isOver && inputType == 'filePath' ? 'poppins-bold' : ''}`}
-				>
-					{label}
-				</div>
-				{htmlInputType === 'select' ? (
-					<select
-						name={inputName}
-						className={`${styles.optionInput} ${styles.optionSelect}`}
-						value={inputValue as string}
-						onInput={onInput}
+		<>
+			<div ref={setNodeRef} style={style}>
+				<div className={`${styles.optionEntry} poppins-medium`}>
+					<div
+						ref={labelRef}
+						className={`${styles.optionLabel} option-font-size ${isOver && inputType == 'filePath' ? 'poppins-bold' : ''}`}
 					>
-						{inputOptions?.map((option) => (
-							<option key={option} value={option}>
-								{option}
-							</option>
-						))}
-					</select>
-				) : (
-					<input
-						name={inputName}
-						ref={inputRef}
-						type={htmlInputType}
-						className={styles.optionInput}
-						checked={
-							inputType == 'boolean'
-								? inputValue === 'true' || inputValue === true
-								: undefined
-						}
-						value={inputValue as string}
-						onChange={onChange}
-					/>
-				)}
+						{label}
+					</div>
+					{htmlInputType === 'select' ? (
+						<select
+							name={inputName}
+							className={`${styles.optionInput} ${styles.optionSelect}`}
+							value={inputValue as string}
+							onInput={onInput}
+						>
+							{inputOptions?.map((option) => (
+								<option key={option} value={option}>
+									{option}
+								</option>
+							))}
+						</select>
+					) : (
+						<input
+							name={inputName}
+							ref={inputRef}
+							type={htmlInputType}
+							className={styles.optionInput}
+							checked={
+								inputType == 'boolean'
+									? inputValue === 'true' || inputValue === true
+									: undefined
+							}
+							value={inputValue as string}
+							onChange={onChange}
+						/>
+					)}
+				</div>
 			</div>
-		</div>
+			{tooltip}
+		</>
 	)
 }
 
