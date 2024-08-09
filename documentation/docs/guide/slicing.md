@@ -28,7 +28,10 @@ Slicing is one of the primary features of Ouroboros, available in the CLI and th
 - `Output File Name` - Base name for all output files.
 - `Annotation MIP Level` - The annotation layer's MIP level. 
 - `Output MIP Level` - The mip level to output slices in (essentially a downsample option).
-- `Distance Between Slices` - The distance between each slice along the annotation path.
+- `Slicing Parameters`
+    - `Distance Between Slices` - The distance between each slice along the annotation path.
+    - `Use Adaptive Slicing` - Rather than just using equidistant slices, add more slices in more curved areas.
+    - `Adaptive Slicing Ratio` - 1 means consider distance and curvature equally, 0.5 is biased towards distance, and 2 is biased towards curvature.
 - `Output Single File` - Whether to output one tiff stack file or a folder of files.
 - `Connect Endpoints` - Connect the first point in the path to the last point. This is not recommended.
 - `Bounding Box Parameters`
