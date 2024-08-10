@@ -140,11 +140,11 @@ function useBackprojectPageState(): BackprojectPageState {
 			!optionsObject['output_file_folder'] ||
 			!outputName ||
 			!optionsObject['straightened_volume_path'] ||
-			!optionsObject['config_path'] ||
+			!optionsObject['slice_options_path'] ||
 			optionsObject['output_file_folder'] === '' ||
 			outputName === '' ||
 			optionsObject['straightened_volume_path'] === '' ||
-			optionsObject['config_path'] === ''
+			optionsObject['slice_options_path'] === ''
 		) {
 			return
 		}

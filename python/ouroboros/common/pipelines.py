@@ -6,8 +6,6 @@ from ouroboros.pipeline import (
     SlicesGeometryPipelineStep,
     VolumeCachePipelineStep,
     SliceParallelPipelineStep,
-    SaveConfigPipelineStep,
-    LoadConfigPipelineStep,
     BackprojectPipelineStep,
 )
 
@@ -39,7 +37,6 @@ def slice_pipeline(slice_options: SliceOptions, verbose: bool = False):
                 if verbose
                 else SliceParallelPipelineStep()
             ),
-            SaveConfigPipelineStep(),
         ]
     )
 
@@ -51,7 +48,9 @@ def slice_pipeline(slice_options: SliceOptions, verbose: bool = False):
 
 
 def backproject_pipeline(
-    backproject_options: BackprojectOptions, verbose: bool = False
+    backproject_options: BackprojectOptions,
+    slice_options: SliceOptions,
+    verbose: bool = False,
 ):
     """
     Creates a pipeline for backprojecting a volume, as well as the default input data for the pipeline.
@@ -60,6 +59,8 @@ def backproject_pipeline(
     ----------
     backproject_options : BackprojectOptions
         The options for backprojecting the volume.
+    slice_options : SliceOptions
+        The options for slicing the volume.
     verbose : bool, optional
         Whether to show a progress bar for the pipeline, by default False
 
@@ -71,19 +72,22 @@ def backproject_pipeline(
 
     pipeline = Pipeline(
         [
-            LoadConfigPipelineStep()
-            .with_custom_output_file_path(backproject_options.straightened_volume_path)
-            .with_custom_options(backproject_options),
+            ParseJSONPipelineStep(),
+            SlicesGeometryPipelineStep(),
+            VolumeCachePipelineStep(),
             (
                 BackprojectPipelineStep().with_progress_bar()
                 if verbose
                 else BackprojectPipelineStep()
             ),
-            SaveConfigPipelineStep(),
         ]
     )
 
-    default_input_data = PipelineInput(config_file_path=backproject_options.config_path)
+    default_input_data = PipelineInput(
+        slice_options=slice_options,
+        backproject_options=backproject_options,
+        json_path=slice_options.neuroglancer_json,
+    )
 
     return pipeline, default_input_data
 

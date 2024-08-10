@@ -74,7 +74,7 @@ def test_backproject_options_to_json(tmp_path):
         output_file_folder="./output/",
         output_file_name="output",
         straightened_volume_path="./volume.tif",
-        config_path="./config.json",
+        slice_options_path="./slice-options.json",
     )
     json_path = tmp_path / "backproject_options.json"
     options.save_to_json(json_path)

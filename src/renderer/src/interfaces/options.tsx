@@ -275,9 +275,9 @@ export class BackprojectOptionsFile extends CompoundEntry {
 			).withDescription(
 				'Path to the volume of slices to backproject (e.g. the output tif of the slicing step).'
 			),
-			new Entry('config_path', 'Slice Configuration File', '', 'filePath')
+			new Entry('slice_options_path', 'Slice Options File', '', 'filePath')
 				.withDescription(
-					'Path to the `-configuration.json` file which includes information generated during slicing needed for backprojection.'
+					'Path to the `-slice-options.json` file which includes the information needed for backprojection.'
 				)
 				.withSeparator(),
 			new Entry('output_file_folder', 'Output File Folder', './', 'filePath').withDescription(

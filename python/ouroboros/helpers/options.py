@@ -56,7 +56,7 @@ class SliceOptions(CommonOptions):
 @model_with_json
 class BackprojectOptions(CommonOptions):
     straightened_volume_path: str  # Path to the straightened volume
-    config_path: str  # Path to the config file
+    slice_options_path: str  # Path to the slice options file
     backproject_min_bounding_box: bool = (
         True  # Whether to backproject to a minimum bounding box or the entire volume
     )
@@ -82,6 +82,6 @@ DEFAULT_BACKPROJECT_OPTIONS = BackprojectOptions(
     output_file_folder="./output/",
     output_file_name="sample",
     straightened_volume_path="./sample.tif",
-    config_path="./sample-configuration.json",
+    slice_options_path="./sample-slice-options.json",
     make_single_file=False,
 )

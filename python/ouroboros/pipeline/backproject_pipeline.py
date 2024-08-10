@@ -43,7 +43,6 @@ class BackprojectPipelineStep(PipelineStep):
         super().__init__(
             inputs=(
                 "backproject_options",
-                "output_file_path",
                 "volume_cache",
                 "slice_rects",
             )
@@ -52,14 +51,14 @@ class BackprojectPipelineStep(PipelineStep):
         self.num_processes = processes
 
     def _process(self, input_data: any) -> tuple[any, None] | tuple[None, any]:
-        config, input_tiff_path, volume_cache, slice_rects, pipeline_input = input_data
+        config, volume_cache, slice_rects, pipeline_input = input_data
 
         # Verify that a config object is provided
         if not isinstance(config, BackprojectOptions):
             return "Input data must contain a BackprojectOptions object."
 
         # Verify that input_data is a string containing a path to a tif file
-        if not isinstance(input_tiff_path, str):
+        if not isinstance(config.straightened_volume_path, str):
             return "Input data must contain a string containing a path to a tif file."
 
         # Verify that a volume cache is given

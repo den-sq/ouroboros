@@ -437,6 +437,7 @@ function useSlicePageState(): SlicePageState {
 		}
 	}
 
+	// Synchronize the visualization with the slice progress
 	const boundingBoxProgress = visualizationData
 		? (progress.find(([name]) => name === SLICE_STEP_NAME) ?? [SLICE_STEP_NAME, 0.0])[1]
 		: 0.0

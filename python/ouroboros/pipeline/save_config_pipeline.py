@@ -1,4 +1,4 @@
-from ouroboros.helpers.files import join_path
+from ouroboros.helpers.files import format_slice_output_config_file, join_path
 from .pipeline import PipelineStep
 
 
@@ -18,7 +18,8 @@ class SaveConfigPipelineStep(PipelineStep):
 
         # Determine the name of the file to save to
         json_path = join_path(
-            config.output_file_folder, config.output_file_name + "-configuration.json"
+            config.output_file_folder,
+            format_slice_output_config_file(config.output_file_name),
         )
 
         currrent_pipeline_input.config_file_path = json_path

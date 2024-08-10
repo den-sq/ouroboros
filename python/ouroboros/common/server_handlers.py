@@ -52,9 +52,7 @@ def handle_slice_docker(task: SliceTask):
         task.status = "error"
         return
 
-    slice_options, host_output_file, host_output_config_file, host_output_slices = (
-        load_result
-    )
+    slice_options, host_output_file, host_output_slices = load_result
 
     slice_result = handle_slice_core(task, slice_options)
 
@@ -64,7 +62,7 @@ def handle_slice_docker(task: SliceTask):
         return
 
     save_result = save_output_for_slice_docker(
-        host_output_file, host_output_config_file, host_output_slices=host_output_slices
+        host_output_file, host_output_slices=host_output_slices
     )
 
     if save_result:
@@ -72,8 +70,8 @@ def handle_slice_docker(task: SliceTask):
         task.status = "error"
 
 
-def handle_backproject_core(task: BackProjectTask, options):
-    pipeline, input_data = backproject_pipeline(options)
+def handle_backproject_core(task: BackProjectTask, options, slice_options):
+    pipeline, input_data = backproject_pipeline(options, slice_options)
 
     # Store the pipeline in the task
     task.pipeline = pipeline
@@ -97,8 +95,9 @@ def handle_backproject_core(task: BackProjectTask, options):
 
 def handle_backproject(task: BackProjectTask):
     options = load_options_for_backproject(task.options)
+    slice_options = load_options_for_slice(options.slice_options_path)
 
-    backproject_result = handle_backproject_core(task, options)
+    backproject_result = handle_backproject_core(task, options, slice_options)
 
     if isinstance(backproject_result, str):
         task.error = backproject_result
@@ -116,13 +115,13 @@ def handle_backproject_docker(task: BackProjectTask):
 
     (
         options,
+        slice_options,
         host_output_file,
-        host_output_config_file,
         host_output_slices,
         host_output_folder,
     ) = load_result
 
-    backproject_result = handle_backproject_core(task, options)
+    backproject_result = handle_backproject_core(task, options, slice_options)
 
     if isinstance(backproject_result, str):
         task.error = backproject_result
@@ -139,7 +138,8 @@ def handle_backproject_docker(task: BackProjectTask):
             )
 
     save_result = save_output_for_backproject_docker(
-        host_output_file, host_output_config_file, host_output_slices=host_output_slices
+        host_output_file,
+        host_output_slices=host_output_slices,
     )
 
     if save_result:

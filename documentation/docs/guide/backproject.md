@@ -35,7 +35,7 @@ The offset of the minimum bounding box is stored in the output tiff's descriptio
 📁 - Drag and drop files from File Explorer panel into this option.
 
 - 📁 `Straightened Volume File` - Path to the volume of slices to backproject (e.g. the output tif of the slicing step).
-- 📁 `Slice Configuration File` - Path to the `-configuration.json` file which includes information generated during slicing needed for backprojection.
+- 📁 `Slice Options File` - Path to the `-slice-options.json` file which includes the information needed for backprojection.
 - 📁 `Output File Folder` - The folder to save all the resulting files into.
 - `Output File Name` - Base name for all output files.
 - `Output MIP Level` - The MIP level to output the backprojection in (essentially an upsample option). Use this if you downsampled in the slicing step.

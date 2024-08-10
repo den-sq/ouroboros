@@ -10,7 +10,6 @@ from ouroboros.helpers.files import (
     combine_unknown_folder,
     format_backproject_output_file,
     format_backproject_output_multiple,
-    format_slice_output_config_file,
     format_slice_output_file,
     format_slice_output_multiple,
 )
@@ -43,7 +42,7 @@ def load_options_for_backproject(options_path: str) -> BackprojectOptions | str:
 
 def load_options_for_backproject_docker(
     options_path: str, target_path: str = "./"
-) -> tuple[BackprojectOptions, str, str, str | None] | str:
+) -> tuple[BackprojectOptions, SliceOptions, str, str | None, str] | str:
     """
     Loads the options for backprojecting a volume and copies the necessary files to the docker volume.
 
@@ -56,13 +55,15 @@ def load_options_for_backproject_docker(
 
     Returns
     -------
-    tuple[BackprojectOptions, str, str, str | None, str] | str
-        The options for backprojecting the volume, the host path to the output file, the host path to the config file,
+    tuple[BackprojectOptions, SliceOptions, str, str | None, str] | str
+        The options for backprojecting the volume, the options for slicing the volume, the host path to the output file,
         the host path to the slices folder if the output is not a single file, and the host output folder.
     """
 
     # Copy the file to the docker volume
-    files = [{"sourcePath": options_path, "targetPath": target_path}]
+    files = [
+        {"sourcePath": options_path, "targetPath": target_path},
+    ]
     success, error = copy_to_volume(files)
 
     if not success:
@@ -70,7 +71,6 @@ def load_options_for_backproject_docker(
 
     # Define the path to the copied file in the docker volume
     options_path = get_volume_path() + get_path_name(options_path)
-
     options = load_options_for_backproject(options_path)
 
     if isinstance(options, str):
@@ -79,7 +79,6 @@ def load_options_for_backproject_docker(
     # Copy the straightened volume and config files to the docker volume
     files = [
         {"sourcePath": options.straightened_volume_path, "targetPath": target_path},
-        {"sourcePath": options.config_path, "targetPath": target_path},
     ]
 
     success, error = copy_to_volume(files)
@@ -100,21 +99,30 @@ def load_options_for_backproject_docker(
         if options.make_single_file is False
         else None
     )
-    host_output_config_file = options.config_path
 
     # Define the path to the copied straightened volume and config files in the docker volume
     options.straightened_volume_path = get_volume_path() + get_path_name(
         options.straightened_volume_path
     )
-    options.config_path = get_volume_path() + get_path_name(options.config_path)
 
     # Modify the output file folder to be in the docker volume
     options.output_file_folder = get_volume_path()
 
+    # Load the options for slicing the volume,
+    # which contains necessary information for backprojecting the volume
+    slice_load_result = load_options_for_slice_docker(
+        options.slice_options_path, target_path
+    )
+
+    if isinstance(slice_load_result, str):
+        return slice_load_result
+
+    slice_options = slice_load_result[0]
+
     return (
         options,
+        slice_options,
         host_output_file,
-        host_output_config_file,
         host_output_slices,
         host_output_folder,
     )
@@ -122,7 +130,6 @@ def load_options_for_backproject_docker(
 
 def save_output_for_backproject_docker(
     host_output_file: str,
-    host_output_config_file: str,
     host_output_slices=None,
     target_path: str = "./",
 ) -> None | str:
@@ -133,8 +140,6 @@ def save_output_for_backproject_docker(
     ----------
     host_output_file : str
         The path to the output file on the host.
-    host_output_config_file : str
-        The path to the config file on the host.
     host_output_slices : str, optional
         The path to the slices folder on the host, by default None
     target_path : str, optional
@@ -155,8 +160,7 @@ def save_output_for_backproject_docker(
                 else host_output_file
             ),
             "targetPath": target_path,
-        },
-        {"sourcePath": host_output_config_file, "targetPath": target_path},
+        }
     ]
 
     success, error = copy_to_host(files)
@@ -190,7 +194,7 @@ def load_options_for_slice(options_path: str) -> SliceOptions | str:
 
 def load_options_for_slice_docker(
     options_path: str, target_path: str = "./"
-) -> tuple[SliceOptions, str, str, str | None] | str:
+) -> tuple[SliceOptions, str, str | None] | str:
     """
     Loads the options for slicing a volume and copies the necessary files to the docker volume.
 
@@ -203,8 +207,8 @@ def load_options_for_slice_docker(
 
     Returns
     -------
-    tuple[SliceOptions, str, str, str | None] | str
-        The options for slicing the volume, the host path to the output file, and the host path to the config file.
+    tuple[SliceOptions, str, str | None] | str
+        The options for slicing the volume, the host path to the output file, and the host path to output slices.
     """
 
     # Copy the file to the docker volume
@@ -234,10 +238,6 @@ def load_options_for_slice_docker(
         if slice_options.make_single_file is False
         else None
     )
-    host_output_config_file = combine_unknown_folder(
-        host_output_folder,
-        format_slice_output_config_file(slice_options.output_file_name),
-    )
 
     # Modify the output file folder to be in the docker volume
     slice_options.output_file_folder = get_volume_path()
@@ -260,12 +260,11 @@ def load_options_for_slice_docker(
         slice_options.neuroglancer_json
     )
 
-    return slice_options, host_output_file, host_output_config_file, host_output_slices
+    return slice_options, host_output_file, host_output_slices
 
 
 def save_output_for_slice_docker(
     host_output_file: str,
-    host_output_config_file: str,
     host_output_slices=None,
     target_path: str = "./",
 ) -> None | str:
@@ -276,8 +275,6 @@ def save_output_for_slice_docker(
     ----------
     host_output_file : str
         The path to the output file on the host.
-    host_output_config_file : str
-        The path to the config file on the host.
     host_output_slices : str, optional
         The path to the slices folder on the host, by default None
     target_path : str, optional
@@ -299,7 +296,6 @@ def save_output_for_slice_docker(
             ),
             "targetPath": target_path,
         },
-        {"sourcePath": host_output_config_file, "targetPath": target_path},
     ]
     success, error = copy_to_host(files)
 
