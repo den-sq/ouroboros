@@ -22,9 +22,6 @@ import { safeParse } from 'valibot'
 import { parseSliceStatusResult } from '@renderer/schemas/slice-status-result-schema'
 import { parseNeuroglancerJSON } from '@renderer/schemas/neuroglancer-json-schema'
 import { parseSliceVisualizationToOutputFormat } from '@renderer/schemas/slice-visualization-result-schema'
-import { parseConfigurationJSONToOutputFormat } from '@renderer/schemas/configuration-json-schema'
-import { DragContext } from '@renderer/contexts/DragContext'
-import { useDroppable } from '@dnd-kit/core'
 
 const SLICE_RENDER_PROPORTION = 0.008
 
@@ -42,46 +39,23 @@ function SlicesPage(): JSX.Element {
 		visualizationData,
 		isNewVisualization,
 		onEntryChange,
-		onHeaderDrop,
-		setDropNodeRef,
-		isOver
+		onHeaderDrop
 	} = useSlicePageState()
 
 	return (
 		<div className={styles.slicePage}>
-			<div ref={setDropNodeRef} style={{ position: 'relative' }}>
-				{isOver ? (
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 448 512"
-						width="40px"
-						style={{
-							position: 'absolute',
-							top: '50%',
-							left: '50%',
-							transform: 'translate(-50%, -50%)',
-							zIndex: '1000'
-						}}
-					>
-						<path
-							fill="white"
-							d="M256 80c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 144L48 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l144 0 0 144c0 17.7 14.3 32 32 32s32-14.3 32-32l0-144 144 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-144 0 0-144z"
-						/>
-					</svg>
+			<VisualizePanel>
+				{visualizationData ? (
+					<VisualizeSlicing
+						isNew={isNewVisualization}
+						{...visualizationData}
+						useEveryNthRect={Math.floor(
+							visualizationData.rects.length * SLICE_RENDER_PROPORTION
+						)}
+						bboxPercent={boundingBoxProgress}
+					/>
 				) : null}
-				<VisualizePanel>
-					{visualizationData ? (
-						<VisualizeSlicing
-							isNew={isNewVisualization}
-							{...visualizationData}
-							useEveryNthRect={Math.floor(
-								visualizationData.rects.length * SLICE_RENDER_PROPORTION
-							)}
-							bboxPercent={boundingBoxProgress}
-						/>
-					) : null}
-				</VisualizePanel>
-			</div>
+			</VisualizePanel>
 			<ProgressPanel progress={progress} connected={connected} />
 			<OptionsPanel
 				entries={entries}
@@ -103,8 +77,6 @@ type SlicePageState = {
 	isNewVisualization: boolean
 	onEntryChange: (entry: Entry) => Promise<void>
 	onHeaderDrop: (content: string) => Promise<void>
-	setDropNodeRef: (node: HTMLElement | null) => void
-	isOver: boolean
 }
 
 function useSlicePageState(): SlicePageState {
@@ -138,65 +110,6 @@ function useSlicePageState(): SlicePageState {
 	const { results: onDemandVisualizationResults } = useFetchListener(
 		'/create_slice_visualization/'
 	)
-
-	const { clearDragEvent, parentChildData } = useContext(DragContext)
-	const { isOver, setNodeRef: setDropNodeRef } = useDroppable({
-		id: 'slice-visualize'
-	})
-
-	////// HANDLE CONFIGURATION JSON FILE DROP ONTO VISUALIZATION PANEL //////
-	useEffect(() => {
-		const handleDrop = async (): Promise<void> => {
-			if (parentChildData) {
-				const item = parentChildData[1]
-
-				if (
-					item.data.current?.source === 'file-explorer' &&
-					parentChildData[0].toString() === 'slice-visualize'
-				) {
-					// Check if the file is a JSON file
-					if (!item.data.current.name.endsWith('.json')) {
-						addAlert(
-							'Invalid JSON file. Only -configuration.json files are currently supported for visualization.',
-							'error'
-						)
-						return
-					}
-
-					// Read the JSON file
-					readFile('', item.id.toString()).then((data) => {
-						let json = null
-
-						try {
-							json = JSON.parse(data)
-						} catch (e) {
-							addAlert(
-								'Invalid JSON file. Only -configuration.json files are currently supported for visualization.',
-								'error'
-							)
-							return
-						}
-
-						const { result, error } = parseConfigurationJSONToOutputFormat(json)
-
-						if (!error) {
-							setVisualizationData(result)
-						} else {
-							addAlert(
-								'Invalid JSON file. Only -configuration.json files are currently supported for visualization.',
-								'error'
-							)
-						}
-					})
-
-					// Clear the drag event
-					clearDragEvent()
-				}
-			}
-		}
-
-		handleDrop()
-	}, [isOver, parentChildData])
 
 	// Update the visualization data when new data is received
 	useEffect(() => {
@@ -451,9 +364,7 @@ function useSlicePageState(): SlicePageState {
 		visualizationData,
 		isNewVisualization,
 		onEntryChange,
-		onHeaderDrop,
-		setDropNodeRef,
-		isOver
+		onHeaderDrop
 	}
 }
 
