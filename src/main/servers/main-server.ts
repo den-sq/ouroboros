@@ -33,6 +33,7 @@ export async function startMainServerProduction(): Promise<void> {
 	startDockerCompose({
 		cwd: PRODUCTION_PATH,
 		config: PRODUCTION_CONFIG,
+		build: true,
 		onError: (err) => {
 			console.error('An error occurred while starting the main server:', `${err}`)
 		}
