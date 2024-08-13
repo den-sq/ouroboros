@@ -9,6 +9,7 @@ from ouroboros.common.file_system import (
 from ouroboros.common.logging import logger
 from ouroboros.common.pipelines import backproject_pipeline, slice_pipeline
 from ouroboros.common.server_types import BackProjectTask, SliceTask, Task
+from ouroboros.common.volume_server_interface import clear_plugin_folder
 from ouroboros.helpers.files import combine_unknown_folder
 
 
@@ -50,6 +51,7 @@ def handle_slice_docker(task: SliceTask):
     if isinstance(load_result, str):
         task.error = load_result
         task.status = "error"
+        clear_plugin_folder()
         return
 
     slice_options, host_output_file, host_output_slices = load_result
@@ -59,6 +61,7 @@ def handle_slice_docker(task: SliceTask):
     if isinstance(slice_result, str):
         task.error = slice_result
         task.status = "error"
+        clear_plugin_folder()
         return
 
     save_result = save_output_for_slice_docker(
@@ -68,6 +71,7 @@ def handle_slice_docker(task: SliceTask):
     if save_result:
         task.error = save_result
         task.status = "error"
+        clear_plugin_folder()
 
 
 def handle_backproject_core(task: BackProjectTask, options, slice_options):
@@ -111,6 +115,7 @@ def handle_backproject_docker(task: BackProjectTask):
     if isinstance(load_result, str):
         task.error = load_result
         task.status = "error"
+        clear_plugin_folder()
         return
 
     (
@@ -126,6 +131,7 @@ def handle_backproject_docker(task: BackProjectTask):
     if isinstance(backproject_result, str):
         task.error = backproject_result
         task.status = "error"
+        clear_plugin_folder()
         return
     else:
         if options.make_single_file:
@@ -145,6 +151,7 @@ def handle_backproject_docker(task: BackProjectTask):
     if save_result:
         task.error = save_result
         task.status = "error"
+        clear_plugin_folder()
 
 
 def handle_task(task: Task):
