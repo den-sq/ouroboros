@@ -1,4 +1,12 @@
-import { useRef, useEffect, useState, useContext, ChangeEvent, FormEventHandler } from 'react'
+import {
+	useRef,
+	useEffect,
+	useState,
+	useContext,
+	ChangeEvent,
+	FormEventHandler,
+	useCallback
+} from 'react'
 import styles from './OptionEntry.module.css'
 import { useDroppable } from '@dnd-kit/core'
 import { ValueType, Entry } from '@renderer/interfaces/options'
@@ -6,6 +14,8 @@ import { DragContext } from '@renderer/contexts/DragContext'
 import { DirectoryContext } from '@renderer/contexts/DirectoryContext'
 import { useTooltip } from '@renderer/components/Tooltip/Tooltip'
 import Separator from '@renderer/components/Separator/Separator'
+import useDropFile from '@renderer/hooks/use-drop-file'
+import { directory, isPathFile } from '@renderer/interfaces/file'
 
 const MIN_WIDTH = 25
 const LABEL_GAP = 15
@@ -34,7 +44,7 @@ function OptionEntry({
 	const [inputValue, setInputValue] = useState(initialValue)
 
 	const { parentChildData, clearDragEvent } = useContext(DragContext)
-	const { directoryPath } = useContext(DirectoryContext)
+	const { directoryPath, setDirectory } = useContext(DirectoryContext)
 
 	const { isOver, setNodeRef } = useDroppable({
 		id: inputName
@@ -160,13 +170,48 @@ function OptionEntry({
 		updateValue(e.currentTarget.value)
 	}
 
+	// Handle drag and drop for file paths
+	const handleDrop = useCallback(
+		async (event: DragEvent) => {
+			if (!event.dataTransfer) return
+
+			const files = event.dataTransfer.files
+
+			// Determine if the dropped item is a folder
+			const item = files[0]
+
+			const isFolder = item.type === '' || !isPathFile(item.path)
+
+			let path = item.path
+
+			if (!isFolder) {
+				// Get the folder path
+				path = directory(item.path)
+			}
+
+			if (isFolder && directoryPath && !directoryPath.includes(path)) {
+				// Send the folder to the main process
+				setDirectory(path)
+			} else if (!isFolder) {
+				setDirectory(path)
+			}
+
+			// Update the input value
+			updateValue(item.path)
+		},
+		[setDirectory, directoryPath]
+	)
+
+	const ref = useRef(null)
+	const { dragOver } = useDropFile(ref, handleDrop)
+
 	return (
 		<>
 			<div ref={setNodeRef} style={style}>
-				<div className={`${styles.optionEntry} poppins-medium`}>
+				<div ref={ref} className={`${styles.optionEntry} poppins-medium`}>
 					<div
 						ref={labelRef}
-						className={`${styles.optionLabel} option-font-size ${isOver && inputType == 'filePath' ? 'poppins-bold' : ''}`}
+						className={`${styles.optionLabel} option-font-size ${(isOver || dragOver) && inputType == 'filePath' ? 'poppins-bold' : ''}`}
 					>
 						{label}
 					</div>

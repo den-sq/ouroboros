@@ -21,6 +21,7 @@ import {
 import { parseNeuroglancerJSON } from '@renderer/schemas/neuroglancer-json-schema'
 import { IFrameContext } from '@renderer/contexts/IFrameContext'
 import { SendNeuroglancerJSON } from '@renderer/schemas/iframe-message-schema'
+import useDropFile from '@renderer/hooks/use-drop-file'
 
 function FileExplorer(): JSX.Element {
 	const { clearDragEvent, parentChildData, active } = useContext(DragContext)
@@ -164,8 +165,6 @@ function FileExplorer(): JSX.Element {
 		setDropNodeRef(dropFileRef.current)
 	}, [dropFileRef])
 
-	const [customDragOver, setCustomDragOver] = useState(false)
-
 	const trySendFileToIframe = useCallback(
 		async (path: string): Promise<void> => {
 			const neuroglancerJSONContent = await readFile('', path)
@@ -186,12 +185,9 @@ function FileExplorer(): JSX.Element {
 		[broadcast]
 	)
 
-	useEffect(() => {
-		const handleDrop = async (event: DragEvent): Promise<void> => {
-			event.preventDefault()
-
-			setCustomDragOver(false)
-
+	////// Drag and Drop File Handling //////
+	const handleDrop = useCallback(
+		async (event: DragEvent): Promise<void> => {
 			if (!event.dataTransfer) return
 
 			const files = event.dataTransfer.files
@@ -212,31 +208,11 @@ function FileExplorer(): JSX.Element {
 
 				trySendFileToIframe(item.path)
 			}
-		}
+		},
+		[setDirectory, trySendFileToIframe]
+	)
 
-		const handleDragOver = (event: DragEvent): void => {
-			event.preventDefault()
-			setCustomDragOver(true)
-		}
-		const handleDragLeave = (event: DragEvent): void => {
-			event.preventDefault()
-			setCustomDragOver(false)
-		}
-
-		if (dropFileRef.current) {
-			dropFileRef.current.addEventListener('drop', handleDrop)
-			dropFileRef.current.addEventListener('dragover', handleDragOver)
-			dropFileRef.current.addEventListener('dragleave', handleDragLeave)
-		}
-
-		return (): void => {
-			if (dropFileRef.current) {
-				dropFileRef.current.removeEventListener('drop', handleDrop)
-				dropFileRef.current.removeEventListener('dragover', handleDragOver)
-				dropFileRef.current.removeEventListener('dragleave', handleDragLeave)
-			}
-		}
-	}, [directoryPath, dropFileRef, trySendFileToIframe])
+	const { dragOver } = useDropFile(dropFileRef, handleDrop)
 
 	return (
 		<>
@@ -259,12 +235,12 @@ function FileExplorer(): JSX.Element {
 				>
 					{directoryName ? (
 						<>
-							<Header text={directoryName} highlight={isOver || customDragOver} />
+							<Header text={directoryName} highlight={isOver || dragOver} />
 							<div>{fileEntries}</div>
 						</>
 					) : (
 						<>
-							<Header text={'Files'} highlight={customDragOver} />
+							<Header text={'Files'} highlight={dragOver} />
 							<div className={`poppins-medium ${styles.helpText}`}>
 								File &gt; Open Folder
 							</div>
