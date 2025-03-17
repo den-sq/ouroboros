@@ -92,7 +92,9 @@ def handle_slice(args):
 def handle_backproject(args):
     backproject_options = BackprojectOptions.load_from_json(args.options)
 
-    pipeline, input_data = backproject_pipeline(backproject_options, True)
+    slice_options = SliceOptions.load_from_json(backproject_options.slice_options_path)
+ 
+    pipeline, input_data = backproject_pipeline(backproject_options, slice_options, True)
 
     _, error = pipeline.process(input_data)
 
