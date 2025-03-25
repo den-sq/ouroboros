@@ -20,7 +20,7 @@ function DraggableEntry({
 	handleChange: (event: InputEvent) => void
 }): JSX.Element {
 	// Determine the type of the entry
-	const type = node.children ? 'folder' : node.name.endsWith('.tif') ? 'image' : 'file'
+	const type = node.children ? 'folder' : (node.name.endsWith('.tif') || node.name.endsWith('.tiff')) ? 'image' : 'file'
 	const isFolder = type === 'folder'
 	const isEmpty = !node.children || Object.keys(node.children).length === 0
 
