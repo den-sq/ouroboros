@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from tifffile import imwrite
 from ouroboros.helpers.files import (
     format_backproject_output_file,
@@ -22,9 +23,16 @@ def test_load_and_save_tiff_from_slices(tmp_path):
     slices_folder = tmp_path / "slices"
     slices_folder.mkdir()
 
+    input_names = [slices_folder / f"slice_{i:03d}.tif" for i in range(5)]
+
+    # Change some names to .tiff to ensure both .tif and .tiff are read.
+    from random import randrange
+    for i in [randrange(5) for j in range(2)]:
+        input_names[i] = input_names[i].with_suffix('.tiff')
+
     # Create some sample tiff files
-    for i in range(5):
-        imwrite(slices_folder / f"slice_{i:03d}.tif", data=[[i]])
+    for name in input_names:
+        imwrite(name, data=[[i]])
 
     output_file_path = tmp_path / "output.tif"
     load_and_save_tiff_from_slices(
@@ -44,36 +52,46 @@ def test_load_and_save_tiff_from_slices(tmp_path):
 
 
 def test_get_sorted_tif_files(tmp_path):
-    # Generate some sample tiff files
-    filenames = [f"{i:03d}.tif" for i in range(101)]
-    original_filenames = filenames.copy()
-
-    # Randomize the order
     import random
 
+    # Generate some sample tiff files
+    filenames = [Path(tmp_path, f"{i:03d}.tif") for i in range(101)]
+
+    # Ensure both .tif and .tiff files are handled.
+    for i in [random.randrange(101) for j in range(35)]:
+        filenames[i] = filenames[i].with_suffix('.tiff')
+
+    original_filenames = [path.name for path in filenames]
+
+    # Randomize the order
     random.shuffle(filenames)
 
     # Create the files
-    for filename in filenames:
-        (tmp_path / filename).touch()
+    for path in filenames:
+        path.touch()
 
     sorted_files = get_sorted_tif_files(str(tmp_path))
     assert sorted_files == original_filenames
 
 
 def test_get_sorted_tif_files_prefix(tmp_path):
-    # Generate some sample tiff files
-    filenames = [f"slice_{i:03d}.tif" for i in range(101)]
-    original_filenames = filenames.copy()
-
-    # Randomize the order
     import random
 
+    # Generate some sample tiff files
+    filenames = [Path(tmp_path, f"slice_{i:03d}.tif") for i in range(101)]
+
+    # Ensure both .tif and .tiff files are handled.
+    for i in [random.randrange(101) for j in range(35)]:
+        filenames[i] = filenames[i].with_suffix('.tiff')
+
+    original_filenames = [path.name for path in filenames]
+
+    # Randomize the order
     random.shuffle(filenames)
 
     # Create the files
-    for filename in filenames:
-        (tmp_path / filename).touch()
+    for path in filenames:
+        path.touch()
 
     sorted_files = get_sorted_tif_files(str(tmp_path))
     assert sorted_files == original_filenames

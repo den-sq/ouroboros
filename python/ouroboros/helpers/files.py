@@ -94,7 +94,7 @@ def get_sorted_tif_files(directory):
     files = os.listdir(directory)
 
     # Filter to include only .tif files and sort them numerically
-    tif_files = sorted((file for file in files if file.endswith(".tif")))
+    tif_files = sorted((file for file in files if file.endswith((".tif", ".tiff"))))
 
     return tif_files
 

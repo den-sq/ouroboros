@@ -91,7 +91,7 @@ class BackprojectPipelineStep(PipelineStep):
 
             # Save the straightened volume to a new tif file
             with tifffile.TiffWriter(new_straightened_volume_path) as tif:
-                if straightened_volume_path.endswith(".tif"):
+                if straightened_volume_path.endswith((".tif", ".tiff")):
                     # Read the single tif file
                     with tifffile.TiffFile(straightened_volume_path) as tif_in:
                         for i in range(len(tif_in.pages)):
