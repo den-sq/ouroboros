@@ -37,6 +37,11 @@ def handle_slice_core(task: SliceTask, slice_options):
 def handle_slice(task: SliceTask):
     slice_options = load_options_for_slice(task.options)
 
+    if isinstance(slice_options, str):
+        task.error = slice_options
+        task.status = "error"
+        return
+
     slice_result = handle_slice_core(task, slice_options)
 
     if isinstance(slice_result, str):
@@ -99,7 +104,18 @@ def handle_backproject_core(task: BackProjectTask, options, slice_options):
 
 def handle_backproject(task: BackProjectTask):
     options = load_options_for_backproject(task.options)
+
+    if isinstance(options, str):
+        task.error = options
+        task.status = "error"
+        return
+
     slice_options = load_options_for_slice(options.slice_options_path)
+
+    if isinstance(slice_options, str):
+        task.error = slice_options
+        task.status = "error"
+        return
 
     backproject_result = handle_backproject_core(task, options, slice_options)
 

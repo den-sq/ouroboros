@@ -1,5 +1,6 @@
 import json
 from pydantic import BaseModel, ValidationError
+import sys
 
 
 def pretty_json_output(obj: object) -> str:
@@ -26,9 +27,9 @@ def model_with_json(cls):
         raise TypeError("model_with_json must be applied to a BaseModel type")
 
     cls.to_dict = cls.model_dump
-    cls.from_dict = classmethod(cls.model_validate)
+    cls.from_dict = classmethod(from_dict)
     cls.to_json = cls.model_dump_json
-    cls.from_json = classmethod(cls.model_validate_json)
+    cls.from_json = classmethod(from_json)
     cls.save_to_json = save_to_json
     cls.load_from_json = classmethod(load_from_json)
     cls.copy_values_from_other = copy_values_from_other
@@ -37,28 +38,79 @@ def model_with_json(cls):
 
 
 def save_to_json(self: BaseModel, json_path: str):
-    with open(json_path, "w") as f:
-        f.write(self.to_json())
+    # Also specify encoding here for consistency
+    with open(json_path, "w", encoding='utf-8') as f:
+        # Add indent here for consistency? Or handle in Pydantic model
+        f.write(self.to_json(indent=4))
 
 
 @classmethod
-def load_from_json(cls: BaseModel, json_path: str):
+def from_dict(cls: type[BaseModel], class_dict: dict) -> BaseModel | str:
     try:
-        with open(json_path, "r") as f:
-            result = cls.from_json(f.read())
+        result = cls.model_validate(class_dict)
+        return result
+    except (ValidationError, json.JSONDecodeError) as vse:
+        # Catch specific Pydantic validation errors and JSON syntax errors
+        print(f"Error in validation of dict data for {cls.__name__}:\n{vse}", file=sys.stderr)
+        return str(vse)
+    except Exception as e:
+        # Catch other potential errors like permission denied, unicode issues etc.
+        print(f"Error parsing dict data: {e}", file=sys.stderr)
+        return str(e)
+
+
+@classmethod
+def from_json(cls: type[BaseModel], json: str) -> BaseModel | str:
+    """Loads a Pydantic model from a JSON string.
+
+    Args:
+        cls: The Pydantic model class.
+        json: JSON-format string of the object.
+
+    Returns:
+        An instance of the model, or the exception if loading fails.
+    """
+    try:
+        result = cls.model_validate_json(json)
+        return result
+    except (ValidationError, json.JSONDecodeError) as vse:
+        # Catch specific Pydantic validation errors and JSON syntax errors
+        print(f"Error in validation of JSON for {cls.__name__}:\n{vse}", file=sys.stderr)
+        return str(vse)
+    except Exception as e:
+        # Catch other potential errors like permission denied, unicode issues etc.
+        print(f"Error parsing json: {e}", file=sys.stderr)
+        return str(e)
+
+
+@classmethod
+def load_from_json(cls: type[BaseModel], json_path: str) -> BaseModel | str:
+    """Loads a Pydantic model from a JSON file.
+
+    Args:
+        cls: The Pydantic model class.
+        json_path: Path to the JSON file.
+
+    Returns:
+        An instance of the model, or the exception if loading fails.
+    """
+    try:
+        # Explicitly use utf-8 encoding
+        with open(json_path, "r", encoding='utf-8') as f:
+            # Use model_validate_json directly for better error context from Pydantic
+            result = cls.model_validate_json(f.read())
             return result
-    except ValidationError as e:
-        err = f"Error loading {cls.__name__} from JSON: {e}"
-        print(err)
-        return err
-    except FileNotFoundError:
-        err = f"File not found at {json_path}"
-        print(err)
-        return err
-    except BaseException:
-        err = f"File at {json_path} is not a valid JSON file"
-        print(err)
-        return err
+    except FileNotFoundError as fe:
+        print(f"Error: File not found at {json_path}", file=sys.stderr)
+        return str(fe)
+    except (ValidationError, json.JSONDecodeError) as vse:
+        # Catch specific Pydantic validation errors and JSON syntax errors
+        print(f"Error loading {cls.__name__} from JSON file '{json_path}':\n{vse}", file=sys.stderr)
+        return str(vse)
+    except Exception as e:
+        # Catch other potential errors like permission denied, unicode issues etc.
+        print(f"Error reading or parsing file '{json_path}': {e}", file=sys.stderr)
+        return str(e)
 
 
 def copy_values_from_other(self: BaseModel, other: BaseModel):

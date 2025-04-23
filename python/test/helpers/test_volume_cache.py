@@ -49,7 +49,7 @@ def test_volume_cache_init(volume_cache, bounding_boxes):
     assert volume_cache.link_rects == [0, 1]
     assert volume_cache.cv.source_url == "test_source_url"
     assert volume_cache.mip == 0
-    assert volume_cache.flush_cache == True
+    assert volume_cache.flush_cache is True
     assert volume_cache.volumes == [None, None]
     assert volume_cache.cache_volume == [False, False]
 
@@ -82,7 +82,7 @@ def test_volume_cache_from_dict(volume_cache):
         assert new_volume_cache.link_rects == volume_cache.link_rects
         assert new_volume_cache.cv.source_url == "test_source_url"
         assert new_volume_cache.mip == 0
-        assert new_volume_cache.flush_cache == True
+        assert new_volume_cache.flush_cache is True
         mock_from_dict.assert_called_once_with(volume_cache_dict["cv"])
 
 
@@ -142,8 +142,8 @@ def test_volume_cache_has_color_channels(volume_cache):
 
 
 def test_volume_cache_should_cache_last_volume(volume_cache):
-    assert volume_cache.should_cache_last_volume([1, 2, 3, 1]) == True
-    assert volume_cache.should_cache_last_volume([1, 2, 3, 4]) == False
+    assert volume_cache.should_cache_last_volume([1, 2, 3, 1]) is True
+    assert volume_cache.should_cache_last_volume([1, 2, 3, 4]) is False
 
 
 def test_volume_cache_get_dtype(volume_cache):

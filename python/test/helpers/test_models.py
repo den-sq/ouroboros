@@ -55,14 +55,14 @@ def test_invalid_load_json(tmp_path):
         f.write("invalid json")
 
     loaded_sample = SampleModel.load_from_json(json_path)
-    assert loaded_sample.startswith("Error loading SampleModel from JSON")
+    assert "Invalid JSON" in loaded_sample
 
 
 def test_file_not_found(tmp_path):
     json_path = tmp_path / "file_not_found.json"
 
     loaded_sample = SampleModel.load_from_json(json_path)
-    assert loaded_sample.startswith("File not found at")
+    assert "No such file or directory" in loaded_sample
 
 
 def test_pretty_json_output():

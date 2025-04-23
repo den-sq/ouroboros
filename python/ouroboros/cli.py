@@ -1,6 +1,6 @@
 from multiprocessing import freeze_support
-
 import argparse
+import sys
 
 from ouroboros.common.pipelines import backproject_pipeline, slice_pipeline
 from ouroboros.helpers.models import pretty_json_output
@@ -73,14 +73,20 @@ def main():
 
 
 def handle_slice(args):
+    print(f"Loading slice options from: {args.options}")
     slice_options = SliceOptions.load_from_json(args.options)
 
+    if isinstance(slice_options, str):
+        print("Exiting due to errors loading slice options.", file=sys.stderr)
+        sys.exit(1)
+
+    print("Slice options loaded successfully.")
     pipeline, input_data = slice_pipeline(slice_options, True)
 
     _, error = pipeline.process(input_data)
 
     if error:
-        print(error)
+        print(f"Pipeline Error: {error}", file=sys.stderr)
 
     if args.verbose:
         print("\nCalculation Statistics:\n")
@@ -90,16 +96,30 @@ def handle_slice(args):
 
 
 def handle_backproject(args):
+    print(f"Loading backproject options from: {args.options}")
     backproject_options = BackprojectOptions.load_from_json(args.options)
 
+    if isinstance(backproject_options, str):
+        print("Exiting due to errors loading backproject options.", file=sys.stderr)
+        sys.exit(1)
+
+    print("Backproject options loaded successfully."
+          f"Loading slice options from: {backproject_options.slice_options_path}")
+
     slice_options = SliceOptions.load_from_json(backproject_options.slice_options_path)
- 
+
+    if isinstance(slice_options, str):
+        print("Exiting due to errors loading slice options file specified within backproject options"
+              f"({backproject_options.slice_options_path}).", file=sys.stderr)
+        sys.exit(1)
+
+    print("Slice options loaded successfully.")
     pipeline, input_data = backproject_pipeline(backproject_options, slice_options, True)
 
     _, error = pipeline.process(input_data)
 
     if error:
-        print(error)
+        print(f"Pipeline Error: {error}", file=sys.stderr)
 
     if args.verbose:
         print("\nCalculation Statistics:\n")
