@@ -27,9 +27,9 @@ def model_with_json(cls):
         raise TypeError("model_with_json must be applied to a BaseModel type")
 
     cls.to_dict = cls.model_dump
-    cls.from_dict = classmethod(cls.model_validate)
+    cls.from_dict = classmethod(from_dict)
     cls.to_json = cls.model_dump_json
-    cls.from_json = classmethod(cls.model_validate_json)
+    cls.from_json = classmethod(from_json)
     cls.save_to_json = save_to_json
     cls.load_from_json = classmethod(load_from_json)
     cls.copy_values_from_other = copy_values_from_other
@@ -42,6 +42,45 @@ def save_to_json(self: BaseModel, json_path: str):
     with open(json_path, "w", encoding='utf-8') as f:
         # Add indent here for consistency? Or handle in Pydantic model
         f.write(self.to_json(indent=4))
+
+
+@classmethod
+def from_dict(cls: type[BaseModel], class_dict: dict) -> BaseModel | str:
+    try:
+        result = cls.model_validate(class_dict)
+        return result
+    except (ValidationError, json.JSONDecodeError) as vse:
+        # Catch specific Pydantic validation errors and JSON syntax errors
+        print(f"Error in validation of dict data for {cls.__name__}:\n{vse}", file=sys.stderr)
+        return str(vse)
+    except Exception as e:
+        # Catch other potential errors like permission denied, unicode issues etc.
+        print(f"Error parsing dict data: {e}", file=sys.stderr)
+        return str(e)
+
+
+@classmethod
+def from_json(cls: type[BaseModel], json: str) -> BaseModel | str:
+    """Loads a Pydantic model from a JSON string.
+
+    Args:
+        cls: The Pydantic model class.
+        json: JSON-format string of the object.
+
+    Returns:
+        An instance of the model, or the exception if loading fails.
+    """
+    try:
+        result = cls.model_validate_json(json)
+        return result
+    except (ValidationError, json.JSONDecodeError) as vse:
+        # Catch specific Pydantic validation errors and JSON syntax errors
+        print(f"Error in validation of JSON for {cls.__name__}:\n{vse}", file=sys.stderr)
+        return str(vse)
+    except Exception as e:
+        # Catch other potential errors like permission denied, unicode issues etc.
+        print(f"Error parsing json: {e}", file=sys.stderr)
+        return str(e)
 
 
 @classmethod
