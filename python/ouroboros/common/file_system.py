@@ -31,8 +31,8 @@ def load_options_for_backproject(options_path: str) -> BackprojectOptions | str:
 
     Returns
     -------
-    BackprojectOptions | str
-        The options for backprojecting the volume.
+    BackprojectOptions | Exception
+        The options for backprojecting the volume, or a string of the exception if it could not be loaded.
     """
 
     options = BackprojectOptions.load_from_json(options_path)
@@ -184,7 +184,7 @@ def load_options_for_slice(options_path: str) -> SliceOptions | str:
     Returns
     -------
     SliceOptions | str
-        The options for slicing the volume, or an error message if the options could not be loaded.
+        The options for slicing the volume, or a string of the exception if the options could not be loaded.
     """
 
     slice_options = SliceOptions.load_from_json(options_path)

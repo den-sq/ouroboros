@@ -45,7 +45,7 @@ def save_to_json(self: BaseModel, json_path: str):
 
 
 @classmethod
-def load_from_json(cls: type[BaseModel], json_path: str) -> BaseModel | None:
+def load_from_json(cls: type[BaseModel], json_path: str) -> BaseModel | str:
     """Loads a Pydantic model from a JSON file.
 
     Args:
@@ -53,7 +53,7 @@ def load_from_json(cls: type[BaseModel], json_path: str) -> BaseModel | None:
         json_path: Path to the JSON file.
 
     Returns:
-        An instance of the model, or None if loading fails.
+        An instance of the model, or the exception if loading fails.
     """
     try:
         # Explicitly use utf-8 encoding
@@ -61,17 +61,17 @@ def load_from_json(cls: type[BaseModel], json_path: str) -> BaseModel | None:
             # Use model_validate_json directly for better error context from Pydantic
             result = cls.model_validate_json(f.read())
             return result
-    except FileNotFoundError:
+    except FileNotFoundError as fe:
         print(f"Error: File not found at {json_path}", file=sys.stderr)
-        return None
-    except (ValidationError, json.JSONDecodeError) as e:
+        return str(fe)
+    except (ValidationError, json.JSONDecodeError) as vse:
         # Catch specific Pydantic validation errors and JSON syntax errors
-        print(f"Error loading {cls.__name__} from JSON file '{json_path}':\n{e}", file=sys.stderr)
-        return None
+        print(f"Error loading {cls.__name__} from JSON file '{json_path}':\n{vse}", file=sys.stderr)
+        return str(vse)
     except Exception as e:
         # Catch other potential errors like permission denied, unicode issues etc.
         print(f"Error reading or parsing file '{json_path}': {e}", file=sys.stderr)
-        return None
+        return str(e)
 
 
 def copy_values_from_other(self: BaseModel, other: BaseModel):

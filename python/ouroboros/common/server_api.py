@@ -116,8 +116,8 @@ def create_api(app: FastAPI, docker: bool = False):
             result["error"] = f"Error loading options: {str(e)}"
             return JSONResponse(result, status_code=400)
 
-        if isinstance(result, str):
-            result["error"] = slice_options
+        if isinstance(load_result, str):
+            result["error"] = load_result
             return JSONResponse(result, status_code=400)
 
         slice_options = load_result[0] if docker else load_result

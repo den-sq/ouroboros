@@ -76,7 +76,7 @@ def handle_slice(args):
     print(f"Loading slice options from: {args.options}")
     slice_options = SliceOptions.load_from_json(args.options)
 
-    if slice_options is None:
+    if isinstance(slice_options, str):
         print("Exiting due to errors loading slice options.", file=sys.stderr)
         sys.exit(1)
 
@@ -99,7 +99,7 @@ def handle_backproject(args):
     print(f"Loading backproject options from: {args.options}")
     backproject_options = BackprojectOptions.load_from_json(args.options)
 
-    if backproject_options is None:
+    if isinstance(backproject_options, str):
         print("Exiting due to errors loading backproject options.", file=sys.stderr)
         sys.exit(1)
 
@@ -108,8 +108,8 @@ def handle_backproject(args):
 
     slice_options = SliceOptions.load_from_json(backproject_options.slice_options_path)
 
-    if slice_options is None:
-        print("Exiting due to errors loading slice options specified within backproject options"
+    if isinstance(slice_options, str):
+        print("Exiting due to errors loading slice options file specified within backproject options"
               f"({backproject_options.slice_options_path}).", file=sys.stderr)
         sys.exit(1)
 
