@@ -40,7 +40,7 @@ def calculate_gigabytes_from_dimensions(shape: tuple[int], dtype: np.dtype) -> f
     num_elements = np.prod(shape)
 
     # Calculate the total number of bytes
-    num_bytes = num_elements * dtype_size
+    num_bytes = np.multiply(num_elements, dtype_size, dtype=np.float64)
 
     return num_bytes / GIGABYTE
 
