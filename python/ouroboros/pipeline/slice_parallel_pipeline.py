@@ -76,8 +76,16 @@ class SliceParallelPipelineStep(PipelineStep):
                 return "No slice rects were provided."
 
             try:
-                resolution = volume_cache.get_resolution_um()[:2]
-                resolutionunit = "MICROMETER"
+                # Volume cache resolution is in voxel size, but .tiff XY resolution is in voxels per unit, so we invert.
+                resolution = [1.0 / voxel_size for voxel_size in volume_cache.get_resolution_um()[:2] * 0.0001]
+                resolutionunit = "CENTIMETER"
+                # However, Z Resolution doesn't have an inbuilt property or strong convention, so going with this.
+                metadata = {
+                    "spacing": volume_cache.get_resolution_um()[2],
+                    "unit": "um"
+                }
+
+                print(f"Resolution: {volume_cache.get_resolution_um()} | {resolution}")
 
                 # Determine the dimensions of the image
                 has_color_channels = volume_cache.has_color_channels()
@@ -97,13 +105,14 @@ class SliceParallelPipelineStep(PipelineStep):
                     output_file_path,
                     temp_data,
                     software="ouroboros",
-                    resolution=resolution,
+                    resolution=resolution[:2], 	# XY Resolution
                     resolutionunit=resolutionunit,
                     photometric=(
                         "rgb"
                         if has_color_channels and num_color_channels > 1
                         else "minisblack"
                     ),
+                    metadata=metadata,
                 )
             except BaseException as e:
                 return f"Error creating single tif file: {e}"

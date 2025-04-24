@@ -83,6 +83,8 @@ class BackprojectPipelineStep(PipelineStep):
             mmap = make_tiff_memmap(straightened_volume_path, mode="r")
             del mmap
         except BaseException as e:
+            print(f"Direct memory mapping failed (Error {e})\n. Using TiffWriter.")
+
             # Create a new path for the straightened volume
             new_straightened_volume_path = join_path(
                 config.output_file_folder,
@@ -187,7 +189,8 @@ class BackprojectPipelineStep(PipelineStep):
             min_bounding_box = chunks_and_boxes[0][
                 0
             ]  # The first chunk bounding box has the same offset as the minimum bounding box
-            pipeline_input.backprojection_offset = f"{min_bounding_box.x_min},{min_bounding_box.y_min},{min_bounding_box.z_min}"
+            pipeline_input.backprojection_offset = \
+                f"{min_bounding_box.x_min},{min_bounding_box.y_min},{min_bounding_box.z_min}"
 
         # Save the backprojected volume to a series of tif files
         offset = (
@@ -292,7 +295,7 @@ class BackprojectPipelineStep(PipelineStep):
 
                 # Copy the intersection volume to the chunk volume
                 intersection_volume = volume[
-                    x_min : x_max + 1, y_min : y_max + 1, z_min : z_max + 1
+                    x_min: x_max + 1, y_min: y_max + 1, z_min: z_max + 1
                 ]
                 non_zero_mask = (
                     np.sum(intersection_volume, axis=-1) != 0
@@ -301,9 +304,9 @@ class BackprojectPipelineStep(PipelineStep):
                 )
 
                 chunk_volume[
-                    int_x_min : int_x_max + 1,
-                    int_y_min : int_y_max + 1,
-                    int_z_min : int_z_max + 1,
+                    int_x_min: int_x_max + 1,
+                    int_y_min: int_y_max + 1,
+                    int_z_min: int_z_max + 1,
                 ][non_zero_mask] = intersection_volume[non_zero_mask]
 
             # If make_backprojection_binary, set all non-zero values to 1
@@ -342,15 +345,19 @@ class BackprojectPipelineStep(PipelineStep):
         # Save the backprojected volume to a single tif file
         if config.make_single_file:
             try:
-                metadata = {}
+                # Volume cache resolution is in voxel size, but .tiff XY resolution is in voxels per unit, so we invert.
+                resolution = [1.0 / voxel_size for voxel_size in volume_cache.get_resolution_um()[:2] * 0.0001]
+                resolutionunit = "CENTIMETER"
+                # However, Z Resolution doesn't have an inbuilt property or strong convention, so going with this atm.
+                metadata = {
+                    "spacing": volume_cache.get_resolution_um()[2],
+                    "unit": "um"
+                }
 
                 if config.backproject_min_bounding_box:
                     metadata["backprojection_offset_min_xyz"] = (
                         pipeline_input.backprojection_offset
                     )
-
-                resolution = volume_cache.get_resolution_um()[:2]
-                resolutionunit = "MICROMETER"
 
                 load_and_save_tiff_from_slices(
                     folder_path,
@@ -358,7 +365,7 @@ class BackprojectPipelineStep(PipelineStep):
                     delete_intermediate=False,
                     compression=config.backprojection_compression,
                     metadata=metadata,
-                    resolution=resolution,
+                    resolution=resolution, 	# XY Resolution
                     resolutionunit=resolutionunit,
                 )
             except BaseException as e:
@@ -509,7 +516,8 @@ def create_volume_chunks(
     # Create bounding boxes along the first axis each containing chunk_size slices
     chunks_and_boxes = []
 
-    # If backproject_min_bounding_box is True, create a bounding box that contains the minimum bounding box of the volume
+    # If backproject_min_bounding_box is True,
+    # create a bounding box that contains the minimum bounding box of the volume.
     min_bounding_box = None
 
     # Calculate the range of slices to process
