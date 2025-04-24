@@ -43,10 +43,9 @@ def test_model_with_json_invalid_class():
 
     try:
         model_with_json(InvalidClass)
+        assert False
     except TypeError as e:
         assert str(e) == "model_with_json must be applied to a BaseModel type"
-    else:
-        assert False
 
 
 def test_invalid_load_json(tmp_path):
