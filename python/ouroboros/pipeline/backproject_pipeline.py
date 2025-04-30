@@ -328,17 +328,14 @@ class BackprojectPipelineStep(PipelineStep):
             # Update the progress bar
             self.update_progress(0.5 + i / len(chunks_and_boxes) / 2)
 
-        # Close all the memmaps
-        for volume_memmap in volume_memmaps:
-            del volume_memmap
+        # Close all the memmaps - All 3 needed to allow deletion of temporary files.
+        del volume					# Delete volume view created during .tif file writing.
+        del intersection_volume		# Delete volume view created during .tif file writing.
+        del volume_memmaps[:] 		# Delete all the memmaps.
 
-        # Delete the temporary volume files
-        shutil.rmtree(
-            join_path(
-                config.output_file_folder,
-                format_backproject_tempvolumes(config.output_file_name),
-            )
-        )
+        # Delete the temporary volume files.
+        # Errors ignored because leaving a temporary file around is better than failing.  Could add logging.
+        shutil.rmtree(temp_folder_path, ignore_errors=True)
 
         self.add_timing("export", time.perf_counter() - start)
 
@@ -365,7 +362,7 @@ class BackprojectPipelineStep(PipelineStep):
                     delete_intermediate=False,
                     compression=config.backprojection_compression,
                     metadata=metadata,
-                    resolution=resolution, 	# XY Resolution
+                    resolution=resolution,     # XY Resolution
                     resolutionunit=resolutionunit,
                 )
             except BaseException as e:

@@ -41,8 +41,12 @@ jobs:
           poetry run coverage xml
         working-directory: ./python
 
-      - name: Get Cover 
-        uses: orgoro/coverage@v3.2
-        with:
-          coverageFile: python/coverage.xml
-          token: ${{ secrets.GITHUB_TOKEN }}
+# orgoro does not work in workflow runs due to fork permissions issues:
+# See PR https://github.com/orgoro/coverage/pull/281
+# So commenting it out for now.
+# 
+#      - name: Get Cover 
+#         uses: orgoro/coverage@v3.2
+#         with:
+#           coverageFile: python/coverage.xml
+#           token: ${{ secrets.GITHUB_TOKEN }}
