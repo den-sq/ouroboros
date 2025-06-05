@@ -24,15 +24,16 @@ tifffile = "^2024.6.18"
 pydantic = "^2.7.4"
 tqdm = "^4.66.4"
 imagecodecs = "^2024.6.1"
-fastapi = "^0.111.0"
+fastapi = "^0.115.0"
 asyncio = "^3.4.3"
 uuid = "^1.30"
-sse-starlette = "^2.1.2"
+sse-starlette = "^2.3.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2.2"
 pytest-cov = "^6.1.1"
-pyinstaller = "^6.8.0"
+pyinstaller = "^6.13.0"
+setuptools = "^78.1.1"
 coverage = "^7.6.0"
 
 [build-system]

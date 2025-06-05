@@ -85,8 +85,6 @@ class SliceParallelPipelineStep(PipelineStep):
                     "unit": "um"
                 }
 
-                print(f"Resolution: {volume_cache.get_resolution_um()} | {resolution}")
-
                 # Determine the dimensions of the image
                 has_color_channels = volume_cache.has_color_channels()
                 num_color_channels = (
@@ -105,7 +103,7 @@ class SliceParallelPipelineStep(PipelineStep):
                     output_file_path,
                     temp_data,
                     software="ouroboros",
-                    resolution=resolution[:2], 	# XY Resolution
+                    resolution=resolution[:2],     # XY Resolution
                     resolutionunit=resolutionunit,
                     photometric=(
                         "rgb"
@@ -227,8 +225,9 @@ def thread_worker_iterative(
     volume_cache, volumes_range, data_queue, single_thread=False
 ):
     for i in volumes_range:
-        # Create a packet of data to process
+        # Create a packet of data to process - Make the threading check make more sense.
         data = volume_cache.create_processing_data(i, parallel=single_thread)
+
         data_queue.put(data)
 
         # Remove the volume from the cache after the packet is created
