@@ -1,4 +1,3 @@
-from pydantic import BaseModel
 from ouroboros.helpers.coordinates import convert_points_between_volumes
 from ouroboros.helpers.slice import calculate_slice_rects
 from ouroboros.helpers.spline import Spline

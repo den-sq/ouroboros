@@ -16,6 +16,7 @@ class VolumeCache:
         flush_cache=FLUSH_CACHE,
     ) -> None:
         self.bounding_boxes = bounding_boxes
+
         self.link_rects = link_rects
         self.cv = cloud_volume_interface
         self.mip = mip
