@@ -180,7 +180,8 @@ def write_slices_to_volume(
 
     Parameters:
     ----------
-        volume (numpy.ndarray, dtype=float32): A volume of shape (x, y, z), which should match the dimensions of the given bounding box.
+        volume (numpy.ndarray, dtype=float32): A volume of shape (x, y, z), which should match
+                                               the dimensions of the given bounding box.
         bounding_box (BoundingBox): The bounding box of the volume.
         grids (numpy.ndarray): The grids of coordinates to slice the volume (n, width, height, 3).
         slices (numpy.ndarray): The slice data to write to the volume (n, width, height).
@@ -272,7 +273,7 @@ def make_volume_binary(volume: np.ndarray, dtype=np.uint8) -> np.ndarray:
     return (volume > 0).astype(dtype)
 
 
-def detect_color_channels(data: np.ndarray, none_value=1):
+def detect_color_channels(data: np.ndarray, none_value=1) -> tuple[bool, int]:
     """
     Detect the number of color channels in a volume.
 
@@ -295,7 +296,7 @@ def detect_color_channels(data: np.ndarray, none_value=1):
     return has_color_channels, num_color_channels
 
 
-def detect_color_channels_shape(shape: tuple, none_value=1):
+def detect_color_channels_shape(shape: tuple, none_value=1) -> tuple[bool, int]:
     """
     Detect the number of color channels in a volume.
 

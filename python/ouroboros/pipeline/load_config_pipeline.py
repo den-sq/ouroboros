@@ -10,11 +10,11 @@ class LoadConfigPipelineStep(PipelineStep):
         self.custom_output_file_path = None
         self.custom_options = None
 
-    def with_custom_output_file_path(self, path: str):
+    def with_custom_output_file_path(self, path: str) -> "LoadConfigPipelineStep":
         self.custom_output_file_path = path
         return self
 
-    def with_custom_options(self, options: BackprojectOptions):
+    def with_custom_options(self, options: BackprojectOptions) -> "LoadConfigPipelineStep":
         self.custom_options = options
         return self
 

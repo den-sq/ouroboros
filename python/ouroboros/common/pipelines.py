@@ -10,7 +10,7 @@ from ouroboros.pipeline import (
 )
 
 
-def slice_pipeline(slice_options: SliceOptions, verbose: bool = False):
+def slice_pipeline(slice_options: SliceOptions, verbose: bool = False) -> tuple[Pipeline, PipelineInput]:
     """
     Creates a pipeline for slicing a volume, as well as the default input data for the pipeline.
 
@@ -51,7 +51,7 @@ def backproject_pipeline(
     backproject_options: BackprojectOptions,
     slice_options: SliceOptions,
     verbose: bool = False,
-):
+) -> tuple[Pipeline, PipelineInput]:
     """
     Creates a pipeline for backprojecting a volume, as well as the default input data for the pipeline.
 
@@ -92,7 +92,7 @@ def backproject_pipeline(
     return pipeline, default_input_data
 
 
-def visualization_pipeline(slice_options: SliceOptions):
+def visualization_pipeline(slice_options: SliceOptions) -> tuple[Pipeline, PipelineInput]:
     """
     Creates a pipeline for visualizing the slicing process.
 

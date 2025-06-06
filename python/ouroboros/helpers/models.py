@@ -7,7 +7,7 @@ def pretty_json_output(obj: object) -> str:
     return json.dumps(obj, indent=4)
 
 
-def model_with_json(cls):
+def model_with_json(cls: BaseModel) -> BaseModel:
     """
     Add methods to the given class to serialize and deserialize the class to and from
     a dictionary, JSON string, and JSON file.
@@ -60,18 +60,18 @@ def from_dict(cls: type[BaseModel], class_dict: dict) -> BaseModel | str:
 
 
 @classmethod
-def from_json(cls: type[BaseModel], json: str) -> BaseModel | str:
+def from_json(cls: type[BaseModel], json_data: str) -> BaseModel | str:
     """Loads a Pydantic model from a JSON string.
 
     Args:
         cls: The Pydantic model class.
-        json: JSON-format string of the object.
+        json_data: JSON-format string of the object.
 
     Returns:
         An instance of the model, or the exception if loading fails.
     """
     try:
-        result = cls.model_validate_json(json)
+        result = cls.model_validate_json(json_data)
         return result
     except (ValidationError, json.JSONDecodeError) as vse:
         # Catch specific Pydantic validation errors and JSON syntax errors
@@ -79,7 +79,7 @@ def from_json(cls: type[BaseModel], json: str) -> BaseModel | str:
         return str(vse)
     except Exception as e:
         # Catch other potential errors like permission denied, unicode issues etc.
-        print(f"Error parsing json: {e}", file=sys.stderr)
+        print(f"Error parsing string json: {e}", file=sys.stderr)
         return str(e)
 
 

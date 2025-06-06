@@ -8,11 +8,11 @@ import shutil
 def load_and_save_tiff_from_slices(
     folder_name: str,
     output_file_path: str,
-    delete_intermediate=True,
-    compression=None,
-    metadata={},
-    resolution=None,
-    resolutionunit=None,
+    delete_intermediate: bool = True,
+    compression: str = None,
+    metadata: dict = {},
+    resolution: tuple[int, int] = None,
+    resolutionunit: str = None,
 ):
     """
     Load tiff files from a folder and save them to a new tiff file.
@@ -72,7 +72,7 @@ def load_and_save_tiff_from_slices(
         shutil.rmtree(folder_name)
 
 
-def get_sorted_tif_files(directory):
+def get_sorted_tif_files(directory: str) -> list[str]:
     """
     Get all .tif files in a directory and sort them numerically.
 
@@ -99,7 +99,7 @@ def get_sorted_tif_files(directory):
     return tif_files
 
 
-def join_path(*args):
+def join_path(*args) -> str:
     return str(Path(*args))
 
 
@@ -132,19 +132,19 @@ def combine_unknown_folder(directory_path: str, filename: str) -> str:
     return directory_path + filename
 
 
-def format_slice_output_file(output_name: str):
+def format_slice_output_file(output_name: str) -> str:
     return output_name + ".tif"
 
 
-def format_slice_output_multiple(output_name: str):
+def format_slice_output_multiple(output_name: str) -> str:
     return output_name + "-slices"
 
 
-def format_slice_output_config_file(output_name: str):
+def format_slice_output_config_file(output_name: str) -> str:
     return output_name + "-configuration.json"
 
 
-def format_backproject_output_file(output_name: str, offset: tuple[int] | None = None):
+def format_backproject_output_file(output_name: str, offset: tuple[int] | None = None) -> str:
     if offset is not None:
         offset_str = "-".join(map(str, offset))
         return output_name + f"-backprojected-{offset_str}.tif"
@@ -154,7 +154,7 @@ def format_backproject_output_file(output_name: str, offset: tuple[int] | None =
 
 def format_backproject_output_multiple(
     output_name: str, offset: tuple[int] | None = None
-):
+) -> str:
     if offset is not None:
         offset_str = "-".join(map(str, offset))
         return output_name + f"-backprojected-{offset_str}"
@@ -162,11 +162,11 @@ def format_backproject_output_multiple(
     return output_name + "-backprojected"
 
 
-def format_backproject_tempvolumes(output_name: str):
+def format_backproject_tempvolumes(output_name: str) -> str:
     return output_name + "-tempvolumes"
 
 
-def format_backproject_resave_volume(output_name: str):
+def format_backproject_resave_volume(output_name: str) -> str:
     return output_name + "-temp-straightened.tif"
 
 
@@ -178,5 +178,5 @@ def parse_tiff_name(tiff_name: str) -> int:
     return int(tiff_name.split(".")[0])
 
 
-def num_digits_for_n_files(n: int):
+def num_digits_for_n_files(n: int) -> int:
     return len(str(n - 1))

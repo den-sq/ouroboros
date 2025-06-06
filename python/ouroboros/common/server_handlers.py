@@ -11,9 +11,10 @@ from ouroboros.common.pipelines import backproject_pipeline, slice_pipeline
 from ouroboros.common.server_types import BackProjectTask, SliceTask, Task
 from ouroboros.common.volume_server_interface import clear_plugin_folder
 from ouroboros.helpers.files import combine_unknown_folder
+from ouroboros.helpers.options import BackprojectOptions, SliceOptions
 
 
-def handle_slice_core(task: SliceTask, slice_options):
+def handle_slice_core(task: SliceTask, slice_options: SliceOptions):
     pipeline, input_data = slice_pipeline(slice_options)
 
     # Store the pipeline in the task
@@ -79,7 +80,7 @@ def handle_slice_docker(task: SliceTask):
         clear_plugin_folder()
 
 
-def handle_backproject_core(task: BackProjectTask, options, slice_options):
+def handle_backproject_core(task: BackProjectTask, options: BackprojectOptions, slice_options: SliceOptions):
     pipeline, input_data = backproject_pipeline(options, slice_options)
 
     # Store the pipeline in the task

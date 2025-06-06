@@ -45,7 +45,7 @@ def calculate_gigabytes_from_dimensions(shape: tuple[int], dtype: np.dtype) -> f
     return num_bytes / GIGABYTE
 
 
-def calculate_chunk_size(shape: tuple, dtype: np.dtype, max_ram_gb: int = 0, axis=0):
+def calculate_chunk_size(shape: tuple, dtype: np.dtype, max_ram_gb: int = 0, axis=0) -> int:
     """
     Calculate the chunk size based on the shape and dtype of the volume.
 

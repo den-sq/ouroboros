@@ -1,7 +1,8 @@
+from cloudvolume import CloudVolume, VolumeCutout
+import numpy as np
+
 from .bounding_boxes import BoundingBox
 from .memory_usage import calculate_gigabytes_from_dimensions
-
-from cloudvolume import CloudVolume, VolumeCutout
 
 FLUSH_CACHE = False
 
@@ -35,7 +36,7 @@ class VolumeCache:
 
         self.init_cloudvolume()
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {
             "bounding_boxes": [bb.to_dict() for bb in self.bounding_boxes],
             "link_rects": self.link_rects,
@@ -45,7 +46,7 @@ class VolumeCache:
         }
 
     @staticmethod
-    def from_dict(data: dict):
+    def from_dict(data: dict) -> "VolumeCache":
         bounding_boxes = [BoundingBox.from_dict(bb) for bb in data["bounding_boxes"]]
         link_rects = data["link_rects"]
         cv = CloudVolumeInterface.from_dict(data["cv"])
@@ -58,24 +59,24 @@ class VolumeCache:
         if self.mip is None:
             self.mip = min(self.cv.available_mips)
 
-    def get_volume_gigabytes(self):
+    def get_volume_gigabytes(self) -> float:
         return calculate_gigabytes_from_dimensions(
             self.get_volume_shape(), self.get_volume_dtype()
         )
 
-    def get_volume_shape(self):
+    def get_volume_shape(self) -> tuple[int, ...]:
         return self.cv.get_volume_shape(self.mip)
 
-    def has_color_channels(self):
+    def has_color_channels(self) -> bool:
         return self.cv.has_color_channels
 
-    def get_num_channels(self):
+    def get_num_channels(self) -> int:
         return self.cv.num_channels
 
-    def get_volume_dtype(self):
+    def get_volume_dtype(self) -> np.dtype:
         return self.cv.dtype
 
-    def get_volume_mip(self):
+    def get_volume_mip(self) -> int:
         return self.mip
 
     def set_volume_mip(self, mip: int):
@@ -197,25 +198,25 @@ class CloudVolumeInterface:
         return {"source_url": self.source_url}
 
     @staticmethod
-    def from_dict(data: dict):
+    def from_dict(data: dict) -> "CloudVolumeInterface":
         source_url = data["source_url"]
         return CloudVolumeInterface(source_url)
 
     @property
-    def has_color_channels(self):
+    def has_color_channels(self) -> bool:
         return len(self.cv.shape) == 4
 
     @property
-    def num_channels(self):
+    def num_channels(self) -> int:
         return self.cv.shape[-1]
 
-    def get_volume_shape(self, mip: int):
+    def get_volume_shape(self, mip: int) -> tuple[int, ...]:
         return self.cv.mip_volume_size(mip)
 
-    def get_resolution_nm(self, mip: int):
+    def get_resolution_nm(self, mip: int) -> tuple[float, ...]:
         return self.cv.mip_resolution(mip)
 
-    def get_resolution_um(self, mip: int):
+    def get_resolution_um(self, mip: int) -> tuple[float, ...]:
         return self.get_resolution_nm(mip) / 1000
 
     def flush_cache(self):

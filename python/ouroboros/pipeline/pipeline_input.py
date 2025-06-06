@@ -9,10 +9,10 @@ from ouroboros.helpers.volume_cache import VolumeCache
 class BasePipelineInput(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def __getitem__(self, keys):
+    def __getitem__(self, keys) -> iter:
         return iter(getattr(self, k) for k in keys)
 
-    def clear_entry(self, key):
+    def clear_entry(self, key) -> None:
         """
         Clear the entry with the given key.
         """
@@ -38,23 +38,23 @@ class PipelineInput(BasePipelineInput):
     backprojection_offset: str | None = None
 
     @field_serializer("sample_points", "slice_rects")
-    def to_list(self, value):
+    def to_list(self, value) -> list | None:
         return value.tolist() if value is not None else None
 
     @field_validator("sample_points", "slice_rects", mode="before")
     @classmethod
-    def validate_list(cls, value: any):
+    def validate_list(cls, value: any) -> np.ndarray | None:
         if isinstance(value, list):
             return np.array(value)
         return value
 
     @field_serializer("volume_cache")
-    def to_dict(self, value):
+    def to_dict(self, value) -> dict | None:
         return value.to_dict() if value is not None else None
 
     @field_validator("volume_cache", mode="before")
     @classmethod
-    def validate_volume_cache(cls, value: any):
+    def validate_volume_cache(cls, value: any) -> VolumeCache | None:
         if isinstance(value, dict):
             return VolumeCache.from_dict(value)
         return value
