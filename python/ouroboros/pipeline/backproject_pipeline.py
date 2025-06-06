@@ -410,7 +410,7 @@ class BackprojectPipelineStep(PipelineStep):
 
 def process_bounding_box(
     config, bounding_box, straightened_volume_path, slice_rects, slice_indices, index
-):
+) -> tuple[dict, str, int]:
     durations = {
         "memmap": [],
         "get_slices": [],
@@ -567,16 +567,16 @@ def create_volume_chunks(
 
 
 def rescale_mip_volume(
-    source_url,
-    current_mip,
-    target_mip,
-    single_path=None,
-    folder_path=None,
-    output_name="out",
-    compression=None,
-    max_ram_gb=0,
-    order=2,
-    binary=False,
+    source_url: str,
+    current_mip: int,
+    target_mip: int,
+    single_path: str = None,
+    folder_path: str = None,
+    output_name: str = "out",
+    compression: str = None,
+    max_ram_gb: int = 0,
+    order: int = 2,
+    binary: bool = False,
 ) -> str | None:
     """
     Rescale the volume to the mip level.
@@ -593,6 +593,8 @@ def rescale_mip_volume(
         The path to the single tif file.
     folder_path : str
         The path to the folder containing the tif files.
+    output_name : str
+        The path to the output.
     compression : str, optional
         The compression to use for the resulting tif file.
         The default is None.
@@ -644,16 +646,16 @@ def rescale_mip_volume(
 
 
 def rescale_single_tif(
-    source_url,
-    current_mip,
-    target_mip,
-    single_path,
-    file_name="out.tif",
-    compression=None,
-    max_ram_gb=0,
-    order=1,
-    binary=False,
-):
+    source_url: str,
+    current_mip: int,
+    target_mip: int,
+    single_path: str,
+    file_name: str = "out.tif",
+    compression: str = None,
+    max_ram_gb: int = 0,
+    order: int = 1,
+    binary: bool = False,
+) -> str | None:
     with tifffile.TiffFile(single_path) as tif:
         tif_shape = (len(tif.pages),) + tif.pages[0].shape
 
@@ -708,16 +710,16 @@ def rescale_single_tif(
 
 
 def rescale_folder_tif(
-    source_url,
-    current_mip,
-    target_mip,
-    folder_path,
-    folder_name="out",
-    compression=None,
-    max_ram_gb=0,
-    order=1,
-    binary=False,
-):
+    source_url: str,
+    current_mip: int,
+    target_mip: int,
+    folder_path: str,
+    folder_name: str = "out",
+    compression: str = None,
+    max_ram_gb: int = 0,
+    order: int = 1,
+    binary: bool = False,
+) -> str | None:
     # Create output folder if it doesn't exist
     output_folder = folder_name
     os.makedirs(output_folder, exist_ok=True)
@@ -785,7 +787,7 @@ def rescale_folder_tif(
 
 def calculate_scaling_factors(
     source_url: str, current_mip: int, target_mip: int, tif_shape: tuple
-):
+) -> tuple[tuple, tuple]:
     # Determine the current and target resolutions
     mip_sizes = get_mip_volume_sizes(source_url)
 

@@ -130,7 +130,7 @@ def load_options_for_backproject_docker(
 
 def save_output_for_backproject_docker(
     host_output_file: str,
-    host_output_slices=None,
+    host_output_slices: str = None,
     target_path: str = "./",
 ) -> None | str:
     """
@@ -265,7 +265,7 @@ def load_options_for_slice_docker(
 
 def save_output_for_slice_docker(
     host_output_file: str,
-    host_output_slices=None,
+    host_output_slices: str = None,
     target_path: str = "./",
 ) -> None | str:
     """

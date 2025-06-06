@@ -2,6 +2,7 @@ import numpy as np
 import time
 from abc import ABC, abstractmethod
 from itertools import chain
+from typing import Callable
 
 from tqdm import tqdm
 
@@ -37,16 +38,16 @@ class Pipeline:
 
         return (data, None)
 
-    def get_steps_progress(self):
+    def get_steps_progress(self) -> list[list[any]]:
         return [[step.step_name, step.get_progress()] for step in self.steps]
 
-    def get_steps_progress_and_durations(self):
+    def get_steps_progress_and_durations(self) -> list[list[any]]:
         return [
             [step.step_name, step.get_progress(), step.get_duration()]
             for step in self.steps
         ]
 
-    def get_step_statistics(self):
+    def get_step_statistics(self) -> list[dict]:
         return [step.get_time_statistics() for step in self.steps]
 
 
@@ -106,7 +107,7 @@ class PipelineStep(ABC):
     def _process(self, input_data: tuple[any]) -> None | str:
         pass
 
-    def get_time_statistics(self):
+    def get_time_statistics(self) -> dict:
         # Replace custom timings with statistics about the custom timings
         custom_times = self.timing["custom_times"]
 
@@ -129,7 +130,7 @@ class PipelineStep(ABC):
 
         return self.timing
 
-    def get_duration(self):
+    def get_duration(self) -> float:
         return self.timing["duration_seconds"]
 
     def add_timing(self, key: str, value: float):
@@ -144,7 +145,7 @@ class PipelineStep(ABC):
         else:
             self.timing["custom_times"][key] = values
 
-    def with_progress_bar(self):
+    def with_progress_bar(self) -> "PipelineStep":
         self.show_progress_bar = True
         return self
 
@@ -157,10 +158,10 @@ class PipelineStep(ABC):
         if self.show_progress_bar:
             self.progress_bar.update(progress * 100 - self.progress_bar.n)
 
-    def get_progress(self):
+    def get_progress(self) -> float:
         return self.progress
 
-    def listen_for_progress(self, progress_callable):
+    def listen_for_progress(self, progress_callable: Callable[[float], None]):
         """
         Add a callable that will be called with the progress of the step.
 

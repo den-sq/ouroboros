@@ -14,7 +14,7 @@ DOCKER_HOST = "0.0.0.0"
 DOCKER_PORT = 8000
 
 
-def create_server(docker=False):
+def create_server(docker: bool = False) -> FastAPI:
     """
     Create Ouroboros's FastAPI server.
 

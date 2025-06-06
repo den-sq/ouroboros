@@ -3,17 +3,17 @@ from scipy.interpolate import splprep, splev
 
 
 class Spline:
-    def __init__(self, sample_points: np.ndarray, degree=3) -> None:
+    def __init__(self, sample_points: np.ndarray, degree: int = 3) -> None:
         # Guarantee that the degree is at least 2
         degree = max(degree, 2)
 
         self.tck, self.u = self.fit_spline(sample_points, degree=degree)
 
-    def __call__(self, times: np.ndarray, derivative=0):
+    def __call__(self, times: np.ndarray, derivative: int = 0):
         return self.evaluate_spline(self.tck, times, derivative=derivative)
 
     @staticmethod
-    def fit_spline(sample_points: np.ndarray, degree=3):
+    def fit_spline(sample_points: np.ndarray, degree: int = 3):
         """
         Fit a B-spline to a set of sample points.
 
@@ -36,7 +36,7 @@ class Spline:
         return tck, u
 
     @staticmethod
-    def evaluate_spline(tck, times: np.ndarray, derivative=0):
+    def evaluate_spline(tck: tuple, times: np.ndarray, derivative: int = 0) -> np.ndarray:
         """
         Evaluate a B-spline at a set of time points.
 
@@ -53,7 +53,7 @@ class Spline:
 
         return np.array(splev(times, tck, der=derivative))
 
-    def calculate_vectors(self, times: np.ndarray):
+    def calculate_vectors(self, times: np.ndarray) -> tuple:
         """
         Calculate the tangent, normal, and binormal vectors of the spline at a set of time points.
 
@@ -63,7 +63,8 @@ class Spline:
 
         Returns:
         -------
-            tuple: A tuple containing the tangent, normal, and binormal vectors at the given time points. Each has shape (3, n).
+            tuple: A tuple containing the tangent, normal, and binormal vectors at the given time points.
+                   Each has shape (3, n).
         """
 
         # Handle the case where times is empty
@@ -93,7 +94,7 @@ class Spline:
 
         return tangent_vectors, normal_vectors, binormal_vectors
 
-    def calculate_rotation_minimizing_vectors(self, times: np.ndarray):
+    def calculate_rotation_minimizing_vectors(self, times: np.ndarray) -> tuple:
         """
         Calculate the rotation minimizing frames of the spline at a set of time points.
 
@@ -110,7 +111,8 @@ class Spline:
 
         Returns:
         -------
-            tuple: A tuple containing the tangent, normal, and binormal vectors at the given time points. Each has shape (3, n).
+            tuple: A tuple containing the tangent, normal, and binormal vectors at the given time points.
+                   Each has shape (3, n).
         """
 
         # Handle the case where times is empty
@@ -202,7 +204,7 @@ class Spline:
 
         return tangent_vectors, normal_vectors, binormal_vectors
 
-    def calculate_equidistant_parameters(self, distance_between_points: float):
+    def calculate_equidistant_parameters(self, distance_between_points: float) -> np.ndarray:
         """
         Calculate the parameter values that correspond to equidistant points along the spline.
 
@@ -235,9 +237,9 @@ class Spline:
     def calculate_adaptive_parameters(
         self,
         distance_between_points: float,
-        ratio=0.5,
-        calculation_params_ratio=10,
-    ):
+        ratio: float = 0.5,
+        calculation_params_ratio: int = 10,
+    ) -> np.ndarray:
         """
         Sample spline parameters based on both curvature and arc length.
 
@@ -249,7 +251,8 @@ class Spline:
             ratio (float): The ratio between the curvature and arc length components.
                 1 means equal weight, 0.5 means arc length is twice as important as curvature,
                 and 2 means curvature is twice as important as arc length.
-            calculation_params_ratio (int): The ratio between the number of calculation parameters and the number of points.
+            calculation_params_ratio (int): The ratio between the number of calculation parameters
+                                            and the number of points.
 
         Returns:
         -------
@@ -366,7 +369,7 @@ def calculate_arc_length(spline: Spline, t: np.ndarray) -> np.ndarray:
 
 
 def adaptive_curvature_parameterization(
-    spline: Spline, sample_params: np.ndarray, calculation_params: np.ndarray, ratio=1
+    spline: Spline, sample_params: np.ndarray, calculation_params: np.ndarray, ratio: float = 1
 ) -> np.ndarray:
     """
     Sample spline parameters based on both curvature and arc length.

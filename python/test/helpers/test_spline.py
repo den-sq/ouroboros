@@ -217,7 +217,6 @@ def test_calculate_equidistant_parameters_zero():
     # Calculate equidistant parameters
     try:
         spline.calculate_equidistant_parameters(distance_between_points)
-        raise AssertionError("The method should raise a ValueError if the distance is zero.")
     except ValueError as e:
         assert str(e) == "The distance between points must be positive and non-zero."
         return

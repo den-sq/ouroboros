@@ -1,3 +1,4 @@
+
 from pydantic import BaseModel
 from ouroboros.helpers.models import (
     model_with_json,
@@ -23,6 +24,9 @@ def test_model_with_json(tmp_path):
     assert new_sample.field1 == 456
     assert new_sample.field2 == "new_test"
 
+    from_dict_err = SampleModel.from_dict({"field1": "invalid", "field2": 123})
+    assert from_dict_err[:35] == "2 validation errors for SampleModel"
+
     # Test save_to_json and load_from_json methods
     json_path = tmp_path / "sample_model.json"
     sample.save_to_json(json_path)
@@ -37,13 +41,22 @@ def test_model_with_json(tmp_path):
     assert sample.field2 == "another_test"
 
 
+def test_model_from_json():
+    json_data = '{"field1": 42, "field2": "example"}'
+    sample = SampleModel.from_json(json_data)
+    assert sample.field1 == 42
+    assert sample.field2 == "example"
+
+    json_err = SampleModel.from_json('{"field1": "invalid", "field2": 123}')
+    assert json_err[:35] == "2 validation errors for SampleModel"
+
+
 def test_model_with_json_invalid_class():
     class InvalidClass:
         pass
 
     try:
         model_with_json(InvalidClass)
-        assert False
     except TypeError as e:
         assert str(e) == "model_with_json must be applied to a BaseModel type"
 

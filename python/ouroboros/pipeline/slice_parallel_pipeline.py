@@ -18,6 +18,8 @@ from tifffile import imwrite, memmap
 import os
 import multiprocessing
 import time
+from multiprocessing import Queue
+from typing import Iterable
 
 
 class SliceParallelPipelineStep(PipelineStep):
@@ -222,11 +224,11 @@ class SliceParallelPipelineStep(PipelineStep):
 
 
 def thread_worker_iterative(
-    volume_cache, volumes_range, data_queue, single_thread=False
+    volume_cache: VolumeCache, volumes_range: Iterable[int], data_queue: Queue, parallel_fetch: bool = False
 ):
     for i in volumes_range:
         # Create a packet of data to process - Make the threading check make more sense.
-        data = volume_cache.create_processing_data(i, parallel=single_thread)
+        data = volume_cache.create_processing_data(i, parallel=parallel_fetch)
 
         data_queue.put(data)
 
@@ -236,14 +238,14 @@ def thread_worker_iterative(
 
 
 def process_worker_save_parallel(
-    config,
-    folder_name,
-    processing_data,
-    slice_rects,
-    num_threads,
-    num_digits,
-    single_output_path=None,
-):
+    config: SliceOptions,
+    folder_name: str,
+    processing_data: tuple[np.ndarray, np.ndarray, np.ndarray, int],
+    slice_rects: np.ndarray,
+    num_threads: int,
+    num_digits: int,
+    single_output_path: str = None,
+) -> tuple[int, dict[str, list[float]]]:
     volume, bounding_box, slice_indices, volume_index = processing_data
 
     durations = {
@@ -301,5 +303,5 @@ def process_worker_save_parallel(
     return volume_index, durations
 
 
-def save_thread(filename, data):
+def save_thread(filename: str, data: np.ndarray):
     imwrite(filename, data, software="ouroboros")

@@ -4,14 +4,14 @@ VOLUME_SERVER_URL = "http://host.docker.internal:3001"
 PLUGIN_NAME = "main"
 
 
-def get_volume_path():
+def get_volume_path() -> str:
     """
     Get the path to the main server's volume folder.
     """
     return f"/volume/{PLUGIN_NAME}/"
 
 
-def copy_to_volume(files):
+def copy_to_volume(files: list[dict]) -> tuple[bool, str]:
     """
     Copy host files to the main server's volume folder.
 
@@ -36,7 +36,7 @@ def copy_to_volume(files):
     return request_volume_server("copy-to-volume", data)
 
 
-def copy_to_host(files):
+def copy_to_host(files: list[dict]) -> tuple[bool, str]:
     """
     Copy files from the main server's volume folder to the host.
 
@@ -61,7 +61,7 @@ def copy_to_host(files):
     return request_volume_server("copy-to-host", data)
 
 
-def clear_plugin_folder():
+def clear_plugin_folder() -> tuple[bool, str]:
     """
     Clear the main server's plugin folder.
 
@@ -80,7 +80,7 @@ def clear_plugin_folder():
     return request_volume_server("clear-plugin-folder", data)
 
 
-def request_volume_server(path, data):
+def request_volume_server(path: str, data: dict) -> tuple[bool, str]:
     """
     Send a request to the main server's volume server.
 
