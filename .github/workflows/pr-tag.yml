@@ -6,6 +6,10 @@ on:
     branches:
       - master
 
+env:
+  GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+  GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
 jobs:
   build:
     if: github.event.pull_request.merged == true
