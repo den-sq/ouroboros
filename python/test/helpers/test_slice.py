@@ -4,10 +4,10 @@ from ouroboros.helpers.bounding_boxes import BoundingBox
 from ouroboros.helpers.slice import (
     calculate_slice_rects,
     detect_color_channels,
-    generate_coordinate_grid_for_rect,
     make_volume_binary,
     slice_volume_from_grids,
-    write_slices_to_volume,
+    coordinate_grid,
+    write_slices_to_volume
 )
 from ouroboros.helpers.spline import Spline
 from test.sample_data import generate_sample_curve_helix
@@ -57,24 +57,33 @@ def test_calculate_slice_rects():
 
 
 def test_generate_coordinate_grid_for_rect():
-    rect = np.array([[0, 0, 1], [1, 0, 1], [1, 0, 0], [0, 0, 0]])
+    rect = np.array([[-42.64727347, -54.72166585,  -4.78695662],
+                     [-47.22139466,  43.8212048,  -21.16926598],
+                     [40.81561612,  55.54768491,  24.78695662],
+                     [45.38973732, -42.99518573,  41.16926598]])
+#     rect = np.array([[0, 0, 0], [2, 2, 0], [2, 3, 2], [0, 1, 2]])
+#     rect = np.array([[ 57.35272653,  45.27833415,  95.21304338],
+#        [ 52.77860534, 143.8212048 ,  78.83073402],
+#        [140.81561612, 155.54768491, 124.78695662],
+#        [145.38973732,  57.00481427, 141.16926598]])
+
     WIDTH = 100
-    HEIGHT = 100
+    HEIGHT = 60
 
     # Generate a coordinate grid for the rectangle
-    coordinate_grid = generate_coordinate_grid_for_rect(rect, WIDTH, HEIGHT)
+    cg = coordinate_grid(rect, (HEIGHT, WIDTH))
 
     # Assert that the method returns a numpy array
     assert isinstance(
-        coordinate_grid, np.ndarray
+        cg, np.ndarray
     ), "Coordinate grid should be a numpy array"
-    assert coordinate_grid.shape == (
-        WIDTH,
+    assert cg.shape == (
         HEIGHT,
+        WIDTH,
         3,
-    ), "Coordinate grid should have shape (100, 100, 3)"
+    ), "Coordinate grid should have shape (60, 100, 3)"
     assert np.allclose(
-        coordinate_grid[0][0], rect[0]
+        cg[0][0], rect[0]
     ), "The first coordinate should be the top left corner of the rectangle"
 
 
