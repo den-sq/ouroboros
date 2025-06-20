@@ -5,3 +5,5 @@ out
 *.log*
 documentation/site
 extra-resources
+data
+ignoreme.py
