@@ -6,9 +6,9 @@ from ouroboros.helpers.memory_usage import (
 from ouroboros.helpers.slice import (
     detect_color_channels,
     detect_color_channels_shape,
-    generate_coordinate_grid_for_rect,
+    coordinate_grid,
     make_volume_binary,
-    write_slices_to_volume,
+    write_slices_to_volume
 )
 from ouroboros.helpers.volume_cache import VolumeCache, get_mip_volume_sizes
 from ouroboros.helpers.bounding_boxes import BoundingBox
@@ -30,6 +30,7 @@ import concurrent.futures
 import tifffile
 import os
 import multiprocessing
+from pathlib import Path
 import time
 import numpy as np
 import shutil
@@ -77,13 +78,15 @@ class BackprojectPipelineStep(PipelineStep):
                 f"The straightened volume does not exist at {straightened_volume_path}."
             )
 
-        # Make sure the straightened volume is an uncompressed tif file.
-        # If not, convert it to an uncompressed tif file.
-        try:
-            mmap = make_tiff_memmap(straightened_volume_path, mode="r")
-            del mmap
-        except BaseException as e:
-            print(f"Direct memory mapping failed (Error {e})\n. Using TiffWriter.")
+        if Path(straightened_volume_path).is_dir():
+            with tifffile.TiffFile(next(Path(straightened_volume_path).iterdir())) as tif:
+                is_compressed = bool(tif.pages[0].compression)
+        else:
+            with tifffile.TiffFile(straightened_volume_path) as tif:
+                is_compressed = bool(tif.pages[0].compression)
+
+        if is_compressed:
+            print("Input data compressed; Rewriting.")
 
             # Create a new path for the straightened volume
             new_straightened_volume_path = join_path(
@@ -427,10 +430,6 @@ def process_bounding_box(
     start = time.perf_counter()
     straightened_volume = make_tiff_memmap(straightened_volume_path, mode="r")
     _, num_channels = detect_color_channels(straightened_volume, none_value=None)
-    slice_width, slice_height = (
-        straightened_volume.shape[1],
-        straightened_volume.shape[2],
-    )
     durations["memmap"].append(time.perf_counter() - start)
 
     # Get the slices from the straightened volume
@@ -445,7 +444,7 @@ def process_bounding_box(
     start = time.perf_counter()
     grids = np.array(
         [
-            generate_coordinate_grid_for_rect(slice_rects[i], slice_width, slice_height)
+            coordinate_grid(slice_rects[i], slices[i].shape)
             for i in slice_indices
         ]
     )

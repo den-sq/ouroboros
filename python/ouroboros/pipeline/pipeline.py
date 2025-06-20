@@ -111,6 +111,10 @@ class PipelineStep(ABC):
         # Replace custom timings with statistics about the custom timings
         custom_times = self.timing["custom_times"]
 
+        loops = 0
+        for _, value in self.timing["custom_times"].items():
+            loops = max(loops, len(value))
+
         # Remove any empty custom times
         custom_times = {
             key: value for key, value in custom_times.items() if len(value) > 0
@@ -121,12 +125,14 @@ class PipelineStep(ABC):
             key: {
                 "mean": np.mean(value),
                 "std": np.std(value),
-                "min": np.min(value),
-                "max": np.max(value),
+                "min": np.min(value).astype(float),
+                "max": np.max(value).astype(float),
+                "total": np.sum(value).astype(float)
             }
             for key, value in custom_times.items()
         }
         self.timing["custom_times"] = custom_times_statistics
+        self.timing["loops"] = loops
 
         return self.timing
 
@@ -134,13 +140,13 @@ class PipelineStep(ABC):
         return self.timing["duration_seconds"]
 
     def add_timing(self, key: str, value: float):
-        if key in self.timing:
+        if key in self.timing["custom_times"]:
             self.timing["custom_times"][key].append(value)
         else:
             self.timing["custom_times"][key] = [value]
 
     def add_timing_list(self, key: str, values: list[float]):
-        if key in self.timing:
+        if key in self.timing["custom_times"]:
             self.timing["custom_times"][key].extend(values)
         else:
             self.timing["custom_times"][key] = values

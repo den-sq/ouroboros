@@ -81,38 +81,29 @@ def calculate_slice_rects(
     return np.array(rects)
 
 
-def generate_coordinate_grid_for_rect(rect: np.ndarray, width, height) -> np.ndarray:
+def coordinate_grid(rect: np.ndarray, shape: tuple[int, int],
+                    floor: np.ndarray = None) -> np.ndarray:
     """
-    Generate a coordinate grid for a rectangle.
+    Generate a coordinate grid for a rectangle, relative to space of rectangle.
 
     Parameters:
     ----------
         rect (numpy.ndarray): The corners of the rectangle as a list of 3D coordinates.
         width (int): The width of the grid.
         height (int): The height of the grid.
+        floor (ndarray): Extra minimum value to use as baseline, instead of rect[0]
 
     Returns:
     -------
-        numpy.ndarray: The grid of coordinates (width, height, 3).
+        numpy.ndarray: The grid of coordinates (height, width, 3).
     """
+    # Addition adds an extra rect[0] so we extend floor by it.
+    floor = rect[0] if floor is None else rect[0] + floor
 
-    top_left, top_right, bottom_right, bottom_left = rect
+    u = np.linspace(rect[0], rect[1], shape[1])
+    v = np.linspace(rect[0], rect[3], shape[0])
 
-    # Generate a grid of (u, v) coordinates
-    u = np.linspace(0, 1, width)
-    v = np.linspace(0, 1, height)
-    u, v = np.meshgrid(u, v, indexing=INDEXING)  # TODO: need 'ij'?
-
-    # Interpolate the 3D coordinates
-    # TODO: There must be a way to do this faster
-    points = (
-        (1 - u)[:, :, np.newaxis] * (1 - v)[:, :, np.newaxis] * top_left
-        + u[:, :, np.newaxis] * (1 - v)[:, :, np.newaxis] * top_right
-        + (1 - u)[:, :, np.newaxis] * v[:, :, np.newaxis] * bottom_left
-        + u[:, :, np.newaxis] * v[:, :, np.newaxis] * bottom_right
-    )
-
-    return points
+    return np.add(u.reshape(1, shape[1], 3), v.reshape(shape[0], 1, 3)) - floor
 
 
 def slice_volume_from_grids(

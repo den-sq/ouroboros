@@ -1,5 +1,5 @@
-from multiprocessing import freeze_support
 import argparse
+from multiprocessing import freeze_support
 import sys
 
 from ouroboros.common.pipelines import backproject_pipeline, slice_pipeline
@@ -90,9 +90,8 @@ def handle_slice(args):
 
     if args.verbose:
         print("\nCalculation Statistics:\n")
-
-        for stat in pipeline.get_step_statistics():
-            print(pretty_json_output(stat), "\n")
+        stat_dict = {stat.pop("pipeline"): stat for stat in pipeline.get_step_statistics()}
+        print(pretty_json_output(stat_dict))
 
 
 def handle_backproject(args):
@@ -123,9 +122,9 @@ def handle_backproject(args):
 
     if args.verbose:
         print("\nCalculation Statistics:\n")
-
-        for stat in pipeline.get_step_statistics():
-            print(pretty_json_output(stat), "\n")
+        stat_dict = {stat.pop("pipeline"): stat for stat in pipeline.get_step_statistics()}
+        # print(stat_dict)
+        print(pretty_json_output(stat_dict))
 
 
 def handle_sample_options():
