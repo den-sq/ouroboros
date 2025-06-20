@@ -30,6 +30,7 @@ import concurrent.futures
 import tifffile
 import os
 import multiprocessing
+from pathlib import Path
 import time
 import numpy as np
 import shutil
@@ -77,13 +78,15 @@ class BackprojectPipelineStep(PipelineStep):
                 f"The straightened volume does not exist at {straightened_volume_path}."
             )
 
-        # Make sure the straightened volume is an uncompressed tif file.
-        # If not, convert it to an uncompressed tif file.
-        try:
-            mmap = make_tiff_memmap(straightened_volume_path, mode="r")
-            del mmap
-        except BaseException as e:
-            print(f"Direct memory mapping failed (Error {e})\n. Using TiffWriter.")
+        if Path(straightened_volume_path).is_dir():
+            with tifffile.TiffFile(next(Path(straightened_volume_path).iterdir())) as tif:
+                is_compressed = bool(tif.pages[0].compression)
+        else:
+            with tifffile.TiffFile(straightened_volume_path) as tif:
+                is_compressed = bool(tif.pages[0].compression)
+
+        if is_compressed:
+            print("Input data compressed; Rewriting.")
 
             # Create a new path for the straightened volume
             new_straightened_volume_path = join_path(
