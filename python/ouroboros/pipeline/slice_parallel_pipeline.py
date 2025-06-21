@@ -1,5 +1,5 @@
 from ouroboros.helpers.slice import (
-    generate_coordinate_grid_for_rect,
+    coordinate_grid,
     slice_volume_from_grids,
 )
 from ouroboros.helpers.volume_cache import VolumeCache
@@ -261,8 +261,8 @@ def process_worker_save_parallel(
     start = time.perf_counter()
     grids = np.array(
         [
-            generate_coordinate_grid_for_rect(
-                slice_rects[i], config.slice_width, config.slice_height
+            coordinate_grid(
+                slice_rects[i], (config.slice_height, config.slice_width)
             )
             for i in slice_indices
         ]
