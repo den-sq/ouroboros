@@ -1,3 +1,4 @@
+import multiprocessing.pool
 import scipy
 import scipy.ndimage
 from ouroboros.helpers.memory_usage import (
@@ -6,10 +7,10 @@ from ouroboros.helpers.memory_usage import (
 from ouroboros.helpers.slice import (
     detect_color_channels,
     detect_color_channels_shape,
-    coordinate_grid,
     make_volume_binary,
-    write_slices_to_volume
+    backproject_slices,
 )
+
 from ouroboros.helpers.volume_cache import VolumeCache, get_mip_volume_sizes
 from ouroboros.helpers.bounding_boxes import BoundingBox
 from .pipeline import PipelineStep
@@ -23,7 +24,7 @@ from ouroboros.helpers.files import (
     join_path,
     load_and_save_tiff_from_slices,
     num_digits_for_n_files,
-    parse_tiff_name,
+    parse_tiff_name
 )
 
 import concurrent.futures
@@ -34,6 +35,9 @@ from pathlib import Path
 import time
 import numpy as np
 import shutil
+import traceback
+import sys
+
 
 DEFAULT_CHUNK_SIZE = 128
 AXIS = 0
@@ -49,7 +53,7 @@ class BackprojectPipelineStep(PipelineStep):
             )
         )
 
-        self.num_processes = processes
+        self.num_processes = max(processes, 4)
 
     def _process(self, input_data: any) -> tuple[any, None] | tuple[None, any]:
         config, volume_cache, slice_rects, pipeline_input = input_data
@@ -117,6 +121,13 @@ class BackprojectPipelineStep(PipelineStep):
 
             straightened_volume_path = new_straightened_volume_path
 
+        # Divide the backprojected volume into chunks
+        chunk_size = (
+            DEFAULT_CHUNK_SIZE
+            if config.max_ram_gb == 0
+            else calculate_backproject_chunk_size(config, volume_cache)
+        )
+
         volume_paths = [None] * len(volume_cache.bounding_boxes)
         volume_memmaps = [None] * len(volume_cache.bounding_boxes)
 
@@ -126,6 +137,13 @@ class BackprojectPipelineStep(PipelineStep):
             format_backproject_tempvolumes(config.output_file_name),
         )
         os.makedirs(temp_folder_path, exist_ok=True)
+
+        def boxes_dim_range(boxes: list[BoundingBox], dim="z"):
+            if len(boxes):
+                return np.arange(int(np.min([getattr(box, f"{dim}_min") for box in boxes])),
+                                 int(np.max([getattr(box, f"{dim}_max") for box in boxes])) + 1)
+            else:
+                return np.arange(0)
 
         # Process each bounding box in parallel, writing the results to the backprojected volume
         try:
@@ -149,9 +167,10 @@ class BackprojectPipelineStep(PipelineStep):
                             i,
                         )
                     )
+#                             calculate_min_bounding_box(volume_cache)
 
-                # Track the number of completed futures
-                completed = 0
+                # Track the completed futures
+                remaining = volume_cache.bounding_boxes.copy()
                 total_futures = len(futures)
 
                 for future in concurrent.futures.as_completed(futures):
@@ -160,25 +179,29 @@ class BackprojectPipelineStep(PipelineStep):
                     for key, value in durations.items():
                         self.add_timing_list(key, value)
 
+                    _ = boxes_dim_range([volume_cache.bounding_boxes[index]])
+                    remaining.remove(volume_cache.bounding_boxes[index])
                     # Update the progress bar
-                    completed += 1
-                    self.update_progress(completed / total_futures / 2)
+                    self.update_progress((1 - (len(remaining) / total_futures)) / 2)
+
+                    # Check for completed z-stacks
+#                     writeable = box_z[np.isin(box_z, boxes_dim_range(remaining), invert=True)]
+#                     for dim in writeable:
+#                         Thread(target=tf.imwrite, args=(base_path.joinpath(f"{dim:05}"), data[:, :, dim])
+#                                kwargs={"compression": "zlib"})
+
+                    # Hand over to writer
+                    # shrink the existing array(s)
 
                     # Load the volume from the file
                     volume_paths[index] = volume_file_path
                     volume_memmaps[index] = tifffile.memmap(volume_file_path, mode="r")
 
         except BaseException as e:
+            traceback.print_tb(e.__traceback__, file=sys.stderr)
             return f"An error occurred while processing the bounding boxes: {e}"
 
         start = time.perf_counter()
-
-        # Divide the backprojected volume into chunks
-        chunk_size = (
-            DEFAULT_CHUNK_SIZE
-            if config.max_ram_gb == 0
-            else calculate_backproject_chunk_size(config, volume_cache)
-        )
 
         axis = AXIS
 
@@ -332,9 +355,9 @@ class BackprojectPipelineStep(PipelineStep):
             self.update_progress(0.5 + i / len(chunks_and_boxes) / 2)
 
         # Close all the memmaps - All 3 needed to allow deletion of temporary files.
-        del volume					# Delete volume view created during .tif file writing.
-        del intersection_volume		# Delete volume view created during .tif file writing.
-        del volume_memmaps[:] 		# Delete all the memmaps.
+        del volume                    # Delete volume view created during .tif file writing.
+        del intersection_volume       # Delete volume view created during .tif file writing.
+        del volume_memmaps[:]         # Delete all the memmaps.
 
         # Delete the temporary volume files.
         # Errors ignored because leaving a temporary file around is better than failing.  Could add logging.
@@ -412,7 +435,12 @@ class BackprojectPipelineStep(PipelineStep):
 
 
 def process_bounding_box(
-    config, bounding_box, straightened_volume_path, slice_rects, slice_indices, index
+    config: BackprojectOptions,
+    bounding_box: BoundingBox,
+    straightened_volume_path: str,
+    slice_rects: list[np.ndarray],
+    slice_indices: list[int],
+    index: int
 ) -> tuple[dict, str, int]:
     durations = {
         "memmap": [],
@@ -440,16 +468,6 @@ def process_bounding_box(
     # Close the memmap
     del straightened_volume
 
-    # Generate a grid for each slice and stack them along the first axis
-    start = time.perf_counter()
-    grids = np.array(
-        [
-            coordinate_grid(slice_rects[i], slices[i].shape)
-            for i in slice_indices
-        ]
-    )
-    durations["generate_grid"].append(time.perf_counter() - start)
-
     # Create a volume for the bounding box
     start = time.perf_counter()
     volume = bounding_box.to_empty_volume(num_channels=num_channels)
@@ -457,7 +475,12 @@ def process_bounding_box(
 
     # Backproject the slices into the volume
     start = time.perf_counter()
-    write_slices_to_volume(volume, bounding_box, grids, slices)
+    try:
+        backproject_slices(bounding_box, slice_rects[slice_indices], slices, volume=volume)
+    except BaseException as be:
+        print(f"Error on BP: {be}")
+        traceback.print_tb(be.__traceback__, file=sys.stderr)
+        raise be
     durations["back_project"].append(time.perf_counter() - start)
 
     # Save the volume locally as a tif file
