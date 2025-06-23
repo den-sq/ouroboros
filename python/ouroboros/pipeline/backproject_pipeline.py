@@ -53,7 +53,7 @@ class BackprojectPipelineStep(PipelineStep):
             )
         )
 
-        self.num_processes = max(processes, 4)
+        self.num_processes = min(processes, 4)
 
     def _process(self, input_data: any) -> tuple[any, None] | tuple[None, any]:
         config, volume_cache, slice_rects, pipeline_input = input_data
