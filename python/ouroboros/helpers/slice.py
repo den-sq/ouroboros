@@ -99,10 +99,10 @@ def coordinate_grid(rect: np.ndarray, shape: tuple[int, int],
         numpy.ndarray: The grid of coordinates (height, width, 3).
     """
     # Addition adds an extra rect[0] so we extend floor by it.
-    floor = rect[0] if floor is None else rect[0] + floor
+    floor = (rect[0] if floor is None else rect[0] + floor).astype(np.float32)
 
-    u = np.linspace(rect[0], rect[1], shape[1])
-    v = np.linspace(rect[0], rect[3], shape[0])
+    u = np.linspace(rect[0], rect[1], shape[1], dtype=np.float32)
+    v = np.linspace(rect[0], rect[3], shape[0], dtype=np.float32)
 
     return np.add(u.reshape(1, shape[1], 3), v.reshape(shape[0], 1, 3)) - floor
 
