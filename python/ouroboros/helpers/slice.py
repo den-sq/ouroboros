@@ -1,11 +1,12 @@
-import numpy as np
-
-from scipy.ndimage import map_coordinates
+from functools import partial
 
 from cloudvolume import VolumeCutout
-from .bounding_boxes import BoundingBox
+import numpy as np
+from scipy.ndimage import map_coordinates
 
+from .bounding_boxes import BoundingBox
 from .spline import Spline
+from .util import unique_lv
 
 INDEXING = "xy"
 
@@ -98,10 +99,10 @@ def coordinate_grid(rect: np.ndarray, shape: tuple[int, int],
         numpy.ndarray: The grid of coordinates (height, width, 3).
     """
     # Addition adds an extra rect[0] so we extend floor by it.
-    floor = rect[0] if floor is None else rect[0] + floor
+    floor = (rect[0] if floor is None else rect[0] + floor).astype(np.float32)
 
-    u = np.linspace(rect[0], rect[1], shape[1])
-    v = np.linspace(rect[0], rect[3], shape[0])
+    u = np.linspace(rect[0], rect[1], shape[1], dtype=np.float32)
+    v = np.linspace(rect[0], rect[3], shape[0], dtype=np.float32)
 
     return np.add(u.reshape(1, shape[1], 3), v.reshape(shape[0], 1, 3)) - floor
 
@@ -163,87 +164,71 @@ def slice_volume_from_grids(
         return slice_points.reshape(len(grids), height, width)
 
 
-def write_slices_to_volume(
-    volume: np.ndarray, bounding_box: BoundingBox, grids: np.ndarray, slices: np.ndarray
-):
+def backproject_slices(bounding_box: BoundingBox, slice_rects: np.ndarray, slices: np.ndarray,
+                       volume: np.ndarray = None) -> tuple[np.ndarray]:
     """
-    Write a slice to volume based on a grid of coordinates.
+    Write a slice to volume based on a grid of coordinates.  Returns coordinates.
 
     Parameters:
     ----------
+        bounding_box (BoundingBox): The bounding box of the volume.
+        slice_rects (numpy.ndarray): The slice rectangles for the box.
+        slices (numpy.ndarray): The slice data to write to the volume (n, width, height).
         volume (numpy.ndarray, dtype=float32): A volume of shape (x, y, z), which should match
                                                the dimensions of the given bounding box.
-        bounding_box (BoundingBox): The bounding box of the volume.
-        grids (numpy.ndarray): The grids of coordinates to slice the volume (n, width, height, 3).
-        slices (numpy.ndarray): The slice data to write to the volume (n, width, height).
+                                               Optional to write to.
 
     Returns:
     -------
-        None
+        tuple(np.ndarray, np.ndarray, np.ndarray):
+            Tuple of arrays:  the unique points, the matching weights, and the matching weighted values.
     """
+    if slices.shape[0] == 0:
+        # No slices, just return
+        return np.empty(0, dtype=np.uint16), np.empty(0, dtype=np.float32), np.empty(0, dtype=np.float32)
 
-    # Create a list of slice values and coordinates
+    # Normalize grid coordinates based on bounding box (since volume coordinates are truncated to bounding box)
+    grid_call = partial(coordinate_grid, shape=slices[0].shape, floor=bounding_box.get_min())
+
     slice_values = slices.flatten()
-    slice_coords = grids.reshape(-1, 3).T
+    slice_coords = np.concatenate(list(map(grid_call, slice_rects))).reshape(-1, 3).T
 
-    # Normalize grid coordinates based on bounding box (since volume coordinates are truncated)
-    x_min, _, y_min, _, z_min, _ = bounding_box.approx_bounds()
-    bounding_box_min = np.array([x_min, y_min, z_min])
-    slice_coords -= bounding_box_min[:, np.newaxis]
+    coord_scalar = np.min_scalar_type(int(np.max(slice_coords)))
 
-    # Get the integer and fractional parts of the coordinates
-    coords_floor = np.floor(slice_coords).astype(int)
-    coords_ceil = np.ceil(slice_coords).astype(int)
-    weights = slice_coords - coords_floor
+    int_coords = np.empty(slice_coords.shape, dtype=coord_scalar)
+    weights = np.empty((2, ) + slice_coords.shape, dtype=slice_coords.dtype)
 
-    # Check if volume has color channels
-    has_color_channels, num_channels = detect_color_channels(volume)
+    np.modf(slice_coords, out=(weights[1, :], int_coords), casting="unsafe")
+    weights[0, :] = 1 - weights[1, :]
 
-    for channel in range(num_channels):
-        # Initialize the accumulation arrays
-        accumulated_volume = volume[:, :, :, channel] if has_color_channels else volume
-        weight_volume = np.zeros_like(accumulated_volume)
+    def corner_weights(w, c):
+        return w[c[0], 0, :] * w[c[1], 1, :] * weights[c[2], 2, :]
 
-        # Prepare the indices for the 8 corners surrounding each coordinate
-        x0, y0, z0 = coords_floor
-        x1, y1, z1 = coords_ceil
+    net_lookup = None
+    for j in np.ndindex((2, 2, 2)):
+        cw = corner_weights(weights, j)
+        lookup, point_weights, point_totals = \
+            unique_lv(int_coords + np.array(j, dtype=int).reshape(3, 1), cw, cw * slice_values, last_axis_sort=True)
 
-        # Calculate the weights for each corner
-        wx0, wy0, wz0 = 1 - weights[0], 1 - weights[1], 1 - weights[2]
-        wx1, wy1, wz1 = weights[0], weights[1], weights[2]
+        set_values = np.nonzero(point_weights)[0]
+        if net_lookup is None:
+            net_lookup, net_point_weights, net_point_totals = \
+                (lookup[:, set_values], point_weights[set_values], point_totals[set_values])
+        else:
+            net_lookup, net_point_weights, net_point_totals = unique_lv(
+                np.concatenate([net_lookup, lookup[:, set_values]], axis=1),
+                np.concatenate([net_point_weights, point_weights[set_values]]),
+                np.concatenate([net_point_totals, point_totals[set_values]]), last_axis_sort=True)
 
-        c000 = wx0 * wy0 * wz0
-        c001 = wx0 * wy0 * wz1
-        c010 = wx0 * wy1 * wz0
-        c011 = wx0 * wy1 * wz1
-        c100 = wx1 * wy0 * wz0
-        c101 = wx1 * wy0 * wz1
-        c110 = wx1 * wy1 * wz0
-        c111 = wx1 * wy1 * wz1
+    # Can probably do borders first, but unsure how necessary it is.
+    bordered_values = np.logical_and.reduce(np.less(net_lookup, bounding_box.get_max().reshape(3, 1)))
+    set_values = np.logical_and((net_point_weights != 0), bordered_values)
 
-        # Use numpy.add.at to accumulate the values at the correct positions
-        np.add.at(accumulated_volume, (x0, y0, z0), slice_values * c000)
-        np.add.at(accumulated_volume, (x0, y0, z1), slice_values * c001)
-        np.add.at(accumulated_volume, (x0, y1, z0), slice_values * c010)
-        np.add.at(accumulated_volume, (x0, y1, z1), slice_values * c011)
-        np.add.at(accumulated_volume, (x1, y0, z0), slice_values * c100)
-        np.add.at(accumulated_volume, (x1, y0, z1), slice_values * c101)
-        np.add.at(accumulated_volume, (x1, y1, z0), slice_values * c110)
-        np.add.at(accumulated_volume, (x1, y1, z1), slice_values * c111)
+    if volume is not None:
+        volume[(net_lookup[0, set_values], net_lookup[1, set_values], net_lookup[2, set_values])] = \
+            (net_point_totals[set_values] / net_point_weights[set_values])[:, np.newaxis]
 
-        # Accumulate the weights similarly
-        np.add.at(weight_volume, (x0, y0, z0), c000)
-        np.add.at(weight_volume, (x0, y0, z1), c001)
-        np.add.at(weight_volume, (x0, y1, z0), c010)
-        np.add.at(weight_volume, (x0, y1, z1), c011)
-        np.add.at(weight_volume, (x1, y0, z0), c100)
-        np.add.at(weight_volume, (x1, y0, z1), c101)
-        np.add.at(weight_volume, (x1, y1, z0), c110)
-        np.add.at(weight_volume, (x1, y1, z1), c111)
-
-        # Normalize the accumulated volume by the weights
-        nonzero_weights = weight_volume != 0
-        accumulated_volume[nonzero_weights] /= weight_volume[nonzero_weights]
+    return net_lookup[:, set_values], net_point_totals[set_values], net_point_weights[set_values]
 
 
 def make_volume_binary(volume: np.ndarray, dtype=np.uint8) -> np.ndarray:

@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import timeit
 from ouroboros.helpers.bounding_boxes import BoundingBox
 from ouroboros.helpers.slice import (
     calculate_slice_rects,
@@ -7,10 +8,31 @@ from ouroboros.helpers.slice import (
     make_volume_binary,
     slice_volume_from_grids,
     coordinate_grid,
-    write_slices_to_volume
+    backproject_slices
 )
 from ouroboros.helpers.spline import Spline
 from test.sample_data import generate_sample_curve_helix
+
+
+def generate_rects(width, height, z):
+    # Sample points arranged in a simple curve
+    sample_points = generate_sample_curve_helix(start_z=z.start, end_z=z.stop)
+
+    # Initialize Spline object
+    spline = Spline(sample_points, degree=3)
+
+    # Generate a range of t values
+    equidistant_times = spline.calculate_equidistant_parameters(
+        distance_between_points=1
+    )
+
+    # Calculate slice rects
+    return calculate_slice_rects(equidistant_times, spline, width, height)
+
+
+def generate_bounded_rects(width, height, count):
+    return np.array([BoundingBox.bounds_to_rect(width.start, width.stop - 1, height.start, height.stop - 1, i, i)
+                    for i in range(count)])
 
 
 def test_calculate_slice_rects():
@@ -136,10 +158,12 @@ def test_slice_volume_from_grids_invalid_dimensions():
 def test_write_slices_to_volume_basic():
     volume = np.zeros((10, 10, 10), dtype=np.float32)
     bounding_box = BoundingBox(BoundingBox.bounds_to_rect(0, 10, 0, 10, 0, 10))
-    grids = np.random.rand(5, 10, 10, 3).astype(np.float32)
+    rects = generate_bounded_rects(range(0, 10), range(0, 10), 5)
     slices = np.random.rand(5, 10, 10).astype(np.float32)
 
-    write_slices_to_volume(volume, bounding_box, grids, slices)
+    print(rects)
+
+    backproject_slices(bounding_box, rects, slices, volume)
 
     assert volume.shape == (10, 10, 10)
     assert volume.dtype == np.float32
@@ -149,10 +173,10 @@ def test_write_slices_to_volume_basic():
 def test_write_slices_to_volume_empty_slices():
     volume = np.zeros((10, 10, 10), dtype=np.float32)
     bounding_box = BoundingBox(BoundingBox.bounds_to_rect(0, 10, 0, 10, 0, 10))
-    grids = np.random.rand(0, 10, 10, 3).astype(np.float32)
+    rects = generate_bounded_rects(range(0, 10), range(0, 10), 5)
     slices = np.random.rand(0, 10, 10).astype(np.float32)
 
-    write_slices_to_volume(volume, bounding_box, grids, slices)
+    backproject_slices(bounding_box, rects, slices, volume)
 
     assert volume.shape == (10, 10, 10)
     assert volume.dtype == np.float32
@@ -162,36 +186,23 @@ def test_write_slices_to_volume_empty_slices():
 def test_write_slices_to_volume_partial_overlap():
     volume = np.zeros((10, 10, 10), dtype=np.float32)
     bounding_box = BoundingBox(BoundingBox.bounds_to_rect(0, 10, 0, 10, 0, 10))
-    grids = np.random.rand(5, 10, 10, 3).astype(np.float32)
+    rects = generate_bounded_rects(range(5, 15), range(5, 15), 5)
     slices = np.random.rand(5, 10, 10).astype(np.float32)
 
-    # Modify grids to partially overlap the volume
-    grids[:, :, :, 0] += 5
-
-    write_slices_to_volume(volume, bounding_box, grids, slices)
+    backproject_slices(bounding_box, rects, slices, volume)
 
     assert volume.shape == (10, 10, 10)
     assert volume.dtype == np.float32
     assert np.any(volume > 0)
 
 
-def test_write_slices_to_volume_invalid_dimensions():
-    volume = np.zeros((10, 10, 10), dtype=np.float32)
-    bounding_box = BoundingBox(BoundingBox.bounds_to_rect(0, 10, 0, 10, 0, 10))
-    grids = np.random.rand(5, 10, 10, 3).astype(np.float32)
-    slices = np.random.rand(5, 8, 8).astype(np.float32)  # Invalid dimensions
-
-    with pytest.raises(ValueError):
-        write_slices_to_volume(volume, bounding_box, grids, slices)
-
-
 def test_write_slices_to_volume_large_volume():
     volume = np.zeros((100, 100, 100), dtype=np.float32)
     bounding_box = BoundingBox(BoundingBox.bounds_to_rect(0, 100, 0, 100, 0, 100))
-    grids = np.random.rand(50, 100, 100, 3).astype(np.float32)
+    rects = generate_bounded_rects(range(0, 100), range(0, 100), 50)
     slices = np.random.rand(50, 100, 100).astype(np.float32)
 
-    write_slices_to_volume(volume, bounding_box, grids, slices)
+    backproject_slices(bounding_box, rects, slices, volume)
 
     assert volume.shape == (100, 100, 100)
     assert volume.dtype == np.float32

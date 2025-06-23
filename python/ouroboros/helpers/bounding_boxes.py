@@ -44,6 +44,9 @@ class BoundingBox:
 
         self.approx_bounds_memo = None
 
+    def vol_slice(self) -> tuple[slice]:
+        return np.s_[self.x_min: self.x_max, self.y_min: self.y_max, self.z_min: self.z_max]
+
     def to_dict(self) -> dict:
         return {
             "x_min": self.x_min,
@@ -257,6 +260,14 @@ class BoundingBox:
         z_range = self.z_max - self.z_min
 
         return np.argmax([x_range, y_range, z_range])
+
+    def get_min(self, dtype: type = None):
+        min_val = np.array([self.x_min, self.y_min, self.z_min])
+        return min_val.astype(dtype) if dtype is not None else min_val
+
+    def get_max(self, dtype: type = None):
+        max_val = np.array([self.x_max, self.y_max, self.z_max])
+        return max_val.astype(dtype) if dtype is not None else max_val
 
     def to_prism(self) -> np.ndarray:
         vertices = np.array(
