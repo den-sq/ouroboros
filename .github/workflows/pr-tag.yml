@@ -8,8 +8,7 @@ on:
       - main
 
 env:
-  GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-  GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+  ACTION_PR: "${{ secrets.ACTION_PR }}"
 
 jobs:
   build:
@@ -25,7 +24,8 @@ jobs:
 
     - name: Bump version and push tag
       uses: anothrNick/github-tag-action@v1 # Don't use @master or @v1 unless you're happy to test the latest version
+      with:
+        token: "${{ secrets.ACTION_PR }}"
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # if you don't want to set write permissions use a PAT token
         TAG_PREFIX: v
         DEFAULT_BUMP: patch
