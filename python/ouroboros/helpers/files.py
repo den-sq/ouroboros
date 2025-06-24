@@ -1,8 +1,10 @@
 import os
 from pathlib import Path
-from tifffile import imread, TiffWriter
+from tifffile import imread, TiffWriter, memmap
 from .memory_usage import calculate_gigabytes_from_dimensions
 import shutil
+
+import numpy as np
 
 
 def load_and_save_tiff_from_slices(
@@ -180,3 +182,36 @@ def parse_tiff_name(tiff_name: str) -> int:
 
 def num_digits_for_n_files(n: int) -> int:
     return len(str(n - 1))
+
+
+def write_memmap_with_create(file_path: os.PathLike, indicies: tuple[np.ndarray], data: np.ndarray,
+                             shape: tuple, dtype: type):
+    if file_path.exists():
+        try:
+            target_file = memmap(file_path)
+        except BaseException as be:
+            print(f"MM: {be} - {file_path} ")
+            import time
+            time.sleep(0.5)
+            target_file = memmap(file_path)
+    else:
+        if shape is None or dtype is None:
+            raise ValueError(f"Must have shape ({shape} given) and dtype ({dtype} given) when creating a memmap.")
+        target_file = memmap(file_path, shape=shape, dtype=dtype)
+        target_file[:] = 0
+
+    def ab(flags: np.ndarray[bool], index):
+        return tuple(dim[flags] for dim in index) if isinstance(index, tuple) else index[flags]
+
+    if indicies is not None and data is not None:
+        exist = target_file[indicies] != 0
+        if np.any(exist):
+            target_file[ab(exist, indicies)] = np.mean([target_file[indicies][exist], data[exist]],
+                                                       axis=0, dtype=target_file.dtype)
+            target_file[ab(np.invert(exist), indicies)] = data[np.invert(exist)]
+        else:
+            target_file[indicies] = data
+    elif indicies is not None or data is not None:
+        raise ValueError(f"Could not write data as indicies (None? {indicies is None})"
+                         f"or data (None? {data is None}) were missing.")
+    del target_file

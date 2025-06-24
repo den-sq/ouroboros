@@ -32,7 +32,7 @@ def generate_rects(width, height, z):
 
 def generate_bounded_rects(width, height, count):
     return np.array([BoundingBox.bounds_to_rect(width.start, width.stop - 1, height.start, height.stop - 1, i, i)
-                    for i in range(count)])
+                     for i in range(count)])
 
 
 def test_calculate_slice_rects():
@@ -155,54 +155,56 @@ def test_slice_volume_from_grids_invalid_dimensions():
         slice_volume_from_grids(volume, bounding_box, grids, width, height)
 
 
-def test_write_slices_to_volume_basic():
+def test_backproject_basic():
     volume = np.zeros((10, 10, 10), dtype=np.float32)
     bounding_box = BoundingBox(BoundingBox.bounds_to_rect(0, 10, 0, 10, 0, 10))
     rects = generate_bounded_rects(range(0, 10), range(0, 10), 5)
     slices = np.random.rand(5, 10, 10).astype(np.float32)
 
-    print(rects)
-
-    backproject_slices(bounding_box, rects, slices, volume)
+    lookup, totals, weights = backproject_slices(bounding_box, rects, slices)
+    volume[(lookup[0], lookup[1], lookup[2])] = (totals / weights)
 
     assert volume.shape == (10, 10, 10)
     assert volume.dtype == np.float32
     assert np.any(volume > 0)
 
 
-def test_write_slices_to_volume_empty_slices():
+def test_backproject_empty_slices():
     volume = np.zeros((10, 10, 10), dtype=np.float32)
     bounding_box = BoundingBox(BoundingBox.bounds_to_rect(0, 10, 0, 10, 0, 10))
     rects = generate_bounded_rects(range(0, 10), range(0, 10), 5)
     slices = np.random.rand(0, 10, 10).astype(np.float32)
 
-    backproject_slices(bounding_box, rects, slices, volume)
+    lookup, totals, weights = backproject_slices(bounding_box, rects, slices)
+    volume[(lookup[0], lookup[1], lookup[2])] = (totals / weights)
 
     assert volume.shape == (10, 10, 10)
     assert volume.dtype == np.float32
     assert np.all(volume == 0)
 
 
-def test_write_slices_to_volume_partial_overlap():
+def test_backproject_slices_partial_overlap():
     volume = np.zeros((10, 10, 10), dtype=np.float32)
     bounding_box = BoundingBox(BoundingBox.bounds_to_rect(0, 10, 0, 10, 0, 10))
     rects = generate_bounded_rects(range(5, 15), range(5, 15), 5)
     slices = np.random.rand(5, 10, 10).astype(np.float32)
 
-    backproject_slices(bounding_box, rects, slices, volume)
+    lookup, totals, weights = backproject_slices(bounding_box, rects, slices)
+    volume[(lookup[0], lookup[1], lookup[2])] = (totals / weights)
 
     assert volume.shape == (10, 10, 10)
     assert volume.dtype == np.float32
     assert np.any(volume > 0)
 
 
-def test_write_slices_to_volume_large_volume():
+def test_backproject_slices_large_volume():
     volume = np.zeros((100, 100, 100), dtype=np.float32)
     bounding_box = BoundingBox(BoundingBox.bounds_to_rect(0, 100, 0, 100, 0, 100))
     rects = generate_bounded_rects(range(0, 100), range(0, 100), 50)
     slices = np.random.rand(50, 100, 100).astype(np.float32)
 
-    backproject_slices(bounding_box, rects, slices, volume)
+    lookup, totals, weights = backproject_slices(bounding_box, rects, slices)
+    volume[(lookup[0], lookup[1], lookup[2])] = (totals / weights)
 
     assert volume.shape == (100, 100, 100)
     assert volume.dtype == np.float32
@@ -264,3 +266,43 @@ def test_detect_color_channels_custom_none_value():
     )
     assert not has_color_channels
     assert num_color_channels == none_value
+
+
+def dont_test_speed():
+    setup_str = "import numpy as np; from ouroboros.helpers.slice import " \
+                "coordinate_grid; rect = np.array([[-42.64727347, -54.72166585,  -4.78695662]," \
+                "[-47.22139466,  43.8212048,  -21.16926598],[40.81561612,  55.54768491,  24.78695662]," \
+                "[45.38973732, -42.99518573,  41.16926598]]); WIDTH=100; HEIGHT=60;"
+
+#     print(timeit.timeit(stmt="generate_coordinate_grid_for_rect(rect, WIDTH, HEIGHT)", setup=setup_str, number=10000))
+    print(timeit.timeit(stmt="coordinate_grid(rect, (WIDTH, HEIGHT))", setup=setup_str, number=10000))
+#     print(timeit.timeit(stmt="alt_coordinate_grid(rect, WIDTH, HEIGHT)", setup=setup_str, number=10000))
+
+    setup_str_two = "import numpy as np; from ouroboros.helpers.slice import coordinate_grid, "\
+                    "backproject_slices, backproject_slices_lv, backproject_section;"\
+                    "from ouroboros.helpers.bounding_boxes import BoundingBox;"\
+                    "volume = np.memmap('testf.tiff', mode='w+',shape=(400, 400, 400), dtype=np.float32);"\
+                    "bounding_box = BoundingBox(BoundingBox.bounds_to_rect(0, 400, 0, 400, 0, 400));"\
+                    "grids = np.random.rand(4, 400, 400, 3).astype(np.float32);"\
+                    "slices = np.random.rand(4, 400, 400).astype(np.float32); slice_rects = "\
+                    "[[[0,0,0],[100,0,0],[100,0,100],[0,0,100]],[[100,0,100],[200,0,100],[200,0,200],[100,0,200]]"\
+                    ",[[200,0,200],[300,0,200],[300,0,300],[200,0,300]],[[300,0,300],[350,0,300],[350,0,350]"\
+                    ",[300,0,350]]]"
+
+#     print(timeit.timeit(stmt="grid = np.array([coordinate_grid(rect, (400, 400)) for rect in slice_rects]);"
+#                              "write_slices_to_volume(volume, bounding_box, grid, slices)",
+#                         setup=setup_str_two, number=5))
+#     print(timeit.timeit(stmt="write_slices_to_volume_short(volume, bounding_box, slice_rects, slices)",
+#                         setup=setup_str_two, number=5))
+#     print(timeit.timeit(stmt="backproject_slices(bounding_box, slice_rects, slices, volume)",
+#                         setup=setup_str_two, number=5))
+#     print(timeit.timeit(stmt="backproject_slices(bounding_box, slice_rects, slices)",
+#                         setup=setup_str_two, number=5))
+    print(timeit.timeit(stmt="backproject_slices(bounding_box, slice_rects, slices, volume)",
+                        setup=setup_str_two, number=5))
+#     print(timeit.timeit(stmt="backproject_slices_lv(bounding_box, slice_rects, slices, volume)",
+#                         setup=setup_str_two, number=5))
+#     print(timeit.timeit(stmt="backproject_section(bounding_box, slice_rects, slices, 4, volume)",
+#                         setup=setup_str_two, number=5))
+
+    assert False
