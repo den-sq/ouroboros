@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-import timeit
 from ouroboros.helpers.bounding_boxes import BoundingBox
 from ouroboros.helpers.slice import (
     calculate_slice_rects,
@@ -266,43 +265,3 @@ def test_detect_color_channels_custom_none_value():
     )
     assert not has_color_channels
     assert num_color_channels == none_value
-
-
-def dont_test_speed():
-    setup_str = "import numpy as np; from ouroboros.helpers.slice import " \
-                "coordinate_grid; rect = np.array([[-42.64727347, -54.72166585,  -4.78695662]," \
-                "[-47.22139466,  43.8212048,  -21.16926598],[40.81561612,  55.54768491,  24.78695662]," \
-                "[45.38973732, -42.99518573,  41.16926598]]); WIDTH=100; HEIGHT=60;"
-
-#     print(timeit.timeit(stmt="generate_coordinate_grid_for_rect(rect, WIDTH, HEIGHT)", setup=setup_str, number=10000))
-    print(timeit.timeit(stmt="coordinate_grid(rect, (WIDTH, HEIGHT))", setup=setup_str, number=10000))
-#     print(timeit.timeit(stmt="alt_coordinate_grid(rect, WIDTH, HEIGHT)", setup=setup_str, number=10000))
-
-    setup_str_two = "import numpy as np; from ouroboros.helpers.slice import coordinate_grid, "\
-                    "backproject_slices, backproject_slices_lv, backproject_section;"\
-                    "from ouroboros.helpers.bounding_boxes import BoundingBox;"\
-                    "volume = np.memmap('testf.tiff', mode='w+',shape=(400, 400, 400), dtype=np.float32);"\
-                    "bounding_box = BoundingBox(BoundingBox.bounds_to_rect(0, 400, 0, 400, 0, 400));"\
-                    "grids = np.random.rand(4, 400, 400, 3).astype(np.float32);"\
-                    "slices = np.random.rand(4, 400, 400).astype(np.float32); slice_rects = "\
-                    "[[[0,0,0],[100,0,0],[100,0,100],[0,0,100]],[[100,0,100],[200,0,100],[200,0,200],[100,0,200]]"\
-                    ",[[200,0,200],[300,0,200],[300,0,300],[200,0,300]],[[300,0,300],[350,0,300],[350,0,350]"\
-                    ",[300,0,350]]]"
-
-#     print(timeit.timeit(stmt="grid = np.array([coordinate_grid(rect, (400, 400)) for rect in slice_rects]);"
-#                              "write_slices_to_volume(volume, bounding_box, grid, slices)",
-#                         setup=setup_str_two, number=5))
-#     print(timeit.timeit(stmt="write_slices_to_volume_short(volume, bounding_box, slice_rects, slices)",
-#                         setup=setup_str_two, number=5))
-#     print(timeit.timeit(stmt="backproject_slices(bounding_box, slice_rects, slices, volume)",
-#                         setup=setup_str_two, number=5))
-#     print(timeit.timeit(stmt="backproject_slices(bounding_box, slice_rects, slices)",
-#                         setup=setup_str_two, number=5))
-    print(timeit.timeit(stmt="backproject_slices(bounding_box, slice_rects, slices, volume)",
-                        setup=setup_str_two, number=5))
-#     print(timeit.timeit(stmt="backproject_slices_lv(bounding_box, slice_rects, slices, volume)",
-#                         setup=setup_str_two, number=5))
-#     print(timeit.timeit(stmt="backproject_section(bounding_box, slice_rects, slices, 4, volume)",
-#                         setup=setup_str_two, number=5))
-
-    assert False
