@@ -4,7 +4,9 @@ from tifffile import imread, TiffWriter, memmap
 from .memory_usage import calculate_gigabytes_from_dimensions
 import shutil
 
+
 import numpy as np
+from numpy.typing import ArrayLike
 
 
 def load_and_save_tiff_from_slices(
@@ -182,6 +184,20 @@ def parse_tiff_name(tiff_name: str) -> int:
 
 def num_digits_for_n_files(n: int) -> int:
     return len(str(n - 1))
+
+
+def np_convert(dtype: np.dtype, source: ArrayLike):
+    if np.issubdtype(dtype, np.integer):
+        dtype_range = np.iinfo(dtype).max - np.iinfo(dtype).min
+        source_range = np.max(source) - np.min(source)
+
+        # Avoid divide by 0, esp. as numpy segfaults when you do.
+        if source_range == 0.0:
+            source_range = 1.0
+
+        return (source * max(int(dtype_range / source_range), 1)).astype(dtype)
+    elif np.issubdtype(dtype, np.floating):
+        return source.astype(dtype)
 
 
 def write_memmap_with_create(file_path: os.PathLike, indicies: tuple[np.ndarray], data: np.ndarray,

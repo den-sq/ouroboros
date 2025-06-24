@@ -35,7 +35,8 @@ from ouroboros.helpers.files import (
     load_and_save_tiff_from_slices,
     num_digits_for_n_files,
     parse_tiff_name,
-    write_memmap_with_create
+    write_memmap_with_create,
+    np_convert
 )
 
 
@@ -231,8 +232,8 @@ class BackprojectPipelineStep(PipelineStep):
             for tif in folder_path.iterdir():
                 tifffile.imwrite(
                     tif,
-                    tifffile.imread(tif),
-                    contiguous=config.backprojection_compression is None,
+                    np_convert(np.uint16, tifffile.imread(tif)),
+                    contiguous=config.backprojection_compression is None or config.backprojection_compression == "none",
                     compression=config.backprojection_compression,
                     metadata=metadata,
                     resolution=resolution,
