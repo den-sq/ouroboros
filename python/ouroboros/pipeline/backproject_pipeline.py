@@ -1,6 +1,19 @@
-import multiprocessing.pool
+import concurrent.futures
+from functools import partial
+from multiprocessing import cpu_count
+from multiprocessing.pool import ThreadPool
+import os
+from pathlib import Path
+import shutil
+import sys
+import tifffile
+import time
+import traceback
+
+import numpy as np
 import scipy
 import scipy.ndimage
+
 from ouroboros.helpers.memory_usage import (
     calculate_chunk_size,
 )
@@ -10,33 +23,20 @@ from ouroboros.helpers.slice import (
     make_volume_binary,
     backproject_slices,
 )
-
 from ouroboros.helpers.volume_cache import VolumeCache, get_mip_volume_sizes
 from ouroboros.helpers.bounding_boxes import BoundingBox
 from .pipeline import PipelineStep
 from ouroboros.helpers.options import BackprojectOptions
 from ouroboros.helpers.files import (
-    format_backproject_output_multiple,
     format_backproject_resave_volume,
-    format_backproject_tempvolumes,
     format_tiff_name,
     get_sorted_tif_files,
     join_path,
     load_and_save_tiff_from_slices,
     num_digits_for_n_files,
-    parse_tiff_name
+    parse_tiff_name,
+    write_memmap_with_create
 )
-
-import concurrent.futures
-import tifffile
-import os
-import multiprocessing
-from pathlib import Path
-import time
-import numpy as np
-import shutil
-import traceback
-import sys
 
 
 DEFAULT_CHUNK_SIZE = 128
@@ -44,7 +44,7 @@ AXIS = 0
 
 
 class BackprojectPipelineStep(PipelineStep):
-    def __init__(self, processes=multiprocessing.cpu_count()) -> None:
+    def __init__(self, processes=cpu_count()) -> None:
         super().__init__(
             inputs=(
                 "backproject_options",
@@ -121,29 +121,23 @@ class BackprojectPipelineStep(PipelineStep):
 
             straightened_volume_path = new_straightened_volume_path
 
-        # Divide the backprojected volume into chunks
-        chunk_size = (
-            DEFAULT_CHUNK_SIZE
-            if config.max_ram_gb == 0
-            else calculate_backproject_chunk_size(config, volume_cache)
-        )
-
-        volume_paths = [None] * len(volume_cache.bounding_boxes)
-        volume_memmaps = [None] * len(volume_cache.bounding_boxes)
-
-        # Create a folder to hold the temporary volume files
-        temp_folder_path = join_path(
-            config.output_file_folder,
-            format_backproject_tempvolumes(config.output_file_name),
-        )
-        os.makedirs(temp_folder_path, exist_ok=True)
-
         def boxes_dim_range(boxes: list[BoundingBox], dim="z"):
             if len(boxes):
                 return np.arange(int(np.min([getattr(box, f"{dim}_min") for box in boxes])),
                                  int(np.max([getattr(box, f"{dim}_max") for box in boxes])) + 1)
             else:
                 return np.arange(0)
+
+        # Write huge temp files (need to address)
+        full_bounding_box = BoundingBox.bound_boxes(volume_cache.bounding_boxes)
+        write_shape = np.flip(full_bounding_box.get_shape()).tolist()
+        file_path = Path(config.output_file_folder,
+                         config.output_file_name + f"_zyx_{'_'.join(map(str, full_bounding_box.get_min(np.uint32)))}")
+        file_path.mkdir(exist_ok=True, parents=True)
+
+        with ThreadPool(12) as pool:
+            pool.map(partial(tifffile.memmap, shape=write_shape[1:], dtype=np.float32),
+                     [file_path.joinpath(f"{i:05}.tiff") for i in range(write_shape[0])])
 
         # Process each bounding box in parallel, writing the results to the backprojected volume
         try:
@@ -165,9 +159,9 @@ class BackprojectPipelineStep(PipelineStep):
                             slice_rects,
                             slice_indices,
                             i,
+                            full_bounding_box
                         )
                     )
-#                             calculate_min_bounding_box(volume_cache)
 
                 # Track the completed futures
                 remaining = volume_cache.bounding_boxes.copy()
@@ -175,7 +169,7 @@ class BackprojectPipelineStep(PipelineStep):
 
                 for future in concurrent.futures.as_completed(futures):
                     # Store the durations for each bounding box
-                    durations, volume_file_path, index = future.result()
+                    durations, index = future.result()
                     for key, value in durations.items():
                         self.add_timing_list(key, value)
 
@@ -193,198 +187,38 @@ class BackprojectPipelineStep(PipelineStep):
                     # Hand over to writer
                     # shrink the existing array(s)
 
-                    # Load the volume from the file
-                    volume_paths[index] = volume_file_path
-                    volume_memmaps[index] = tifffile.memmap(volume_file_path, mode="r")
-
         except BaseException as e:
             traceback.print_tb(e.__traceback__, file=sys.stderr)
             return f"An error occurred while processing the bounding boxes: {e}"
 
         start = time.perf_counter()
 
-        axis = AXIS
+        min_point = BoundingBox.bound_boxes(volume_cache.bounding_boxes).get_min(np.uint32)
 
-        # Create the chunks and their associated bounding boxes
-        chunks_and_boxes = create_volume_chunks(
-            volume_cache, chunk_size, config.backproject_min_bounding_box, axis=axis
-        )
+        folder_path = Path(config.output_file_folder,
+                           config.output_file_name + f"_zyx_{'_'.join(map(str, min_point))}")
 
-        # Save the offset of the minimum bounding box, if that option is enabled
+        # Volume cache resolution is in voxel size, but .tiff XY resolution is in voxels per unit, so we invert.
+        resolution = [1.0 / voxel_size for voxel_size in volume_cache.get_resolution_um()[:2] * 0.0001]
+        resolutionunit = "CENTIMETER"
+        # However, Z Resolution doesn't have an inbuilt property or strong convention, so going with this atm.
+        metadata = {
+            "spacing": volume_cache.get_resolution_um()[2],
+            "unit": "um"
+        }
+
         if config.backproject_min_bounding_box:
-            min_bounding_box = chunks_and_boxes[0][
-                0
-            ]  # The first chunk bounding box has the same offset as the minimum bounding box
-            pipeline_input.backprojection_offset = \
-                f"{min_bounding_box.x_min},{min_bounding_box.y_min},{min_bounding_box.z_min}"
-
-        # Save the backprojected volume to a series of tif files
-        offset = (
-            None
-            if not config.backproject_min_bounding_box or not config.offset_in_name
-            else (
-                min_bounding_box.x_min,
-                min_bounding_box.y_min,
-                min_bounding_box.z_min,
-            )
-        )
-        folder_path = join_path(
-            config.output_file_folder,
-            format_backproject_output_multiple(config.output_file_name, offset=offset),
-        )
-        if os.path.exists(folder_path):
-            shutil.rmtree(folder_path)
-
-        os.makedirs(folder_path, exist_ok=True)
-
-        # Set the output file name to match the folder path
-        pipeline_input.output_file_path = format_backproject_output_multiple(
-            config.output_file_name, offset=offset
-        ) + (".tif" if config.make_single_file else "")
-
-        dtype = volume_cache.get_volume_dtype()
-        volume_shape = volume_cache.get_volume_shape()
-
-        # Determine the number of digits needed for the tif file names
-        num_digits = num_digits_for_n_files(volume_shape[axis])
-
-        # Determine the number of channels in the straightened volume
-        temp_straightened_volume = make_tiff_memmap(straightened_volume_path, mode="r")
-        has_multiple_channels, num_channels = detect_color_channels(
-            temp_straightened_volume, none_value=None
-        )
-        del temp_straightened_volume
-
-        # Write the chunks to tif files
-        for i, (chunk_bounding_box, bounding_boxes) in enumerate(chunks_and_boxes):
-            chunk_volume = chunk_bounding_box.to_empty_volume(
-                dtype=dtype, num_channels=num_channels
+            metadata["backprojection_offset_min_xyz"] = (
+                pipeline_input.backprojection_offset
             )
 
-            min_dim = (
-                chunk_bounding_box.x_min
-                if axis == 0
-                else chunk_bounding_box.y_min if axis == 1 else chunk_bounding_box.z_min
-            )
-            max_dim = (
-                chunk_bounding_box.x_max
-                if axis == 0
-                else chunk_bounding_box.y_max if axis == 1 else chunk_bounding_box.z_max
-            )
-
-            slice_range = range(min_dim, max_dim + 1)
-
-            # If there are no bounding boxes in the chunk, write the empty volume to a series of tif files
-            if len(bounding_boxes) == 0:
-                slice_index = 0
-                for j in slice_range:
-                    tifffile.imwrite(
-                        join_path(folder_path, format_tiff_name(j, num_digits)),
-                        np.take(chunk_volume, slice_index, axis=axis),
-                        contiguous=True,
-                        compression=config.backprojection_compression,
-                        software="ouroboros",
-                    )
-                    slice_index += 1
-                continue
-
-            for box_index, bbox in bounding_boxes:
-                volume = volume_memmaps[box_index]
-
-                # Calculate the intersection of the bounding box with the chunk bounding box
-                intersection_box = chunk_bounding_box.intersection(bbox)
-
-                # Calculate the bounding box coordinates
-                bbox_x_min, _, bbox_y_min, _, bbox_z_min, _ = bbox.approx_bounds()
-                int_x_min, int_x_max, int_y_min, int_y_max, int_z_min, int_z_max = (
-                    intersection_box.approx_bounds()
-                )
-
-                # Calculate the coordinates of the intersection box in the volume
-                x_min, x_max = int_x_min - bbox_x_min, int_x_max - bbox_x_min
-                y_min, y_max = int_y_min - bbox_y_min, int_y_max - bbox_y_min
-                z_min, z_max = int_z_min - bbox_z_min, int_z_max - bbox_z_min
-
-                # Calculate the coordinates of the intersection box in the chunk volume
-                int_x_min, int_x_max = (
-                    int_x_min - chunk_bounding_box.x_min,
-                    int_x_max - chunk_bounding_box.x_min,
-                )
-                int_y_min, int_y_max = (
-                    int_y_min - chunk_bounding_box.y_min,
-                    int_y_max - chunk_bounding_box.y_min,
-                )
-                int_z_min, int_z_max = (
-                    int_z_min - chunk_bounding_box.z_min,
-                    int_z_max - chunk_bounding_box.z_min,
-                )
-
-                # Copy the intersection volume to the chunk volume
-                intersection_volume = volume[
-                    x_min: x_max + 1, y_min: y_max + 1, z_min: z_max + 1
-                ]
-                non_zero_mask = (
-                    np.sum(intersection_volume, axis=-1) != 0
-                    if has_multiple_channels
-                    else intersection_volume != 0
-                )
-
-                chunk_volume[
-                    int_x_min: int_x_max + 1,
-                    int_y_min: int_y_max + 1,
-                    int_z_min: int_z_max + 1,
-                ][non_zero_mask] = intersection_volume[non_zero_mask]
-
-            # If make_backprojection_binary, set all non-zero values to 1
-            if config.make_backprojection_binary:
-                chunk_volume = make_volume_binary(chunk_volume)
-
-            # Write the chunk volume to a series of tif files
-            slice_index = 0
-            for j in slice_range:
-                tifffile.imwrite(
-                    join_path(folder_path, format_tiff_name(j, num_digits)),
-                    np.take(chunk_volume, slice_index, axis=axis),
-                    contiguous=True,
-                    compression=config.backprojection_compression,
-                    software="ouroboros",
-                )
-                slice_index += 1
-
-            # Update the progress bar
-            self.update_progress(0.5 + i / len(chunks_and_boxes) / 2)
-
-        # Close all the memmaps - All 3 needed to allow deletion of temporary files.
-        del volume                    # Delete volume view created during .tif file writing.
-        del intersection_volume       # Delete volume view created during .tif file writing.
-        del volume_memmaps[:]         # Delete all the memmaps.
-
-        # Delete the temporary volume files.
-        # Errors ignored because leaving a temporary file around is better than failing.  Could add logging.
-        shutil.rmtree(temp_folder_path, ignore_errors=True)
-
-        self.add_timing("export", time.perf_counter() - start)
-
-        # Save the backprojected volume to a single tif file
         if config.make_single_file:
+            # Save the backprojected volume to a single tif file
             try:
-                # Volume cache resolution is in voxel size, but .tiff XY resolution is in voxels per unit, so we invert.
-                resolution = [1.0 / voxel_size for voxel_size in volume_cache.get_resolution_um()[:2] * 0.0001]
-                resolutionunit = "CENTIMETER"
-                # However, Z Resolution doesn't have an inbuilt property or strong convention, so going with this atm.
-                metadata = {
-                    "spacing": volume_cache.get_resolution_um()[2],
-                    "unit": "um"
-                }
-
-                if config.backproject_min_bounding_box:
-                    metadata["backprojection_offset_min_xyz"] = (
-                        pipeline_input.backprojection_offset
-                    )
 
                 load_and_save_tiff_from_slices(
                     folder_path,
-                    folder_path + ".tif",
+                    folder_path.with_suffix(".tif"),
                     delete_intermediate=False,
                     compression=config.backprojection_compression,
                     metadata=metadata,
@@ -393,6 +227,17 @@ class BackprojectPipelineStep(PipelineStep):
                 )
             except BaseException as e:
                 return f"Error creating single tif file: {e}"
+        else:
+            for tif in folder_path.iterdir():
+                tifffile.imwrite(
+                    tif,
+                    tifffile.imread(tif),
+                    contiguous=config.backprojection_compression is None,
+                    compression=config.backprojection_compression,
+                    metadata=metadata,
+                    resolution=resolution,
+                    resolutionunit=resolutionunit,
+                    software="ouroboros")
 
         # Rescale the backprojected volume to the output mip level
         if pipeline_input.slice_options.output_mip_level != config.output_mip_level:
@@ -431,6 +276,8 @@ class BackprojectPipelineStep(PipelineStep):
         # Update the pipeline input with the output file path
         pipeline_input.backprojected_folder_path = folder_path
 
+        self.add_timing("export", time.perf_counter() - start)
+
         return None
 
 
@@ -440,15 +287,20 @@ def process_bounding_box(
     straightened_volume_path: str,
     slice_rects: list[np.ndarray],
     slice_indices: list[int],
-    index: int
+    index: int,
+    full_bounding_box: BoundingBox
 ) -> tuple[dict, str, int]:
     durations = {
+        "total_bytes": [],
         "memmap": [],
         "get_slices": [],
         "generate_grid": [],
         "create_volume": [],
         "back_project": [],
-        "write_to_tiff": [],
+        "update_lookup": [],
+        "sort": [],
+        "write_direct": [],
+        "write_volume": [],
         "total_process": [],
     }
 
@@ -456,7 +308,7 @@ def process_bounding_box(
 
     # Load the straightened volume
     start = time.perf_counter()
-    straightened_volume = make_tiff_memmap(straightened_volume_path, mode="r")
+    straightened_volume = tifffile.memmap(straightened_volume_path, mode="r")
     _, num_channels = detect_color_channels(straightened_volume, none_value=None)
     durations["memmap"].append(time.perf_counter() - start)
 
@@ -468,42 +320,66 @@ def process_bounding_box(
     # Close the memmap
     del straightened_volume
 
-    # Create a volume for the bounding box
-    start = time.perf_counter()
-    volume = bounding_box.to_empty_volume(num_channels=num_channels)
-    durations["create_volume"].append(time.perf_counter() - start)
-
-    # Backproject the slices into the volume
-    start = time.perf_counter()
     try:
-        backproject_slices(bounding_box, slice_rects[slice_indices], slices, volume=volume)
+        lookup, values, weights = backproject_slices(bounding_box, slice_rects[slice_indices], slices)
     except BaseException as be:
         print(f"Error on BP: {be}")
         traceback.print_tb(be.__traceback__, file=sys.stderr)
         raise be
-    durations["back_project"].append(time.perf_counter() - start)
 
-    # Save the volume locally as a tif file
-    start = time.perf_counter()
-    file_path = join_path(
-        config.output_file_folder,
-        format_backproject_tempvolumes(config.output_file_name),
-        f"{index}.tif",
-    )
-    tifffile.imwrite(file_path, volume, software="ouroboros")
-    durations["write_to_tiff"].append(time.perf_counter() - start)
+    durations["back_project"].append(time.perf_counter() - start)
+    durations["total_bytes"].append(int(lookup.nbytes + values.nbytes + weights.nbytes))
+
+    # Save the data
+    try:
+        start = time.perf_counter()
+
+        lookup += np.array((bounding_box.get_min(np.uint32) - full_bounding_box.get_min(np.uint32))).reshape(3, 1)
+
+        durations["update_lookup"].append(time.perf_counter() - start)
+
+        start = time.perf_counter()
+
+        file_path = Path(config.output_file_folder,
+                         config.output_file_name + f"_zyx_{'_'.join(map(str, full_bounding_box.get_min(np.uint32)))}")
+
+        write_shape = np.flip(full_bounding_box.get_shape()).tolist()
+
+#         if config.make_single_file:
+#
+#             write_memmap_with_create(file_path.with_suffix(".tiff"), (lookup[2], lookup[1], lookup[0]),
+#                                      (values // weights).astype(np.uint16),
+#                                      shape=write_shape, dtype=np.uint16)
+#         else:
+        file_path.mkdir(exist_ok=True, parents=True)
+        sort = lookup[2, :].argsort()
+        lookup = lookup[:, sort]
+        values = values[sort]
+        weights = weights[sort]
+
+        # is presorted so maybe can do other way
+        img, points = np.unique(lookup[2], return_counts=True)
+        sections = [np.s_[np.sum(points[0:i]): np.sum(points[0:i + 1])] for i in range(len(points))]
+
+        durations["sort"].append(time.perf_counter() - start)
+        start = time.perf_counter()
+
+        with ThreadPool(12) as pool:
+            pool.starmap(write_memmap_with_create, [(file_path.joinpath(f"{i:05}.tiff"),
+                                                    (lookup[1, sect], lookup[0, sect]),
+                                                    (values[sect] / weights[sect]),
+                                                    write_shape[1:], np.float32)
+                                                    for i, sect in zip(img, sections)])
+    except BaseException as be:
+        print(f"Error on BP: {be}")
+        traceback.print_tb(be.__traceback__, file=sys.stderr)
+        raise be
+
+    durations["write_direct"].append(time.perf_counter() - start)
 
     durations["total_process"].append(time.perf_counter() - start_total)
 
-    return durations, file_path, index
-
-
-def make_tiff_memmap(file_name, mode):
-    return tifffile.memmap(file_name, mode=mode)
-
-
-def calculate_min_bounding_box(volume_cache):
-    return BoundingBox.bound_boxes(volume_cache.bounding_boxes)
+    return durations, index
 
 
 def calculate_backproject_chunk_size(config, volume_cache, axis=0):
@@ -511,7 +387,7 @@ def calculate_backproject_chunk_size(config, volume_cache, axis=0):
         return DEFAULT_CHUNK_SIZE
 
     bounding_box_shape = (
-        calculate_min_bounding_box(volume_cache).get_shape()
+        BoundingBox.bound_boxes(volume_cache.bounding_boxes).get_shape()
         if config.backproject_min_bounding_box
         else volume_cache.get_volume_shape()
     )
@@ -544,7 +420,7 @@ def create_volume_chunks(
     process_range = range(0, volume_end, chunk_size)
 
     if backproject_min_bounding_box:
-        min_bounding_box = calculate_min_bounding_box(volume_cache)
+        min_bounding_box = BoundingBox.bound_boxes(volume_cache.bounding_boxes)
         min_x_min, min_x_max, min_y_min, min_y_max, min_z_min, min_z_max = (
             min_bounding_box.approx_bounds()
         )

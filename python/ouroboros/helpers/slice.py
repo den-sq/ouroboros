@@ -164,8 +164,7 @@ def slice_volume_from_grids(
         return slice_points.reshape(len(grids), height, width)
 
 
-def backproject_slices(bounding_box: BoundingBox, slice_rects: np.ndarray, slices: np.ndarray,
-                       volume: np.ndarray = None) -> tuple[np.ndarray]:
+def backproject_slices(bounding_box: BoundingBox, slice_rects: np.ndarray, slices: np.ndarray) -> tuple[np.ndarray]:
     """
     Write a slice to volume based on a grid of coordinates.  Returns coordinates.
 
@@ -185,7 +184,7 @@ def backproject_slices(bounding_box: BoundingBox, slice_rects: np.ndarray, slice
     """
     if slices.shape[0] == 0:
         # No slices, just return
-        return np.empty(0, dtype=np.uint16), np.empty(0, dtype=np.float32), np.empty(0, dtype=np.float32)
+        return np.empty((3, 0), dtype=np.uint16), np.empty(0, dtype=np.float32), np.empty(0, dtype=np.float32)
 
     # Normalize grid coordinates based on bounding box (since volume coordinates are truncated to bounding box)
     grid_call = partial(coordinate_grid, shape=slices[0].shape, floor=bounding_box.get_min())
@@ -223,10 +222,6 @@ def backproject_slices(bounding_box: BoundingBox, slice_rects: np.ndarray, slice
     # Can probably do borders first, but unsure how necessary it is.
     bordered_values = np.logical_and.reduce(np.less(net_lookup, bounding_box.get_max().reshape(3, 1)))
     set_values = np.logical_and((net_point_weights != 0), bordered_values)
-
-    if volume is not None:
-        volume[(net_lookup[0, set_values], net_lookup[1, set_values], net_lookup[2, set_values])] = \
-            (net_point_totals[set_values] / net_point_weights[set_values])[:, np.newaxis]
 
     return net_lookup[:, set_values], net_point_totals[set_values], net_point_weights[set_values]
 
