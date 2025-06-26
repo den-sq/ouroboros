@@ -1,12 +1,14 @@
+from functools import partial
 import os
-from pathlib import Path
-from tifffile import imread, TiffWriter, memmap
-from .memory_usage import calculate_gigabytes_from_dimensions
 import shutil
-
+from threading import Thread
 
 import numpy as np
 from numpy.typing import ArrayLike
+from pathlib import Path
+from tifffile import imread, TiffWriter, memmap
+
+from .memory_usage import calculate_gigabytes_from_dimensions
 
 
 def load_and_save_tiff_from_slices(
@@ -186,7 +188,9 @@ def num_digits_for_n_files(n: int) -> int:
     return len(str(n - 1))
 
 
-def np_convert(dtype: np.dtype, source: ArrayLike):
+def np_convert(dtype: np.dtype, source: ArrayLike, normalize=True):
+    if not normalize:
+        return source.astype(dtype)
     if np.issubdtype(dtype, np.integer):
         dtype_range = np.iinfo(dtype).max - np.iinfo(dtype).min
         source_range = np.max(source) - np.min(source)
@@ -198,6 +202,28 @@ def np_convert(dtype: np.dtype, source: ArrayLike):
         return (source * max(int(dtype_range / source_range), 1)).astype(dtype)
     elif np.issubdtype(dtype, np.floating):
         return source.astype(dtype)
+
+
+def generate_tiff_write(write_func, compression, micron_resolution, backprojection_offset):
+    # Volume cache resolution is in voxel size, but .tiff XY resolution is in voxels per unit, so we invert.
+    resolution = [1.0 / voxel_size for voxel_size in micron_resolution[:2] * 0.0001]
+    resolutionunit = "CENTIMETER"
+    # However, Z Resolution doesn't have an inbuilt property or strong convention, so going with this atm.
+    metadata = {
+        "spacing": micron_resolution[2],
+        "unit": "um"
+    }
+
+    if backprojection_offset is not None:
+        metadata["backprojection_offset_min_xyz"] = backprojection_offset
+
+    return partial(write_func,
+                   contiguous=compression is None or compression == "none",
+                   compression=compression,
+                   metadata=metadata,
+                   resolution=resolution,
+                   resolutionunit=resolutionunit,
+                   software="ouroboros")
 
 
 def write_memmap_with_create(file_path: os.PathLike, indicies: tuple[np.ndarray], data: np.ndarray,
@@ -231,3 +257,27 @@ def write_memmap_with_create(file_path: os.PathLike, indicies: tuple[np.ndarray]
         raise ValueError(f"Could not write data as indicies (None? {indicies is None})"
                          f"or data (None? {data is None}) were missing.")
     del target_file
+
+
+def rewrite_by_dimension(writeable, tif_write, base_path, dtype=np.uint16, is_single=False, write_start=0,
+                         use_threads=True):
+    # Gets contiguous elements starting at 0 for single_file writing for accuracy
+    write_here = writeable[writeable == (np.indices(writeable.shape) + write_start)] if is_single else writeable
+    write_later = np.setdiff1d(write_here, writeable)
+
+    # image path inputs
+    img_paths = [base_path.joinpath(f"{index:05}.tiff") for index in write_here]
+    threads = []
+
+    def make_args(img):
+        return (np_convert(dtype, imread(img)), ) if is_single else (img, np_convert(dtype, imread(img), False))
+
+    if use_threads:
+        threads = [Thread(target=tif_write, args=make_args(img)) for img in img_paths]
+        for thread in threads:
+            thread.start()
+    else:
+        for img in img_paths:
+            tif_write(*make_args(img))
+
+    return threads, write_later, write_here

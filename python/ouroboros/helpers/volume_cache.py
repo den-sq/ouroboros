@@ -1,7 +1,7 @@
 from cloudvolume import CloudVolume, VolumeCutout
 import numpy as np
 
-from .bounding_boxes import BoundingBox
+from .bounding_boxes import BoundingBox, boxes_dim_range
 from .memory_usage import calculate_gigabytes_from_dimensions
 
 FLUSH_CACHE = False
@@ -243,3 +243,31 @@ def get_mip_volume_sizes(source_url: str) -> dict:
         return {}
 
     return result
+
+
+def update_writable_boxes(volume_cache, writeable, remaining, index):
+    """
+    Updates which boxes are writeable based on the current bounding box and ones remaining to be written.
+
+    Parameters:
+    -----------
+        volume_cache (VolumeCache): VolumeCache holding all bounding boxes being processed.
+        writeable (np.ndarray): What data is currently writeable.
+        remaining (np.ndarray): Bounding boxes not yet processed.
+        index:  Index in the volume cache of the current bounding box.
+
+    Return:
+    -------
+        np.ndarray: Sorted values in the given dimension that ready to be written to.
+
+    """
+    current = boxes_dim_range([volume_cache.bounding_boxes[index]])
+    remaining.remove(volume_cache.bounding_boxes[index])
+
+    # Check for completed z-stacks
+    writeable = np.concatenate([writeable, current[np.isin(current, boxes_dim_range(remaining), invert=True)]])
+
+    # Sort available z-stacks
+    writeable.sort()
+
+    return writeable

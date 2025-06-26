@@ -4,8 +4,9 @@ from ouroboros.helpers.volume_cache import (
     VolumeCache,
     CloudVolumeInterface,
     get_mip_volume_sizes,
+    update_writable_boxes
 )
-from ouroboros.helpers.bounding_boxes import BoundingBox
+from ouroboros.helpers.bounding_boxes import BoundingBox, boxes_dim_range
 
 
 @pytest.fixture
@@ -235,3 +236,15 @@ def test_volume_cache_remove_volume(volume_cache):
         assert volume_data == volume_cache.volumes[1]
         volume_cache.remove_volume(1)
         assert volume_cache.volumes[1] is None
+
+
+def test_update_writeable_boxes(volume_cache):
+    import numpy as np
+
+    remaining = volume_cache.bounding_boxes.copy()
+
+    writeable = np.empty(0, dtype=int)
+    writeable = update_writable_boxes(volume_cache, writeable, remaining, 0)
+
+    assert np.all(boxes_dim_range(remaining) == np.array([20, 21], dtype=int))
+    assert np.all(writeable == np.array([10, 11], dtype=int))
