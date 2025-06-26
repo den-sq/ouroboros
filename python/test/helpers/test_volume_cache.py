@@ -39,7 +39,7 @@ def volume_cache(bounding_boxes, cloud_volume_interface):
         bounding_boxes=bounding_boxes,
         link_rects=[0, 1],
         cloud_volume_interface=cloud_volume_interface,
-        mip=0,
+        mip=None,
         flush_cache=True,
     )
 
@@ -52,6 +52,11 @@ def test_volume_cache_init(volume_cache, bounding_boxes):
     assert volume_cache.flush_cache is True
     assert volume_cache.volumes == [None, None]
     assert volume_cache.cache_volume == [False, False]
+    assert volume_cache.volume_index(1) == 1
+    assert volume_cache.get_num_channels() == 3
+
+    volume_cache.set_volume_mip(3)
+    assert volume_cache.mip == 3
 
 
 def test_volume_cache_to_dict(volume_cache):
@@ -206,3 +211,27 @@ def test_get_mip_volume_sizes_error(mock_cloud_volume):
         sizes = get_mip_volume_sizes("test_source_url")
 
         assert sizes == {}
+
+
+def test_cloud_volume_interface_from_dict(mock_cloud_volume):
+    cvi = CloudVolumeInterface.from_dict({"source_url": "test_source_url"})
+    assert cvi.source_url == "test_source_url"
+    assert cvi.available_mips == [0, 1, 2]
+    assert cvi.dtype == "uint8"
+
+
+def test_cloud_volume_channels(cloud_volume_interface):
+    assert cloud_volume_interface.num_channels == 3
+
+
+def test_volume_cache_remove_volume(volume_cache):
+    slice_index = 1
+    with patch.object(
+        volume_cache, "volume_index", return_value=1
+    ) as mock_volume_index:
+        volume_data, bounding_box = volume_cache.request_volume_for_slice(slice_index)
+
+        mock_volume_index.assert_called_once_with(slice_index)
+        assert volume_data == volume_cache.volumes[1]
+        volume_cache.remove_volume(1)
+        assert volume_cache.volumes[1] is None
