@@ -1,5 +1,8 @@
-import numpy as np
+from functools import partial
 import pytest
+
+import numpy as np
+
 from ouroboros.helpers.bounding_boxes import BoundingBox
 from ouroboros.helpers.slice import (
     calculate_slice_rects,
@@ -7,7 +10,11 @@ from ouroboros.helpers.slice import (
     make_volume_binary,
     slice_volume_from_grids,
     coordinate_grid,
-    backproject_slices
+    backproject_slices,
+    backproject_box,
+    chunk_slice,
+    FrontProjStack,
+    BackProjectIter
 )
 from ouroboros.helpers.spline import Spline
 from test.sample_data import generate_sample_curve_helix
@@ -265,3 +272,52 @@ def test_detect_color_channels_custom_none_value():
     )
     assert not has_color_channels
     assert num_color_channels == none_value
+
+
+def test_chunk_slice():
+    rect = np.array([[0, 0, 0], [10, 0, 0], [10, 10, 0], [0, 10, 0]])
+    slice_rects, _, slice_shapes = chunk_slice(rect, (10, 10), 4)
+
+    assert np.all(slice_rects[0] == np.array([[0, 0, 0], [4, 0, 0], [4, 4, 0], [0, 4, 0]]))
+    assert np.all(slice_rects[-1] == np.array([[4, 4, 0], [10, 4, 0], [10, 10, 0], [4, 10, 0]]))
+    assert slice_shapes == [(4, 4), (4, 6), (6, 4), (6, 6)]
+
+
+def make_rect(point, u_vec, v_vec):
+    return np.array([np.array([point[x], point[x] + u_vec[x], point[x] + u_vec[x] + v_vec[x], point[x] + v_vec[x]])
+                     for x in range(point.shape[0])])
+
+
+def test_backproject_iter_2D():
+    FPStackRange = FrontProjStack.drange((0, 0, 0), (3, 4, 3), (2, 2, 2))
+    bounds = np.random.randint(0, 20, 27).reshape(3, 3, 3)
+    rects = make_rect(bounds[0], bounds[1], bounds[2])
+    func_call = partial(BackProjectIter, shape=FrontProjStack(3, 4, 3), slice_rects=rects)
+
+    chunks = []
+    shapes = []
+    chunk_rects_set = []
+    bboxes = []
+    indexes = []
+
+    print(rects.shape)
+
+    for chunk, shape, chunk_rects, bbox, index in FPStackRange.get_iter(func_call):
+        chunks.append(chunk)
+        shapes.append(shape)
+        chunk_rects_set.append(chunk_rects)
+        bboxes.append(bbox)
+        indexes.append(index)
+
+    chunks_match = [np.s_[0:2, 0:2, 0:2], np.s_[0:2, 0:2, 2:3], np.s_[0:2, 2:4, 0:2], np.s_[0:2, 2:4, 2:3],
+                    np.s_[2:3, 0:2, 0:2], np.s_[2:3, 0:2, 2:3], np.s_[2:3, 2:4, 0:2], np.s_[2:3, 2:4, 2:3]]
+    shapes_match = [FrontProjStack(*x) for x in
+                    [(2, 2, 2), (2, 2, 1), (2, 2, 2), (2, 2, 1), (1, 2, 2), (1, 2, 1), (1, 2, 2), (1, 2, 1)]]
+    indexes_match = [(0, 0, 0), (0, 0, 1), (0, 1, 0), (0, 1, 1), (1, 0, 0), (1, 0, 1), (1, 1, 0), (1, 1, 1)]
+
+    assert chunks == chunks_match
+    assert shapes == shapes_match
+    assert indexes == indexes_match
+    assert np.all(chunk_rects_set[0][0][0].astype(int) == rects[0][0])
+    assert np.all(chunk_rects_set[-1][-1][2].astype(int) == rects[-1][2])
+    assert bboxes[2].approx_bounds() == BoundingBox.from_rects(chunk_rects_set[2]).approx_bounds()

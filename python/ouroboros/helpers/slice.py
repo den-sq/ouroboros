@@ -1,3 +1,4 @@
+from dataclasses import dataclass, asdict, fields, astuple
 from functools import partial
 
 from cloudvolume import VolumeCutout
@@ -7,11 +8,18 @@ from scipy.ndimage import map_coordinates
 from .bounding_boxes import BoundingBox
 from .spline import Spline
 from .util import unique_lv
+from .shapes import DataShape, TFIter, DataRange
 
 INDEXING = "xy"
 
 NO_COLOR_CHANNELS_DIMENSIONS = 3
 COLOR_CHANNELS_DIMENSIONS = NO_COLOR_CHANNELS_DIMENSIONS + 1
+
+
+@dataclass
+class FrontProj(DataShape): V: int; U: int      # noqa: E701,E702
+@dataclass
+class FrontProjStack(DataShape): D: int; V: int; U: int      # noqa: E701,E702
 
 
 def calculate_slice_rects(
@@ -82,7 +90,7 @@ def calculate_slice_rects(
     return np.array(rects)
 
 
-def coordinate_grid(rect: np.ndarray, shape: tuple[int, int],
+def coordinate_grid(rect: np.ndarray, shape: tuple[int, int] | FrontProj,
                     floor: np.ndarray = None) -> np.ndarray:
     """
     Generate a coordinate grid for a rectangle, relative to space of rectangle.
@@ -100,11 +108,12 @@ def coordinate_grid(rect: np.ndarray, shape: tuple[int, int],
     """
     # Addition adds an extra rect[0] so we extend floor by it.
     floor = (rect[0] if floor is None else rect[0] + floor).astype(np.float32)
+    if isinstance(shape, tuple): shape = FrontProj(*shape)     # noqa: E701
 
-    u = np.linspace(rect[0], rect[1], shape[1], dtype=np.float32)
-    v = np.linspace(rect[0], rect[3], shape[0], dtype=np.float32)
+    u = np.linspace(rect[0], rect[1], shape.U, dtype=np.float32)
+    v = np.linspace(rect[0], rect[3], shape.V, dtype=np.float32)
 
-    return np.add(u.reshape(1, shape[1], 3), v.reshape(shape[0], 1, 3)) - floor
+    return np.add(u.reshape(1, shape.U, 3), v.reshape(shape.V, 1, 3)) - floor
 
 
 def slice_volume_from_grids(
@@ -287,3 +296,40 @@ def detect_color_channels_shape(shape: tuple, none_value=1) -> tuple[bool, int]:
     num_color_channels = shape[-1] if has_color_channels else none_value
 
     return has_color_channels, num_color_channels
+
+
+class BackProjectIter(TFIter):
+    def __init__(self, dr: DataRange, shape: FrontProjStack, slice_rects: np.ndarray):
+        self.__shape = asdict(shape)
+        self.__step_f = {f.name: i for i, f in enumerate(fields(dr.step))}
+        self.__step_v = asdict(dr.step)
+        self.__u_gap = (slice_rects[:, 1, :] - slice_rects[:, 0, :]) / (shape.U - 1)
+        self.__v_gap = (slice_rects[:, 3, :] - slice_rects[:, 0, :]) / (shape.V - 1)
+        self.__top_r = slice_rects[:, 0, :]
+        self.__step = dr.step
+
+    def __call__(self, pos) -> tuple:
+        pos_step = {field: np.s_[pos[index]: min(pos[index] + self.__step_v[field], self.__shape[field])]
+                    for field, index in self.__step_f.items()}
+
+        start = FrontProjStack(D=pos_step["D"].start if "D" in pos_step else 0,
+                               V=pos_step["V"].start if "V" in pos_step else 0,
+                               U=pos_step["U"].start if "U" in pos_step else 0)
+        stop = FrontProjStack(D=pos_step["D"].stop if "D" in pos_step else self.shape.D,
+                              V=pos_step["V"].stop if "V" in pos_step else self.shape.V,
+                              U=pos_step["U"].stop if "U" in pos_step else self.shape.U)
+        shape = FrontProjStack(D=stop.D - start.D, V=stop.V - start.V, U=stop.U - start.U)
+
+        chunk = tuple([np.s_[:] if key not in self.__step_f else pos_step[key] for key in self.__shape])
+
+        chunk_rects = (np.array(
+                        [self.__u_gap[chunk[0]] * start.U + self.__v_gap[chunk[0]] * start.V,
+                         self.__u_gap[chunk[0]] * (stop.U - 1) + self.__v_gap[chunk[0]] * start.V,
+                         self.__u_gap[chunk[0]] * (stop.U - 1) + self.__v_gap[chunk[0]] * (stop.V - 1),
+                         self.__u_gap[chunk[0]] * start.U + self.__v_gap[chunk[0]] * (stop.V - 1)])
+                       + self.__top_r[chunk[0]]).transpose(1, 0, 2)
+
+        bbox = BoundingBox.from_rects(chunk_rects)
+        index = astuple(type(self.__step)(*pos) // self.__step)
+
+        return chunk, shape, chunk_rects, bbox, index

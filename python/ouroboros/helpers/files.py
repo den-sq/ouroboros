@@ -6,9 +6,10 @@ from threading import Thread
 import numpy as np
 from numpy.typing import ArrayLike
 from pathlib import Path
-from tifffile import imread, TiffWriter, memmap
+from tifffile import imread, TiffWriter, memmap, TiffFile
 
 from .memory_usage import calculate_gigabytes_from_dimensions
+from .shapes import DataShape
 
 
 def load_and_save_tiff_from_slices(
@@ -226,6 +227,13 @@ def generate_tiff_write(write_func, compression, micron_resolution, backprojecti
                    software="ouroboros")
 
 
+def write_small_intermediate(file_path: os.PathLike, int_points: np.ndarray, values: np.ndarray, weights: np.ndarray):
+    with TiffWriter(file_path) as tif:
+        tif.write(int_points, photometric='minisblack')
+        tif.write(values[np.newaxis, :], photometric='minisblack')
+        tif.write(weights[np.newaxis, :], photometric='minisblack')
+
+
 def write_memmap_with_create(file_path: os.PathLike, indicies: tuple[np.ndarray], data: np.ndarray,
                              shape: tuple, dtype: type):
     if file_path.exists():
@@ -262,11 +270,12 @@ def write_memmap_with_create(file_path: os.PathLike, indicies: tuple[np.ndarray]
 def rewrite_by_dimension(writeable, tif_write, base_path, dtype=np.uint16, is_single=False, write_start=0,
                          use_threads=True):
     # Gets contiguous elements starting at 0 for single_file writing for accuracy
-    write_here = writeable[writeable == (np.indices(writeable.shape) + write_start)] if is_single else writeable
-    write_later = np.setdiff1d(write_here, writeable)
+    write = np.nonzero(writeable == 1)[0]
+    write = write[write == (np.indices(write.shape) + write_start)] if is_single else write
 
     # image path inputs
-    img_paths = [base_path.joinpath(f"{index:05}.tiff") for index in write_here]
+    img_paths = [base_path.joinpath(f"{index:05}.tiff") for index in write]
+
     threads = []
 
     def make_args(img):
@@ -280,4 +289,84 @@ def rewrite_by_dimension(writeable, tif_write, base_path, dtype=np.uint16, is_si
         for img in img_paths:
             tif_write(*make_args(img))
 
-    return threads, write_later, write_here
+    writeable[write] = 2
+
+    return threads
+
+
+def load_intermediates(base_path, intermediates):
+    flagged_intermediates = np.array(np.nonzero(intermediates)).T
+    points = []
+    values = []
+    weights = []
+    for d, v, u in flagged_intermediates:
+        with TiffFile(base_path.joinpath(f"i_{d}_{v}_{u}.tiff")) as tif:
+            points.append(tif.series[0].asarray().squeeze())
+            values.append(tif.series[1].asarray().squeeze())
+            weights.append(tif.series[2].asarray().squeeze())
+    points = np.concatenate(points, axis=1)
+    values = np.concatenate(values)
+    weights = np.concatenate(weights)
+    z_vals, inverse = np.unique(points[2, :], return_inverse=True)
+
+    return list(z_vals), inverse, points, values, weights
+
+
+def load_from_intermediates(base_path, intermediates, index, shape):
+    flagged_intermediates = np.array(np.nonzero(intermediates)).T
+
+    points = np.concatenate([imread(base_path.joinpath(f"i_{d}_{v}_{u}.tiff"), series=0)
+                             for d, v, u in flagged_intermediates], axis=1)
+    values = np.concatenate([imread(base_path.joinpath(f"i_{d}_{v}_{u}.tiff"), series=1).squeeze()
+                             for d, v, u in flagged_intermediates])
+    weights = np.concatenate([imread(base_path.joinpath(f"i_{d}_{v}_{u}.tiff"), series=2).squeeze()
+                             for d, v, u in flagged_intermediates])
+    with_index = points[2, :] == index
+
+    img = np.zeros((2, shape.Y, shape.X), dtype=np.float32).reshape(2, -1)
+    points_index = (points[1, with_index], points[0, with_index])
+    flat_points = np.ravel_multi_index(points_index, (shape.Y, shape.X)).astype(np.uint32)
+
+    np.add.at(img[0], flat_points, values[with_index])
+    np.add.at(img[1], flat_points, weights[with_index])
+
+    return (img[0] / img[1]).reshape((shape.Y, shape.X))
+
+
+def write_from_intermediate(writeable, tif_write, base_path, i_path, z_sources: np.ndarray, shape: DataShape,
+                            dtype: type = np.uint16, is_single=False, write_start=0, use_threads=True):
+    # Gets contiguous elements starting at 0 for single_file writing for accuracy
+    write = np.nonzero(writeable == 1)[0]
+    write = write[write == (np.indices(write.shape) + write_start)] if is_single else write
+
+    threads = []
+
+    z_vals, inverse, points, values, weights = \
+        load_intermediates(i_path, np.logical_or.reduce(z_sources[write, :], axis=0))
+
+    def make_args(dim):
+        mask = (inverse == z_vals.index(dim))
+        flat_points = np.ravel_multi_index((points[1, mask], points[0, mask]), (shape.Y, shape.X)).astype(np.uint32)
+        img = np.zeros((2, shape.Y, shape.X), dtype=np.float32).reshape(2, -1)
+        np.add.at(img[0], flat_points, values[mask])
+        np.add.at(img[1], flat_points, weights[mask])
+        nz = np.nonzero(img[1])[0]
+        img[0, nz] /= img[1, nz]
+        # Min Dim Check?
+        if is_single:
+            return (np_convert(dtype, img[0].reshape((shape.Y, shape.X))), )
+        else:
+            return (base_path.joinpath(f"{dim:05}.tiff"),
+                    np_convert(dtype, img[0].reshape((shape.Y, shape.X)), False))
+
+    if use_threads:
+        threads = [Thread(target=tif_write, args=make_args(index)) for index in write]
+        for thread in threads:
+            thread.start()
+    else:
+        for index in write:
+            tif_write(*make_args(index))
+
+    writeable[write] = 2
+
+    return threads

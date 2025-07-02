@@ -245,6 +245,37 @@ def get_mip_volume_sizes(source_url: str) -> dict:
     return result
 
 
+def update_writable_rects(processed: np.ndarray, slice_rects: np.ndarray, min_dim: int, writeable: np.ndarray,
+                          chunk_size: int):
+    """
+    Updates which boxes are writeable based on the current bounding box and ones remaining to be written.
+
+    Parameters:
+    -----------
+        volume_cache (VolumeCache): VolumeCache holding all bounding boxes being processed.
+        writeable (np.ndarray): What data is currently writeable.
+        remaining (np.ndarray): Bounding boxes not yet processed.
+        index:  Index in the volume cache of the current bounding box.
+
+    Return:
+    -------
+        np.ndarray: Sorted values in the given dimension that ready to be written to.
+
+    """
+    # Expand by chunk size (as each processed is a chunk),
+    # then cap to slice rect length (as last chunk may be shorter)
+    processed_slices = np.repeat(np.all(processed, axis=(1, 2)), chunk_size)[:len(slice_rects)]
+    if np.all(processed_slices):
+        writeable[:] = np.maximum(writeable, 1)
+    elif np.any(processed_slices):
+        current = boxes_dim_range([BoundingBox.from_rects(slice_rects[processed_slices])])
+        remaining = boxes_dim_range([BoundingBox.from_rects(slice_rects[np.invert(processed_slices)])])
+
+        # Check for completed z-stacks
+        completed_index = current[np.isin(current, remaining, invert=True)] - min_dim
+        writeable[completed_index] = np.maximum(writeable[completed_index], 1)
+
+
 def update_writable_boxes(volume_cache, writeable, remaining, index):
     """
     Updates which boxes are writeable based on the current bounding box and ones remaining to be written.

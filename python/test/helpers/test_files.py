@@ -261,13 +261,14 @@ def test_write_memmap_with_create(tmp_path):
 
 
 def test_rewrite_by_dimension(tmp_path):
-    full_writeable = np.arange(5, 15)
-    min_val = 5
+    writeable = np.zeros(10)
+    writeable[2:7] = 1
+
     import tifffile as tf
 
     # Write basic files
-    for i in full_writeable:
-        tf.imwrite(tmp_path.joinpath(f"{i - min_val:05}.tiff"), np.full((8, 8), i, dtype=np.float32))
+    for i in range(2, 7):
+        tf.imwrite(tmp_path.joinpath(f"{i:05}.tiff"), np.full((8, 8), i, dtype=np.float32))
 
     micron_resolution = np.array([0.7, 0.7, 0.7])
     backprojection_offset = (55, 44, 77)
@@ -275,29 +276,29 @@ def test_rewrite_by_dimension(tmp_path):
 
     tiff_write = generate_tiff_write(imwrite, compression, micron_resolution, backprojection_offset)
 
-    pool, write_next, written = rewrite_by_dimension(full_writeable - min_val, tiff_write, tmp_path)
-
-    assert len(write_next) == 0
-    assert len(written) == len(full_writeable)
+    pool = rewrite_by_dimension(writeable, tiff_write, tmp_path)
 
     for writer in pool:
         writer.join()
 
-    for i in full_writeable:
-        x = tf.imread(tmp_path.joinpath(f"{i - min_val:05}.tiff"))
+    assert np.all(writeable[2:7] == 2)
+    assert np.all(writeable[0:2] == 0)
+    assert np.all(writeable[7:] == 0)
+
+    for i in np.flatnonzero(writeable == 2):
+        x = tf.imread(tmp_path.joinpath(f"{i:05}.tiff"))
         assert x.dtype == np.uint16
 
 
 def test_rewrite_by_dimension_unthreaded(tmp_path):
-    full_writeable = np.arange(5, 15)
-    min_val = 5
+    writeable = np.zeros(10)
+    writeable[2:7] = 1
+
     import tifffile as tf
 
     # Write basic files
-    for i in full_writeable:
-        tf.imwrite(tmp_path.joinpath(f"{i - min_val:05}.tiff"), np.full((8, 8), i, dtype=np.float32))
-
-    partial_writeable = np.arange(10, 15)
+    for i in range(2, 7):
+        tf.imwrite(tmp_path.joinpath(f"{i:05}.tiff"), np.full((8, 8), i, dtype=np.float32))
 
     micron_resolution = np.array([0.7, 0.7, 0.7])
     backprojection_offset = (55, 44, 77)
@@ -305,16 +306,15 @@ def test_rewrite_by_dimension_unthreaded(tmp_path):
 
     tiff_write = generate_tiff_write(imwrite, compression, micron_resolution, backprojection_offset)
 
-    pool, write_next, written = rewrite_by_dimension(partial_writeable - min_val, tiff_write, tmp_path,
-                                                     use_threads=False)
+    pool = rewrite_by_dimension(writeable, tiff_write, tmp_path, use_threads=False)
 
     for writer in pool:
-        # Make sure this doesn't do anything and so doesn't error.
         writer.join()
 
-    assert len(write_next) == 0
-    assert np.all((written + min_val) == partial_writeable)
+    assert np.all(writeable[2:7] == 2)
+    assert np.all(writeable[0:2] == 0)
+    assert np.all(writeable[7:] == 0)
 
-    for i in partial_writeable:
-        x = tf.imread(tmp_path.joinpath(f"{i - min_val:05}.tiff"))
+    for i in np.flatnonzero(writeable == 2):
+        x = tf.imread(tmp_path.joinpath(f"{i:05}.tiff"))
         assert x.dtype == np.uint16

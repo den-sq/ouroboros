@@ -62,7 +62,7 @@ def unique_lv(ar, *bin_weights: np.ndarray,
         if weight.shape != ar[0].shape:
             raise ValueError(f"Unique_Int binning weight {weight.shape} did not match dimensions {ar[0].shape})")
         else:
-            ret += (np.bincount(result, weights=weight)[values_set], )
+            ret += (np.bincount(result, weights=weight)[values_set].astype(np.float32), )
 
     for col_nbits, col_dtype in col_data:
         restored_cols.append((values_set & ((1 << col_nbits) - 1)).astype(col_dtype))
