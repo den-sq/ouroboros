@@ -187,7 +187,7 @@ class SinoOrder(DataShape): Y: int; Theta: int; X: int      # noqa: E701,E702
 @dataclass
 class BackwardsSinoOrder(DataShape): X: int; Theta: int; Y: int      # noqa: E701,E702
 @dataclass
-class ImageStack(DataShape): Z: int; Y: int; Y: int      # noqa: E701,E702
+class ImageStack(DataShape): Z: int; Y: int; X: int      # noqa: E701,E702
 
 
 @dataclass

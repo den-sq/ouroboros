@@ -23,6 +23,7 @@ from ouroboros.helpers.slice import (        # noqa: F401
     make_volume_binary,
     FrontProjStack,
     backproject_slices,
+    backproject_box,
     BackProjectIter
 )
 from ouroboros.helpers.volume_cache import VolumeCache, get_mip_volume_sizes, update_writable_rects
@@ -294,7 +295,7 @@ def process_chunk(
     del straightened_volume
 
     try:
-        lookup, values, weights = backproject_slices(bounding_box, chunk_rects, slices)
+        lookup, values, weights = backproject_box(bounding_box, chunk_rects, slices)
     except BaseException as be:
         print(f"Error on BP: {be}")
         traceback.print_tb(be.__traceback__, file=sys.stderr)

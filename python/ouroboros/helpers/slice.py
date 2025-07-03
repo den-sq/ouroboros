@@ -235,6 +235,52 @@ def backproject_slices(bounding_box: BoundingBox, slice_rects: np.ndarray, slice
     return net_lookup[:, set_values], net_point_totals[set_values], net_point_weights[set_values]
 
 
+def _apply_weights(values, weights, corner):
+    # This looks stupid but is twice as fast as fancy indexing with prod
+    c_weights = weights[corner[0], 0, :] * weights[corner[1], 1, :] * weights[corner[2], 2, :]
+    w_values = values * c_weights
+    return w_values, c_weights
+
+
+def _points_and_weights(points: np.ndarray, bounding_box_shape: tuple[int], squish_type: type):
+    int_points = np.empty(points.shape, dtype=squish_type)
+    weights = np.empty(points.shape, np.float32)
+    np.modf(points, out=(weights, int_points), casting="unsafe")
+
+    # Weight values are 1-remainder for floor, remainder for 'ceiling'.
+    weights = np.stack([1 - weights, weights], axis=0)
+
+    return np.ravel_multi_index(int_points, bounding_box_shape).astype(squish_type), weights
+
+
+def backproject_box(bounding_box: BoundingBox, slice_rects: np.ndarray, slices: np.ndarray):
+    # Get Coordinate Grid
+    values = slices.flatten()
+    xyz_shape = tuple(np.add(bounding_box.get_shape(), (1, 1, 1)))
+    flat_shape = np.prod(xyz_shape)
+
+    grid_call = partial(coordinate_grid, shape=slices[0].shape, floor=bounding_box.get_min())
+    precise_points = np.concatenate(list(map(grid_call, slice_rects)))
+
+    volume = np.zeros((2, flat_shape), dtype=np.float32)
+    squish_type = np.min_scalar_type(flat_shape)
+
+    points, weights = _points_and_weights(precise_points.reshape(-1, 3).T, xyz_shape, squish_type)
+
+    for corner in np.array(list(np.ndindex(2, 2, 2))):
+        w_values, c_weights = _apply_weights(values, weights, corner)
+        point_inc = np.ravel_multi_index(corner, xyz_shape).astype(squish_type)
+
+        np.add.at(volume[0], points + point_inc, w_values)
+        np.add.at(volume[1], points + point_inc, c_weights)
+
+    nz_vol = np.nonzero(volume[0])
+
+    return (np.array(np.unravel_index(nz_vol, xyz_shape), dtype=np.uint32).squeeze(),
+            volume[0, nz_vol].squeeze(),
+            volume[1, nz_vol].squeeze())
+
+
 def make_volume_binary(volume: np.ndarray, dtype=np.uint8) -> np.ndarray:
     """
     Convert a volume to binary format.
