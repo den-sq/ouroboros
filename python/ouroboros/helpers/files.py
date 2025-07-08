@@ -1,4 +1,5 @@
 from functools import partial
+from multiprocessing.pool import ThreadPool
 import os
 import shutil
 from threading import Thread
@@ -7,76 +8,9 @@ import numpy as np
 from numpy.typing import ArrayLike
 from pathlib import Path
 from tifffile import imread, TiffWriter, memmap, TiffFile
+import time
 
-from .memory_usage import calculate_gigabytes_from_dimensions
 from .shapes import DataShape
-
-
-def load_and_save_tiff_from_slices(
-    folder_name: str,
-    output_file_path: str,
-    delete_intermediate: bool = True,
-    compression: str = None,
-    metadata: dict = {},
-    resolution: tuple[int, int] = None,
-    resolutionunit: str = None,
-):
-    """
-    Load tiff files from a folder and save them to a new tiff file.
-
-    Parameters
-    ----------
-    folder_name : str
-        The folder containing the tiff files to load.
-    output_file_path : str
-        The path to save the resulting tiff file.
-    delete_intermediate : bool, optional
-        Whether to delete the intermediate tiff files after saving the resulting tiff file.
-        The default is True.
-    compression : str, optional
-        The compression to use for the resulting tiff file.
-        The default is None.
-    metadata : dict, optional
-        Metadata to save with the resulting tiff file.
-        The default is {}.
-    resolution : tuple[int, int], optional
-        The resolution of the resulting tiff file.
-        The default is None.
-    resolutionunit : str, optional
-        The resolution unit of the resulting tiff file.
-        The default is None.
-    """
-
-    # Load the saved tifs in numerical order
-    tif_files = get_sorted_tif_files(folder_name)
-
-    # Read in the first tif file to determine if the resulting tif should be a bigtiff
-    first_path = join_path(folder_name, tif_files[0])
-    first_tif = imread(first_path)
-    shape = (len(tif_files), *first_tif.shape)
-
-    bigtiff = calculate_gigabytes_from_dimensions(shape, first_tif.dtype) > 4
-
-    contiguous = compression is None
-
-    # Save tifs to a new resulting tif
-    with TiffWriter(output_file_path, bigtiff=bigtiff) as tif:
-        for filename in tif_files:
-            tif_path = join_path(folder_name, filename)
-            tif_file = imread(tif_path)
-            tif.write(
-                tif_file,
-                contiguous=contiguous,
-                compression=compression,
-                metadata=metadata,
-                resolution=resolution,
-                resolutionunit=resolutionunit,
-                software="ouroboros",
-            )
-
-    # Delete slices folder
-    if delete_intermediate:
-        shutil.rmtree(folder_name)
 
 
 def get_sorted_tif_files(directory: str) -> list[str]:
@@ -227,11 +161,10 @@ def generate_tiff_write(write_func, compression, micron_resolution, backprojecti
                    software="ouroboros")
 
 
-def write_small_intermediate(file_path: os.PathLike, int_points: np.ndarray, values: np.ndarray, weights: np.ndarray):
-    with TiffWriter(file_path) as tif:
-        tif.write(int_points, photometric='minisblack')
-        tif.write(values[np.newaxis, :], photometric='minisblack')
-        tif.write(weights[np.newaxis, :], photometric='minisblack')
+def write_small_intermediate(file_path: os.PathLike, *series):
+    with TiffWriter(file_path, append=True) as tif:
+        for entry in series:
+            tif.write(entry, dtype=entry.dtype)
 
 
 def write_memmap_with_create(file_path: os.PathLike, indicies: tuple[np.ndarray], data: np.ndarray,
@@ -294,79 +227,55 @@ def rewrite_by_dimension(writeable, tif_write, base_path, dtype=np.uint16, is_si
     return threads
 
 
-def load_intermediates(base_path, intermediates):
-    flagged_intermediates = np.array(np.nonzero(intermediates)).T
-    points = []
-    values = []
-    weights = []
-    for d, v, u in flagged_intermediates:
-        with TiffFile(base_path.joinpath(f"i_{d}_{v}_{u}.tiff")) as tif:
-            points.append(tif.series[0].asarray().squeeze())
-            values.append(tif.series[1].asarray().squeeze())
-            weights.append(tif.series[2].asarray().squeeze())
-    points = np.concatenate(points, axis=1)
-    values = np.concatenate(values)
-    weights = np.concatenate(weights)
-    z_vals, inverse = np.unique(points[2, :], return_inverse=True)
-
-    return list(z_vals), inverse, points, values, weights
+def ravel_map_2d(index, source_rows, target_rows, offset):
+    return np.add.reduce(np.add(np.divmod(index, source_rows), offset) * ((target_rows, ), (np.uint32(1), )))
 
 
-def load_from_intermediates(base_path, intermediates, index, shape):
-    flagged_intermediates = np.array(np.nonzero(intermediates)).T
-
-    points = np.concatenate([imread(base_path.joinpath(f"i_{d}_{v}_{u}.tiff"), series=0)
-                             for d, v, u in flagged_intermediates], axis=1)
-    values = np.concatenate([imread(base_path.joinpath(f"i_{d}_{v}_{u}.tiff"), series=1).squeeze()
-                             for d, v, u in flagged_intermediates])
-    weights = np.concatenate([imread(base_path.joinpath(f"i_{d}_{v}_{u}.tiff"), series=2).squeeze()
-                             for d, v, u in flagged_intermediates])
-    with_index = points[2, :] == index
-
-    img = np.zeros((2, shape.Y, shape.X), dtype=np.float32).reshape(2, -1)
-    points_index = (points[1, with_index], points[0, with_index])
-    flat_points = np.ravel_multi_index(points_index, (shape.Y, shape.X)).astype(np.uint32)
-
-    np.add.at(img[0], flat_points, values[with_index])
-    np.add.at(img[1], flat_points, weights[with_index])
-
-    return (img[0] / img[1]).reshape((shape.Y, shape.X))
+def load_z_intermediate(path: Path, offset: int = 0):
+    with TiffFile(path) as tif:
+        meta = tif.series[offset].asarray()
+        source_rows, target_rows, offset_rows, offset_columns = meta
+        return (ravel_map_2d(tif.series[offset + 1].asarray(),
+                             source_rows, target_rows,
+                             ((offset_rows, ), (offset_columns, ))),
+                tif.series[offset + 2].asarray(),
+                tif.series[offset + 3].asarray())
 
 
-def write_from_intermediate(writeable, tif_write, base_path, i_path, z_sources: np.ndarray, shape: DataShape,
-                            dtype: type = np.uint16, is_single=False, write_start=0, use_threads=True):
-    # Gets contiguous elements starting at 0 for single_file writing for accuracy
-    write = np.nonzero(writeable == 1)[0]
-    write = write[write == (np.indices(write.shape) + write_start)] if is_single else write
+def increment_volume(path: Path, vol: np.ndarray, offset: int = 0, cleanup=False):
+    indicies, values, weights = load_z_intermediate(path, offset)
+    np.add.at(vol[0], indicies, values)
+    np.add.at(vol[1], indicies, weights)
 
-    threads = []
+    if cleanup:
+        shutil.rmtree(path)
 
-    z_vals, inverse, points, values, weights = \
-        load_intermediates(i_path, np.logical_or.reduce(z_sources[write, :], axis=0))
 
-    def make_args(dim):
-        mask = (inverse == z_vals.index(dim))
-        flat_points = np.ravel_multi_index((points[1, mask], points[0, mask]), (shape.Y, shape.X)).astype(np.uint32)
-        img = np.zeros((2, shape.Y, shape.X), dtype=np.float32).reshape(2, -1)
-        np.add.at(img[0], flat_points, values[mask])
-        np.add.at(img[1], flat_points, weights[mask])
-        nz = np.nonzero(img[1])[0]
-        img[0, nz] /= img[1, nz]
-        # Min Dim Check?
-        if is_single:
-            return (np_convert(dtype, img[0].reshape((shape.Y, shape.X))), )
+def volume_from_intermediates(path: Path, shape: DataShape, thread_count: int = 4):
+    vol = np.zeros((2, np.prod((shape.Y, shape.X))), dtype=np.float32)
+    with ThreadPool(thread_count) as pool:
+        if not path.exists():
+            # We don't have any intermediate(s) for this value, so return empty.
+            print("No intermediate found.")
+            return vol[0]
+        elif path.is_dir():
+            pool.starmap(increment_volume, [(i, vol, 0, False) for i in path.glob("**/*.tif*")])
         else:
-            return (base_path.joinpath(f"{dim:05}.tiff"),
-                    np_convert(dtype, img[0].reshape((shape.Y, shape.X)), False))
+            with TiffFile(path) as tif:
+                offset_set = range(0, len(tif.series), 4)
+            pool.starmap(increment_volume, [(path, vol, i, False) for i in offset_set])
 
-    if use_threads:
-        threads = [Thread(target=tif_write, args=make_args(index)) for index in write]
-        for thread in threads:
-            thread.start()
-    else:
-        for index in write:
-            tif_write(*make_args(index))
+    nz = np.flatnonzero(vol[0])
+    vol[0, nz] /= vol[1, nz]
+    return vol[0]
 
-    writeable[write] = 2
 
-    return threads
+def write_conv_vol(writer: callable, source_path, shape, dtype, *args, **kwargs):
+    perf = {}
+    start = time.perf_counter()
+    vol = volume_from_intermediates(source_path, shape)
+    perf["Merge Volume"] = time.perf_counter() - start
+    start = time.perf_counter()
+    writer(*args, data=np_convert(dtype, vol.reshape(shape.Y, shape.X), False), **kwargs)
+    perf["Write Merged"] = time.perf_counter() - start
+    return perf

@@ -91,7 +91,7 @@ def calculate_slice_rects(
 
 
 def coordinate_grid(rect: np.ndarray, shape: tuple[int, int] | FrontProj,
-                    floor: np.ndarray = None) -> np.ndarray:
+                    floor: np.ndarray = None, flip: bool = False) -> np.ndarray:
     """
     Generate a coordinate grid for a rectangle, relative to space of rectangle.
 
@@ -101,6 +101,7 @@ def coordinate_grid(rect: np.ndarray, shape: tuple[int, int] | FrontProj,
         width (int): The width of the grid.
         height (int): The height of the grid.
         floor (ndarray): Extra minimum value to use as baseline, instead of rect[0]
+        flip (bool): Whether to flip the slice rects coordiante order (e.g. X/Y/Z to Z/Y/X)
 
     Returns:
     -------
@@ -109,9 +110,14 @@ def coordinate_grid(rect: np.ndarray, shape: tuple[int, int] | FrontProj,
     # Addition adds an extra rect[0] so we extend floor by it.
     floor = (rect[0] if floor is None else rect[0] + floor).astype(np.float32)
     if isinstance(shape, tuple): shape = FrontProj(*shape)     # noqa: E701
+    if flip:
+        floor = np.flip(floor)
+        l_rect = np.flip(rect, axis=1)
+    else:
+        l_rect = rect
 
-    u = np.linspace(rect[0], rect[1], shape.U, dtype=np.float32)
-    v = np.linspace(rect[0], rect[3], shape.V, dtype=np.float32)
+    u = np.linspace(l_rect[0], l_rect[1], shape.U, dtype=np.float32)
+    v = np.linspace(l_rect[0], l_rect[3], shape.V, dtype=np.float32)
 
     return np.add(u.reshape(1, shape.U, 3), v.reshape(shape.V, 1, 3)) - floor
 
@@ -254,31 +260,28 @@ def _points_and_weights(points: np.ndarray, bounding_box_shape: tuple[int], squi
 
 
 def backproject_box(bounding_box: BoundingBox, slice_rects: np.ndarray, slices: np.ndarray):
-    # Get Coordinate Grid
     values = slices.flatten()
-    xyz_shape = tuple(np.add(bounding_box.get_shape(), (1, 1, 1)))
-    flat_shape = np.prod(xyz_shape)
+    zyx_shape = np.flip(bounding_box.get_shape())
+    flat_shape = np.prod(zyx_shape)
 
-    grid_call = partial(coordinate_grid, shape=slices[0].shape, floor=bounding_box.get_min())
+    grid_call = partial(coordinate_grid, shape=slices[0].shape, floor=bounding_box.get_min(), flip=True)
     precise_points = np.concatenate(list(map(grid_call, slice_rects)))
 
     volume = np.zeros((2, flat_shape), dtype=np.float32)
     squish_type = np.min_scalar_type(flat_shape)
 
-    points, weights = _points_and_weights(precise_points.reshape(-1, 3).T, xyz_shape, squish_type)
+    points, weights = _points_and_weights(precise_points.reshape(-1, 3).T, zyx_shape, squish_type)
 
     for corner in np.array(list(np.ndindex(2, 2, 2))):
         w_values, c_weights = _apply_weights(values, weights, corner)
-        point_inc = np.ravel_multi_index(corner, xyz_shape).astype(squish_type)
+        point_inc = np.ravel_multi_index(corner, zyx_shape).astype(squish_type)
 
         np.add.at(volume[0], points + point_inc, w_values)
         np.add.at(volume[1], points + point_inc, c_weights)
 
-    nz_vol = np.nonzero(volume[0])
+    nz_vol = np.flatnonzero(volume[0])
 
-    return (np.array(np.unravel_index(nz_vol, xyz_shape), dtype=np.uint32).squeeze(),
-            volume[0, nz_vol].squeeze(),
-            volume[1, nz_vol].squeeze())
+    return nz_vol, volume[0, nz_vol].squeeze(), volume[1, nz_vol].squeeze()
 
 
 def make_volume_binary(volume: np.ndarray, dtype=np.uint8) -> np.ndarray:

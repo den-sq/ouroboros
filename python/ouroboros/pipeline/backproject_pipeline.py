@@ -2,6 +2,7 @@ import concurrent.futures
 from dataclasses import astuple
 from functools import partial
 from multiprocessing import cpu_count
+from multiprocessing.pool import ThreadPool
 import os
 from pathlib import Path
 import shutil
@@ -22,7 +23,6 @@ from ouroboros.helpers.slice import (        # noqa: F401
     detect_color_channels_shape,
     make_volume_binary,
     FrontProjStack,
-    backproject_slices,
     backproject_box,
     BackProjectIter
 )
@@ -38,13 +38,14 @@ from ouroboros.helpers.files import (
     num_digits_for_n_files,
     parse_tiff_name,
     generate_tiff_write,
-    write_from_intermediate,
+    write_conv_vol,
     write_small_intermediate
 )
 from ouroboros.helpers.shapes import DataRange, ImgSlice
+# from ouroboros.helpers.util import unique_lv
 
 
-DEFAULT_CHUNK_SIZE = 128
+DEFAULT_CHUNK_SIZE = 200
 AXIS = 0
 
 
@@ -58,7 +59,7 @@ class BackprojectPipelineStep(PipelineStep):
             )
         )
 
-        self.num_processes = min(processes, 8)
+        self.num_processes = processes
 
     def _process(self, input_data: any) -> tuple[any, None] | tuple[None, any]:
         config, volume_cache, slice_rects, pipeline_input = input_data
@@ -83,9 +84,7 @@ class BackprojectPipelineStep(PipelineStep):
 
         # Make sure the straightened volume exists
         if not os.path.exists(straightened_volume_path):
-            return (
-                f"The straightened volume does not exist at {straightened_volume_path}."
-            )
+            return (f"The straightened volume does not exist at {straightened_volume_path}.")
 
         if Path(straightened_volume_path).is_dir():
             with tifffile.TiffFile(next(Path(straightened_volume_path).iterdir())) as tif:
@@ -132,6 +131,9 @@ class BackprojectPipelineStep(PipelineStep):
                            config.output_file_name + f"_{'_'.join(map(str, full_bounding_box.get_min(np.uint32)))}")
         folder_path.mkdir(exist_ok=True, parents=True)
 
+        i_path = Path(config.output_file_folder,
+                      config.output_file_name + f"_t_{'_'.join(map(str, full_bounding_box.get_min(np.uint32)))}")
+
         if config.make_single_file:
             is_big_tiff = calculate_gigabytes_from_dimensions(np.prod(write_shape), np.uint16) > 4     # Check Dtype
             single_tiff = tifffile.TiffWriter(folder_path.with_suffix(".tiff"), abigtiff=is_big_tiff)
@@ -144,8 +146,10 @@ class BackprojectPipelineStep(PipelineStep):
 
         # Process each bounding box in parallel, writing the results to the backprojected volume
         try:
-            with concurrent.futures.ProcessPoolExecutor(self.num_processes) as executor:
-                futures = []
+            with (concurrent.futures.ProcessPoolExecutor((self.num_processes // 4) * 3) as executor,
+                 concurrent.futures.ProcessPoolExecutor(self.num_processes // 4) as write_executor):
+                bp_futures = []
+                write_futures = []
 
                 chunk_range = DataRange(FPShape.make_with(0), FPShape, FPShape.make_with(DEFAULT_CHUNK_SIZE))
                 chunk_iter = partial(BackProjectIter, shape=FPShape, slice_rects=np.array(slice_rects))
@@ -153,7 +157,7 @@ class BackprojectPipelineStep(PipelineStep):
                 z_sources = np.zeros((write_shape[0], ) + astuple(chunk_range.length), dtype=bool)
 
                 for chunk, shape, chunk_rects, bbox, index in chunk_range.get_iter(chunk_iter):
-                    futures.append(executor.submit(
+                    bp_futures.append(executor.submit(
                         process_chunk,
                         config,
                         bbox,
@@ -169,15 +173,20 @@ class BackprojectPipelineStep(PipelineStep):
                 min_dim = full_bounding_box.get_min(int)[2]
                 num_pages = full_bounding_box.get_shape()[2]
                 writeable = np.zeros(num_pages)
-                i_path = Path(config.output_file_folder,
-                              config.output_file_name +
-                              f"_t_{'_'.join(map(str, full_bounding_box.get_min(np.uint32)))}")
-                thread_pool = []
-                thread_timings = []
+                pages_written = 0
 
-                for future in concurrent.futures.as_completed(futures):
+                def note_written(write_future):
+                    nonlocal pages_written
+                    pages_written += 1
+                    self.update_progress(np.sum(processed) / (2 * len(chunk_range))
+                                         + pages_written / (2 * num_pages))
+                    for key, value in write_future.result().items():
+                        self.add_timing(key, value)
+
+                for bp_future in concurrent.futures.as_completed(bp_futures):
+                    start = time.perf_counter()
                     # Store the durations for each bounding box
-                    durations, index, z_stack = future.result()
+                    durations, index, z_stack = bp_future.result()
                     for key, value in durations.items():
                         self.add_timing_list(key, value)
 
@@ -185,33 +194,40 @@ class BackprojectPipelineStep(PipelineStep):
 
                     # Update the progress bar
                     processed[index] = 1
-                    self.update_progress(np.sum(processed) / (2 * len(chunk_range)) + np.sum(writeable > 1) / num_pages)
+                    self.update_progress(np.sum(processed) / (2 * len(chunk_range))
+                                         + pages_written / (2 * num_pages))
 
                     update_writable_rects(processed, slice_rects, min_dim, writeable, DEFAULT_CHUNK_SIZE)
 
                     if np.any(writeable == 1):
-                        start = time.perf_counter()
+                        write = np.flatnonzero(writeable == 1)
+                        if config.make_single_file:
+                            write = write[write == (np.indices(write.shape) + len(writeable > 1))]
 
-                        thread_pool += write_from_intermediate(writeable, tif_write, folder_path, i_path, z_sources,
-                                                               ImgSlice(*write_shape[1:]),
-                                                               dtype=np.uint16,
-                                                               is_single=config.make_single_file,
-                                                               write_start=len(writeable > 1),
-                                                               use_threads=False)
-                        thread_timings.append(time.perf_counter() - start)
+                        # Will need to multiprocess
+                        for index in write:
+                            path_args = [] if config.make_single_file else [folder_path.joinpath(f"{index:05}.tiff")]
 
-                    # Update the progress bar
-                    self.update_progress(np.sum(processed) / (2 * len(chunk_range)) + np.sum(writeable > 1) / num_pages)
+                            write_futures.append(write_executor.submit(
+                                write_conv_vol,
+                                tif_write, i_path.joinpath(f"i_{index:05}"),
+                                ImgSlice(*write_shape[1:]), np.uint16, *path_args
+                            ))
+                            write_futures[-1].add_done_callback(note_written)
+
+                        writeable[write] = 2
+
+                    self.add_timing("Process Backproject Future", time.perf_counter() - start)
+
         except BaseException as e:
             traceback.print_tb(e.__traceback__, file=sys.stderr)
             return f"An error occurred while processing the bounding boxes: {e}"
 
-        self.add_timing_list("Thread Dispatch", thread_timings)
+        for write_future in concurrent.futures.as_completed(write_futures):
+            # Consume them to make sure they're finished.
+            pass
 
         start = time.perf_counter()
-
-        for thread in thread_pool:
-            thread.join()
 
         if config.make_single_file:
             shutil.rmtree(folder_path)
@@ -266,34 +282,23 @@ def process_chunk(
     index: tuple[int],
     full_bounding_box: BoundingBox
 ) -> tuple[dict, str, int]:
-    durations = {
-        "total_bytes": [],
-        "memmap": [],
-        "get_slices": [],
-        "generate_grid": [],
-        "create_volume": [],
-        "back_project": [],
-        "update_lookup": [],
-        "sort": [],
-        "write_intermediate": [],
-        "total_process": [],
-    }
+    durations = {}
 
     start_total = time.perf_counter()
 
     # Load the straightened volume
-    start = time.perf_counter()
     straightened_volume = tifffile.memmap(straightened_volume_path, mode="r")
-    durations["memmap"].append(time.perf_counter() - start)
+    durations["memmap"] = [time.perf_counter() - start_total]
 
     # Get the slices from the straightened volume  Dumb but maybe bugfix?
     start = time.perf_counter()
     slices = straightened_volume[chunk].squeeze()
-    durations["get_slices"].append(time.perf_counter() - start)
 
     # Close the memmap
     del straightened_volume
+    durations["get_slices"] = [time.perf_counter() - start]
 
+    start = time.perf_counter()
     try:
         lookup, values, weights = backproject_box(bounding_box, chunk_rects, slices)
     except BaseException as be:
@@ -301,40 +306,58 @@ def process_chunk(
         traceback.print_tb(be.__traceback__, file=sys.stderr)
         raise be
 
-    durations["back_project"].append(time.perf_counter() - start)
-    durations["total_bytes"].append(int(lookup.nbytes + values.nbytes + weights.nbytes))
+    durations["back_project"] = [time.perf_counter() - start]
+    durations["total_bytes"] = [int(lookup.nbytes + values.nbytes + weights.nbytes)]
 
     # Save the data
     try:
         start = time.perf_counter()
 
-        lookup += np.array((bounding_box.get_min(np.uint32) - full_bounding_box.get_min(np.uint32))).reshape(3, 1)
+        z_vals, yx_vals = np.divmod(lookup, np.prod(bounding_box.get_shape()[:2], dtype=np.uint32))
+        offset = np.flip(bounding_box.get_min(np.int64) - full_bounding_box.get_min(np.int64)).astype(np.uint32)
 
-        durations["update_lookup"].append(time.perf_counter() - start)
+        offset_dict = {
+            # Columns are Y, Rows are X;  Offset is ZYX; Bounding Box Shapes are XYZ
+            "source_rows": bounding_box.get_shape()[0],
+            "target_rows": full_bounding_box.get_shape()[0],
+            "offset_columns": offset[1],
+            "offset_rows": offset[2],
+        }
+        durations["split"] = [time.perf_counter() - start]
 
+        # Faster options with np.where or other approaches, since it's already sorted?
+        z_idx = [0] + list(np.where(z_vals[:-1] != z_vals[1:])[0] + 1) + [len(z_vals)]
+        z_stack = z_vals[z_idx[:-1]]
+        z_slices = [np.s_[z_idx[i]: z_idx[i + 1]] for i in range(len(z_idx) - 1)]
+#         z_stack, z_counts = (x.squeeze() for x in unique_lv(z_vals[np.newaxis, :], return_counts=True))
+#         z_slices = [np.s_[np.sum(z_counts[0:i]): np.sum(z_counts[0:i + 1])] for i in range(len(z_counts))]
+
+        durations["stack"] = [time.perf_counter() - start]
         start = time.perf_counter()
 
         file_path = Path(config.output_file_folder,
                          config.output_file_name + f"_t_{'_'.join(map(str, full_bounding_box.get_min(np.uint32)))}")
-
         file_path.mkdir(exist_ok=True, parents=True)
 
-        z_stack = tuple(np.unique(lookup[2]))
+        def write_z(i, z_slice):
+            offset_z = z_stack[i] + offset[0]
+            file_path.joinpath(f"i_{offset_z:05}").mkdir(exist_ok=True, parents=True)
+            write_small_intermediate(file_path.joinpath(f"i_{offset_z:05}", f"{index}.tif"),
+                                     np.fromiter(offset_dict.values(), dtype=np.uint32, count=4),
+                                     yx_vals[z_slice], values[z_slice], weights[z_slice])
 
-        durations["sort"].append(time.perf_counter() - start)
-        start = time.perf_counter()
+        with ThreadPool(12) as pool:
+            pool.starmap(write_z, enumerate(z_slices))
 
-        write_small_intermediate(file_path.joinpath(f"i_{'_'.join(map(str, index))}.tiff"), lookup, values, weights)
-
-        durations["write_intermediate"].append(time.perf_counter() - start)
+        durations["write_intermediate"] = [time.perf_counter() - start]
     except BaseException as be:
         print(f"Error on BP: {be}")
         traceback.print_tb(be.__traceback__, file=sys.stderr)
         raise be
 
-    durations["total_process"].append(time.perf_counter() - start_total)
+    durations["total_process"] = [time.perf_counter() - start_total]
 
-    return durations, index, z_stack
+    return durations, index, z_stack + offset[2]
 
 
 def rescale_mip_volume(

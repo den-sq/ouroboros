@@ -1,7 +1,10 @@
+from dataclasses import astuple
 from functools import partial
+from pathlib import Path
 import pytest
 
 import numpy as np
+import tifffile as tf
 
 from ouroboros.helpers.bounding_boxes import BoundingBox
 from ouroboros.helpers.slice import (
@@ -12,10 +15,10 @@ from ouroboros.helpers.slice import (
     coordinate_grid,
     backproject_slices,
     backproject_box,
-    chunk_slice,
     FrontProjStack,
     BackProjectIter
 )
+from ouroboros.helpers.shapes import ImageStack
 from ouroboros.helpers.spline import Spline
 from test.sample_data import generate_sample_curve_helix
 
@@ -113,6 +116,31 @@ def test_generate_coordinate_grid_for_rect():
     assert np.allclose(
         cg[0][0], rect[0]
     ), "The first coordinate should be the top left corner of the rectangle"
+
+
+def test_generate_coordinate_grid_flipped():
+    rect = np.array([[-42.64727347, -54.72166585,  -4.78695662],
+                     [-47.22139466,  43.8212048,  -21.16926598],
+                     [40.81561612,  55.54768491,  24.78695662],
+                     [45.38973732, -42.99518573,  41.16926598]])
+    floor = np.array([-50.0, -60.0, -40.0])
+#     rect = np.array([[0, 0, 0], [2, 2, 0], [2, 3, 2], [0, 1, 2]])
+#     rect = np.array([[ 57.35272653,  45.27833415,  95.21304338],
+#        [ 52.77860534, 143.8212048 ,  78.83073402],
+#        [140.81561612, 155.54768491, 124.78695662],
+#        [145.38973732,  57.00481427, 141.16926598]])
+
+    WIDTH = 100
+    HEIGHT = 60
+
+    # Generate a coordinate grid for the rectangle
+    cg = coordinate_grid(rect, (HEIGHT, WIDTH), flip=True, floor=floor)
+
+    # Assert that the method returns a numpy array
+    assert isinstance(cg, np.ndarray), "Coordinate grid should be a numpy array"
+    assert cg.shape == (HEIGHT, WIDTH, 3, ), "Coordinate grid should have shape (60, 100, 3)"
+    assert np.allclose(cg[0][0], np.flip(rect[0] - floor)
+                       ), "The first coordinate should be the top left corner of the rectangle"
 
 
 def test_slice_volume_from_grids_single_channel():
@@ -272,15 +300,6 @@ def test_detect_color_channels_custom_none_value():
     )
     assert not has_color_channels
     assert num_color_channels == none_value
-
-
-def test_chunk_slice():
-    rect = np.array([[0, 0, 0], [10, 0, 0], [10, 10, 0], [0, 10, 0]])
-    slice_rects, _, slice_shapes = chunk_slice(rect, (10, 10), 4)
-
-    assert np.all(slice_rects[0] == np.array([[0, 0, 0], [4, 0, 0], [4, 4, 0], [0, 4, 0]]))
-    assert np.all(slice_rects[-1] == np.array([[4, 4, 0], [10, 4, 0], [10, 10, 0], [4, 10, 0]]))
-    assert slice_shapes == [(4, 4), (4, 6), (6, 4), (6, 6)]
 
 
 def make_rect(point, u_vec, v_vec):

@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 import numpy as np
-from tifffile import imwrite
+from tifffile import imwrite, TiffFile
 
 from ouroboros.helpers.files import (
     format_backproject_output_file,
@@ -13,7 +13,6 @@ from ouroboros.helpers.files import (
     format_slice_output_file,
     format_slice_output_multiple,
     format_tiff_name,
-    load_and_save_tiff_from_slices,
     get_sorted_tif_files,
     join_path,
     combine_unknown_folder,
@@ -22,40 +21,12 @@ from ouroboros.helpers.files import (
     np_convert,
     generate_tiff_write,
     write_memmap_with_create,
-    rewrite_by_dimension
+    rewrite_by_dimension,
+    ravel_map_2d,
+    load_z_intermediate,
+    increment_volume,
+    write_small_intermediate
 )
-
-
-def test_load_and_save_tiff_from_slices(tmp_path):
-    slices_folder = tmp_path / "slices"
-    slices_folder.mkdir()
-
-    input_names = [slices_folder / f"slice_{i:03d}.tif" for i in range(5)]
-
-    # Change some names to .tiff to ensure both .tif and .tiff are read.
-    from random import randrange
-    for i in [randrange(5) for j in range(2)]:
-        input_names[i] = input_names[i].with_suffix('.tiff')
-
-    # Create some sample tiff files
-    for name in input_names:
-        imwrite(name, data=[[i]])
-
-    output_file_path = tmp_path / "output.tif"
-    load_and_save_tiff_from_slices(
-        folder_name=str(slices_folder),
-        output_file_path=str(output_file_path),
-        delete_intermediate=True,
-        compression=None,
-        metadata={"test": "metadata"},
-        resolution=(300, 300),
-        resolutionunit="inch",
-    )
-
-    assert output_file_path.exists()
-
-    # Make sure the intermediate files were deleted
-    assert len(list(tmp_path.iterdir())) == 1
 
 
 def test_get_sorted_tif_files(tmp_path):
@@ -258,6 +229,55 @@ def test_write_memmap_with_create(tmp_path):
 
     x = tf.imread(temp_file)
     assert np.allclose(x[second_indicies], np.mean([data[5:8], second_values], axis=0))
+
+
+def test_ravel_map_2d():
+    offset = ((60, ), (40, ))
+    source_rows = 20
+    target_rows = 60
+    source_coords = np.random.randint(0, 20, 200).reshape(2, 100)
+    mapped_coords = source_coords + ((60, ), (40, ))
+
+    raveled_source = np.ravel_multi_index(source_coords, (20, 20))
+    raveled_mapped = np.ravel_multi_index(mapped_coords, (80, 60))
+    result = ravel_map_2d(raveled_source, source_rows, target_rows, offset)
+
+    assert np.all(result == raveled_mapped)
+
+
+def test_write_intermediate(tmp_path):
+    sample_path = Path(tmp_path, "inter.tif")
+    source_coords = np.random.randint(0, 20, 200).reshape(2, 100)
+    mapped_coords = source_coords + ((60, ), (40, ))
+    raveled_source = np.ravel_multi_index(source_coords, (20, 20)).astype(np.uint32)
+    raveled_mapped = np.ravel_multi_index(mapped_coords, (80, 60))
+    source_values = np.random.rand(100).astype(np.float32)
+    source_weights = np.random.rand(100).astype(np.float32)
+
+    offset_dict = {
+        "source_rows": 20,
+        "target_rows": 60,
+        "offset_columns": 60,
+        "offset_rows": 40,
+    }
+
+    write_small_intermediate(sample_path,
+                             np.fromiter(offset_dict.values(), dtype=np.uint32, count=4),
+                             raveled_source,
+                             source_values,
+                             source_weights)
+
+    indicies, values, weights = load_z_intermediate(sample_path)
+
+    assert len(indicies) == 100
+    assert indicies.dtype == np.uint32
+    assert np.all(indicies == raveled_mapped)
+    assert len(values) == 100
+    assert values.dtype == np.float32
+    assert np.all(values == source_values)
+    assert len(weights) == 100
+    assert np.all(weights == source_weights)
+    assert weights.dtype == np.float32
 
 
 def test_rewrite_by_dimension(tmp_path):
