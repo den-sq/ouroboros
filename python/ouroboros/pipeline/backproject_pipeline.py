@@ -178,8 +178,8 @@ class BackprojectPipelineStep(PipelineStep):
                 def note_written(write_future):
                     nonlocal pages_written
                     pages_written += 1
-                    self.update_progress(np.sum(processed) / (2 * len(chunk_range))
-                                         + pages_written / (2 * num_pages))
+                    self.update_progress((np.sum(processed) / len(chunk_range)) * (2 / 3)
+                                         + (pages_written / num_pages) * (1 / 3))
                     for key, value in write_future.result().items():
                         self.add_timing(key, value)
 
@@ -194,8 +194,8 @@ class BackprojectPipelineStep(PipelineStep):
 
                     # Update the progress bar
                     processed[index] = 1
-                    self.update_progress(np.sum(processed) / (2 * len(chunk_range))
-                                         + pages_written / (2 * num_pages))
+                    self.update_progress((np.sum(processed) / len(chunk_range)) * (2 / 3)
+                                         + (pages_written / num_pages) * (1 / 3))
 
                     update_writable_rects(processed, slice_rects, min_dim, writeable, DEFAULT_CHUNK_SIZE)
 
