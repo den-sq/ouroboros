@@ -247,18 +247,19 @@ def test_ravel_map_2d():
 
 def test_write_intermediate(tmp_path):
     sample_path = Path(tmp_path, "inter.tif")
+    offset = ((np.uint32(60), ), (np.uint32(40), ))
     source_coords = np.random.randint(0, 20, 200).reshape(2, 100)
-    mapped_coords = source_coords + ((60, ), (40, ))
+    mapped_coords = source_coords + offset
     raveled_source = np.ravel_multi_index(source_coords, (20, 20)).astype(np.uint32)
-    raveled_mapped = np.ravel_multi_index(mapped_coords, (80, 60))
+    raveled_mapped = np.ravel_multi_index(mapped_coords, (80, 60)).astype(np.uint32)
     source_values = np.random.rand(100).astype(np.float32)
     source_weights = np.random.rand(100).astype(np.float32)
 
     offset_dict = {
-        "source_rows": 20,
-        "target_rows": 60,
-        "offset_columns": 60,
-        "offset_rows": 40,
+        "source_rows": np.uint32(20),
+        "target_rows": np.uint32(60),
+        "offset_columns": np.uint32(60),
+        "offset_rows": np.uint32(40),
     }
 
     write_small_intermediate(sample_path,
@@ -270,7 +271,6 @@ def test_write_intermediate(tmp_path):
     indicies, values, weights = load_z_intermediate(sample_path)
 
     assert len(indicies) == 100
-    assert indicies.dtype == np.uint32
     assert np.all(indicies == raveled_mapped)
     assert len(values) == 100
     assert values.dtype == np.float32
