@@ -52,12 +52,14 @@ class Logger:
             self.__logs = log_files
         else:
             self.__logs = {
-                "general": (Path(f"imaging_log_{str(self.script_start).replace(':', '')}.txt"), ~(LOG.INFO or LOG.DEBUG))
+                "general": (Path(f"imaging_log_{str(self.script_start).replace(':', '')}.txt"),
+                            ~(LOG.INFO or LOG.DEBUG))
             }
         self.__pid = psutil.Process().pid
 
     def set_logdir(self, logdir):
-        self.__logs["general"] = (Path(logdir, f"imaging_log_{str(self.script_start).replace(':', '')}.txt"), self.__logs["general"][1])
+        self.__logs["general"] = (Path(logdir, f"imaging_log_{str(self.script_start).replace(':', '')}.txt"),
+                                  self.__logs["general"][1])
         Path(logdir).mkdir(parents=True, exist_ok=True)
 
     def header(self, out=None):
