@@ -123,7 +123,7 @@ crt = ["awscrt (==0.20.11)"]
 
 [[package]]
 name = "brotli"
-version = "1.1.0"
+version = "1.1.1"
 description = "Python bindings for the Brotli compression library"
 optional = false
 python-versions = "*"
