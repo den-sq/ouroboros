@@ -24,4 +24,4 @@ _Where are plugins installed? In the [appData](https://github.com/electron/elect
 
 ### Creating a Plugin
 
-See the [template README](https://github.com/We-Gold/ouroboros/blob/main/plugins/plugin-template/README.md) for more information.
+See the [template README](https://github.com/ChengLabResearch/ouroboros/blob/main/plugins/plugin-template/README.md) for more information.

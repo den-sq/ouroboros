@@ -53,13 +53,12 @@ A large amount of helpful data is saved in `*-configuration.json` file after the
 
 **Trilinear Interpolation**
 
-The straightened volume slices are loaded in as a memmap (an in-memory reference to the tiff image on the hard-drive or SSD). 
+Backprojection iterates through 3D chunks of the straightened volume, as follows following order:
 
-Then, an empty volume is created with the same dimensions as the bounding box. A custom trilinear interpolation implementation is used to copy the slice data into the empty volume. 
-
-These volumes are saved to local tiff images. After all volumes have been calculated, Ouroboros creates chunks of an empty volume (same size as the original volume) and copies the data from the smaller volumes into the chunk, and then saves that chunk as a tiff with compression. 
-
-Finally, all chunks are combined to produce either a minimum bounding box in the space of the original volume with all of the backprojected data, or a full-size volume with the backprojected data.
+1. The slices are loaded from a memmory map of the straightened volume.
+2. A custom rapid trilinear interpolation implementation is used to map the slice data into a sparse representation of the backprojected volume, limited to a bounding box containing only points associated with the chunk.  
+3. As slices are completed, they are written to an uncompressed memory map of the final volume.
+4. Once all slices are completed, the final volume is compressed as either a single image or tiff stack. 
 
 **Why Is Interpolation Needed?**
 
