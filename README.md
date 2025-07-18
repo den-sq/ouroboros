@@ -6,13 +6,13 @@ Quickly extract ROIs from cloud-hosted medical scans.
 
 This repository is a monorepo containing the code for the Ouroboros app and the Ouroboros Python package (`python` folder). 
 
-For a **usage guide**, check out the [Documentation](https://wegold.me/ouroboros/).
+For a **usage guide**, check out the [Documentation](https://chenglabresearch.github.io/ouroboros/).
 
 # Quick Start
 
 **[Docker](https://www.docker.com/products/docker-desktop/) is REQUIRED to run Ouroboros.**
 
-There are prebuilt applications available in [Releases](https://github.com/We-Gold/ouroboros/releases).
+There are prebuilt applications available in [Releases](https://github.com/ChengLabResearch/ouroboros/releases).
 
 - Windows: `*-setup.exe`
 - Mac: `*.dmg`
@@ -52,7 +52,7 @@ _Where are plugins installed? In the [appData](https://github.com/electron/elect
 
 ### Creating a Plugin
 
-See the [template README](https://github.com/We-Gold/ouroboros/blob/main/plugins/plugin-template/README.md) for more information.
+See the [template README](https://github.com/ChengLabResearch/ouroboros/blob/main/plugins/plugin-template/README.md) for more information.
 
 # Development Quick Start
 
