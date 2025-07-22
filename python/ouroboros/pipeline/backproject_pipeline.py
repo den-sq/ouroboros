@@ -309,15 +309,12 @@ def process_chunk(
     try:
         start = time.perf_counter()
 
-        zyx_shape = np.flip(bounding_box.get_shape()).astype(np.uint32)
-
-        z_vals, yx_vals = np.divmod(lookup, np.prod(zyx_shape[:2], dtype=np.uint32))
+        z_vals, yx_vals = np.divmod(lookup, np.prod(bounding_box.get_shape()[:2], dtype=np.uint32))
         offset = np.flip(bounding_box.get_min(np.int64) - full_bounding_box.get_min(np.int64)).astype(np.uint32)
 
         offset_dict = {
             # Columns are Y, Rows are X;  Offset is ZYX; Bounding Box Shapes are XYZ
-            # Could this cause an error when full bounding box shape has a point exactly at max?
-            "source_rows": zyx_shape[0],
+            "source_rows": bounding_box.get_shape()[0],
             "target_rows": full_bounding_box.get_shape()[0],
             "offset_columns": offset[1],
             "offset_rows": offset[2],
