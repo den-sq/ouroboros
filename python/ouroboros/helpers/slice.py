@@ -7,7 +7,6 @@ from scipy.ndimage import map_coordinates
 
 from .bounding_boxes import BoundingBox
 from .spline import Spline
-from .util import unique_lv
 from .shapes import DataShape, TFIter, DataRange
 
 INDEXING = "xy"
@@ -179,68 +178,6 @@ def slice_volume_from_grids(
         return slice_points.reshape(len(grids), height, width)
 
 
-def backproject_slices(bounding_box: BoundingBox, slice_rects: np.ndarray, slices: np.ndarray) -> tuple[np.ndarray]:
-    """
-    Write a slice to volume based on a grid of coordinates.  Returns coordinates.
-
-    Parameters:
-    ----------
-        bounding_box (BoundingBox): The bounding box of the volume.
-        slice_rects (numpy.ndarray): The slice rectangles for the box.
-        slices (numpy.ndarray): The slice data to write to the volume (n, width, height).
-        volume (numpy.ndarray, dtype=float32): A volume of shape (x, y, z), which should match
-                                               the dimensions of the given bounding box.
-                                               Optional to write to.
-
-    Returns:
-    -------
-        tuple(np.ndarray, np.ndarray, np.ndarray):
-            Tuple of arrays:  the unique points, the matching weights, and the matching weighted values.
-    """
-    if slices.shape[0] == 0:
-        # No slices, just return
-        return np.empty((3, 0), dtype=np.uint16), np.empty(0, dtype=np.float32), np.empty(0, dtype=np.float32)
-
-    # Normalize grid coordinates based on bounding box (since volume coordinates are truncated to bounding box)
-    grid_call = partial(coordinate_grid, shape=slices[0].shape, floor=bounding_box.get_min())
-
-    slice_values = slices.flatten()
-    slice_coords = np.concatenate(list(map(grid_call, slice_rects))).reshape(-1, 3).T
-
-    coord_scalar = np.min_scalar_type(int(np.max(slice_coords)))
-
-    int_coords = np.empty(slice_coords.shape, dtype=coord_scalar)
-    weights = np.empty((2, ) + slice_coords.shape, dtype=slice_coords.dtype)
-
-    np.modf(slice_coords, out=(weights[1, :], int_coords), casting="unsafe")
-    weights[0, :] = 1 - weights[1, :]
-
-    def corner_weights(w, c):
-        return w[c[0], 0, :] * w[c[1], 1, :] * weights[c[2], 2, :]
-
-    net_lookup = None
-    for j in np.ndindex((2, 2, 2)):
-        cw = corner_weights(weights, j)
-        lookup, point_weights, point_totals = \
-            unique_lv(int_coords + np.array(j, dtype=int).reshape(3, 1), cw, cw * slice_values, last_axis_sort=True)
-
-        set_values = np.nonzero(point_weights)[0]
-        if net_lookup is None:
-            net_lookup, net_point_weights, net_point_totals = \
-                (lookup[:, set_values], point_weights[set_values], point_totals[set_values])
-        else:
-            net_lookup, net_point_weights, net_point_totals = unique_lv(
-                np.concatenate([net_lookup, lookup[:, set_values]], axis=1),
-                np.concatenate([net_point_weights, point_weights[set_values]]),
-                np.concatenate([net_point_totals, point_totals[set_values]]), last_axis_sort=True)
-
-    # Can probably do borders first, but unsure how necessary it is.
-    bordered_values = np.logical_and.reduce(np.less(net_lookup, bounding_box.get_max().reshape(3, 1)))
-    set_values = np.logical_and((net_point_weights != 0), bordered_values)
-
-    return net_lookup[:, set_values], net_point_totals[set_values], net_point_weights[set_values]
-
-
 def _apply_weights(values, weights, corner):
     # This looks stupid but is twice as fast as fancy indexing with prod
     c_weights = weights[corner[0], 0, :] * weights[corner[1], 1, :] * weights[corner[2], 2, :]
@@ -260,6 +197,10 @@ def _points_and_weights(points: np.ndarray, bounding_box_shape: tuple[int], squi
 
 
 def backproject_box(bounding_box: BoundingBox, slice_rects: np.ndarray, slices: np.ndarray):
+    if slices.shape[0] == 0:
+        # No slices, just return
+        return np.empty((0), dtype=np.uint32), np.empty(0, dtype=np.float32), np.empty(0, dtype=np.float32)
+
     values = slices.flatten()
     zyx_shape = np.flip(bounding_box.get_shape())
     flat_shape = np.prod(zyx_shape)

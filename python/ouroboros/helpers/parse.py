@@ -134,6 +134,8 @@ def neuroglancer_config_to_source(
                 elif isinstance(layer.source, SourceModel):
                     return layer.source.url, None
                 else:
+                    # Don't think you can hit this as image layer types only build
+                    # from str or SourceModel
                     return None, "Invalid source format in the file."
     except BaseException as e:
         return None, f"Error extracting source URL: {e}"

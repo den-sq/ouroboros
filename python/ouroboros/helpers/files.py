@@ -167,39 +167,6 @@ def write_small_intermediate(file_path: os.PathLike, *series):
             tif.write(entry, dtype=entry.dtype)
 
 
-def write_memmap_with_create(file_path: os.PathLike, indicies: tuple[np.ndarray], data: np.ndarray,
-                             shape: tuple, dtype: type):
-    if file_path.exists():
-        try:
-            target_file = memmap(file_path)
-        except BaseException as be:
-            print(f"MM: {be} - {file_path} ")
-            import time
-            time.sleep(0.5)
-            target_file = memmap(file_path)
-    else:
-        if shape is None or dtype is None:
-            raise ValueError(f"Must have shape ({shape} given) and dtype ({dtype} given) when creating a memmap.")
-        target_file = memmap(file_path, shape=shape, dtype=dtype)
-        target_file[:] = 0
-
-    def ab(flags: np.ndarray[bool], index):
-        return tuple(dim[flags] for dim in index) if isinstance(index, tuple) else index[flags]
-
-    if indicies is not None and data is not None:
-        exist = target_file[indicies] != 0
-        if np.any(exist):
-            target_file[ab(exist, indicies)] = np.mean([target_file[indicies][exist], data[exist]],
-                                                       axis=0, dtype=target_file.dtype)
-            target_file[ab(np.invert(exist), indicies)] = data[np.invert(exist)]
-        else:
-            target_file[indicies] = data
-    elif indicies is not None or data is not None:
-        raise ValueError(f"Could not write data as indicies (None? {indicies is None})"
-                         f"or data (None? {data is None}) were missing.")
-    del target_file
-
-
 def rewrite_by_dimension(writeable, tif_write, base_path, dtype=np.uint16, is_single=False, write_start=0,
                          use_threads=True):
     # Gets contiguous elements starting at 0 for single_file writing for accuracy
@@ -248,7 +215,7 @@ def increment_volume(path: Path, vol: np.ndarray, offset: int = 0, cleanup=False
     np.add.at(vol[1], indicies, weights)
 
     if cleanup:
-        shutil.rmtree(path)
+        path.unlink()
 
 
 def volume_from_intermediates(path: Path, shape: DataShape, thread_count: int = 4):

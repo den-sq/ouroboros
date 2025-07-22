@@ -20,7 +20,6 @@ from ouroboros.helpers.files import (
     parse_tiff_name,
     np_convert,
     generate_tiff_write,
-    write_memmap_with_create,
     rewrite_by_dimension,
     ravel_map_2d,
     load_z_intermediate,
@@ -205,32 +204,6 @@ def test_generate_tiff_write(tmp_path):
         assert json_metadata["backprojection_offset_min_xyz"] == [55, 44, 77]
 
 
-def test_write_memmap_with_create(tmp_path):
-    temp_file = tmp_path.joinpath("foot.tiff")
-    indicies = (np.zeros((10), dtype=np.uint16), np.arange(0, 10, dtype=np.uint16))
-    data = np.random.rand((10)) * 4
-    shape = (10, 10)
-    dtype = np.float32
-
-    write_memmap_with_create(temp_file, indicies, data, shape, dtype)
-
-    import tifffile as tf
-
-    x = tf.imread(temp_file)
-    assert np.allclose(x[indicies], data)
-    assert np.all(np.nonzero(x)[0] == indicies[0]) and np.all(np.nonzero(x)[1] == indicies[1])
-
-    second_indicies = (np.zeros((3), dtype=np.uint16), np.arange(5, 8, dtype=np.uint16))
-    second_values = np.random.rand((3)) * 6
-
-    write_memmap_with_create(temp_file, second_indicies, second_values, shape, dtype)
-
-    assert np.all(np.nonzero(x)[0] == indicies[0]) and np.all(np.nonzero(x)[1] == indicies[1])
-
-    x = tf.imread(temp_file)
-    assert np.allclose(x[second_indicies], np.mean([data[5:8], second_values], axis=0))
-
-
 def test_ravel_map_2d():
     offset = ((60, ), (40, ))
     source_rows = 20
@@ -338,3 +311,47 @@ def test_rewrite_by_dimension_unthreaded(tmp_path):
     for i in np.flatnonzero(writeable == 2):
         x = tf.imread(tmp_path.joinpath(f"{i:05}.tiff"))
         assert x.dtype == np.uint16
+
+
+def test_increment_volume(tmp_path):
+    sample_path = Path(tmp_path, "inter.tif")
+    offset = ((np.uint32(60), ), (np.uint32(40), ))
+    source_coords = np.array([[5, 5, 5], [12, 7, 12]], dtype=np.uint32)
+
+    raveled_source = np.ravel_multi_index(source_coords, (20, 20)).astype(np.uint32)
+    mapped_source = ravel_map_2d(raveled_source, 20, 60, offset)
+    source_values = np.random.rand(3).astype(np.float32)
+    source_weights = np.random.rand(3).astype(np.float32)
+
+    offset_dict = {
+        "source_rows": np.uint32(20),
+        "target_rows": np.uint32(60),
+        "offset_columns": np.uint32(60),
+        "offset_rows": np.uint32(40),
+    }
+
+    write_small_intermediate(sample_path,
+                             np.fromiter(offset_dict.values(), dtype=np.uint32, count=4),
+                             raveled_source,
+                             source_values,
+                             source_weights)
+
+    volume = np.zeros((2, 80 * 60))
+    increment_volume(sample_path, volume[:], cleanup=True)
+
+    assert volume[0, mapped_source[1]] == source_values[1]
+    assert np.allclose(volume[0, mapped_source[0]], np.sum(source_values[[0, 2]]))
+    assert volume[1, mapped_source[1]] == source_weights[1]
+    assert np.allclose(volume[1, mapped_source[0]], np.sum(source_weights[[0, 2]]))
+    assert np.all(np.nonzero(volume)[0] == np.array([0, 0, 1, 1]))
+    assert np.all(np.nonzero(volume)[1] == np.array([3947, 3952, 3947, 3952]))
+    
+    assert not sample_path.exists()
+
+
+def test_volume_from_intermediates():
+    pass
+
+
+def test_write_conv_vol():
+    pass

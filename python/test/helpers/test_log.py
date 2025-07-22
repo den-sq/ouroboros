@@ -20,10 +20,11 @@ def attach_test(step, pid):
     assert pid == os.getpid()
 
 
-def test_log(capfd):
+def test_log(capfd, tmp_path):
+    tp = Path(tmp_path)
     assert isinstance(log, Logger)
-    log.set_logdir("../testlog/")
-    assert Path("../testlog/").exists()
+    log.set_logdir(tp.joinpath("testlog"))
+    assert tp.joinpath("testlog").exists()
 
     # Header Test
     log.header()
@@ -71,12 +72,12 @@ def test_log(capfd):
     assert out[-12:] == "\"Ignore Me\"\n"
 
 
-def test_confirm(monkeypatch):
+def test_confirm(monkeypatch, tmp_path):
     new_log = Logger(log_screen={
                 "stdout": LOG.STATUS | LOG.TIME | LOG.INFO | LOG.DEBUG,
                 "stderr": LOG.ERROR | LOG.WARN
             }, log_files={
-                "general": (Path(f"imaging_log_{str(datetime.now()).replace(':', '')}.txt"), ~(LOG.INFO))
+                "general": (Path(tmp_path, f"imaging_log_{str(datetime.now()).replace(':', '')}.txt"), ~(LOG.INFO))
             })
 
     # Attach func for testing attach calls.
@@ -96,12 +97,12 @@ def test_confirm(monkeypatch):
     assert new_log.prompt("PROMPT TEST", "What is on my head?") == "My Hat"
 
 
-def test_out_set(capfd):
+def test_out_set(capfd, tmp_path):
     new_log = Logger(log_screen={
                 "stdout": None,
                 "stderr": LOG.ERROR | LOG.WARN
             }, log_files={
-                "general": (Path(f"imaging_log_{datetime.now()}.txt"), ~(LOG.INFO))
+                "general": (Path(tmp_path, f"imaging_log_{str(datetime.now()).replace(':', '')}.txt"), ~(LOG.INFO))
             })
 
     x = io.StringIO()

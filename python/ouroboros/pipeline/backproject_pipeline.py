@@ -42,10 +42,9 @@ from ouroboros.helpers.files import (
     write_small_intermediate
 )
 from ouroboros.helpers.shapes import DataRange, ImgSlice
-# from ouroboros.helpers.util import unique_lv
 
 
-DEFAULT_CHUNK_SIZE = 200
+DEFAULT_CHUNK_SIZE = 160
 AXIS = 0
 
 
@@ -156,15 +155,13 @@ class BackprojectPipelineStep(PipelineStep):
                 processed = np.zeros(astuple(chunk_range.length))
                 z_sources = np.zeros((write_shape[0], ) + astuple(chunk_range.length), dtype=bool)
 
-                for chunk, shape, chunk_rects, bbox, index in chunk_range.get_iter(chunk_iter):
+                for chunk, _, chunk_rects, _, index in chunk_range.get_iter(chunk_iter):
                     bp_futures.append(executor.submit(
                         process_chunk,
                         config,
-                        bbox,
                         straightened_volume_path,
                         chunk_rects,
                         chunk,
-                        shape,
                         index,
                         full_bounding_box
                     ))
@@ -274,11 +271,9 @@ class BackprojectPipelineStep(PipelineStep):
 
 def process_chunk(
     config: BackprojectOptions,
-    bounding_box: BoundingBox,
     straightened_volume_path: str,
     chunk_rects: list[np.ndarray],
     chunk: tuple[slice],
-    shape: tuple[int],
     index: tuple[int],
     full_bounding_box: BoundingBox
 ) -> tuple[dict, str, int]:
@@ -293,6 +288,7 @@ def process_chunk(
     # Get the slices from the straightened volume  Dumb but maybe bugfix?
     start = time.perf_counter()
     slices = straightened_volume[chunk].squeeze()
+    bounding_box = BoundingBox.from_rects(chunk_rects)
 
     # Close the memmap
     del straightened_volume
@@ -313,24 +309,25 @@ def process_chunk(
     try:
         start = time.perf_counter()
 
-        z_vals, yx_vals = np.divmod(lookup, np.prod(bounding_box.get_shape()[:2], dtype=np.uint32))
+        zyx_shape = np.flip(bounding_box.get_shape()).astype(np.uint32)
+
+        z_vals, yx_vals = np.divmod(lookup, np.prod(zyx_shape[:2], dtype=np.uint32))
         offset = np.flip(bounding_box.get_min(np.int64) - full_bounding_box.get_min(np.int64)).astype(np.uint32)
 
         offset_dict = {
             # Columns are Y, Rows are X;  Offset is ZYX; Bounding Box Shapes are XYZ
-            "source_rows": bounding_box.get_shape()[0],
+            # Could this cause an error when full bounding box shape has a point exactly at max?
+            "source_rows": zyx_shape[0],
             "target_rows": full_bounding_box.get_shape()[0],
             "offset_columns": offset[1],
             "offset_rows": offset[2],
         }
         durations["split"] = [time.perf_counter() - start]
 
-        # Faster options with np.where or other approaches, since it's already sorted?
+        # Gets slices off full array corresponding to each Z value.
         z_idx = [0] + list(np.where(z_vals[:-1] != z_vals[1:])[0] + 1) + [len(z_vals)]
         z_stack = z_vals[z_idx[:-1]]
         z_slices = [np.s_[z_idx[i]: z_idx[i + 1]] for i in range(len(z_idx) - 1)]
-#         z_stack, z_counts = (x.squeeze() for x in unique_lv(z_vals[np.newaxis, :], return_counts=True))
-#         z_slices = [np.s_[np.sum(z_counts[0:i]): np.sum(z_counts[0:i + 1])] for i in range(len(z_counts))]
 
         durations["stack"] = [time.perf_counter() - start]
         start = time.perf_counter()

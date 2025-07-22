@@ -13,7 +13,6 @@ from ouroboros.helpers.slice import (
     make_volume_binary,
     slice_volume_from_grids,
     coordinate_grid,
-    backproject_slices,
     backproject_box,
     FrontProjStack,
     BackProjectIter
@@ -190,57 +189,40 @@ def test_slice_volume_from_grids_invalid_dimensions():
 
 
 def test_backproject_basic():
-    volume = np.zeros((10, 10, 10), dtype=np.float32)
+    volume = np.zeros(np.prod((10, 10, 10)), dtype=np.float32)
     bounding_box = BoundingBox(BoundingBox.bounds_to_rect(0, 10, 0, 10, 0, 10))
     rects = generate_bounded_rects(range(0, 10), range(0, 10), 5)
     slices = np.random.rand(5, 10, 10).astype(np.float32)
 
-    lookup, totals, weights = backproject_slices(bounding_box, rects, slices)
-    volume[(lookup[0], lookup[1], lookup[2])] = (totals / weights)
+    lookup, totals, weights = backproject_box(bounding_box, rects, slices)
+    volume[lookup] = (totals / weights)
 
-    assert volume.shape == (10, 10, 10)
     assert volume.dtype == np.float32
     assert np.any(volume > 0)
 
 
 def test_backproject_empty_slices():
-    volume = np.zeros((10, 10, 10), dtype=np.float32)
+    volume = np.zeros(np.prod((10, 10, 10)), dtype=np.float32)
     bounding_box = BoundingBox(BoundingBox.bounds_to_rect(0, 10, 0, 10, 0, 10))
     rects = generate_bounded_rects(range(0, 10), range(0, 10), 5)
     slices = np.random.rand(0, 10, 10).astype(np.float32)
 
-    lookup, totals, weights = backproject_slices(bounding_box, rects, slices)
-    volume[(lookup[0], lookup[1], lookup[2])] = (totals / weights)
+    lookup, totals, weights = backproject_box(bounding_box, rects, slices)
+    volume[lookup] = (totals / weights)
 
-    assert volume.shape == (10, 10, 10)
     assert volume.dtype == np.float32
     assert np.all(volume == 0)
 
 
-def test_backproject_slices_partial_overlap():
-    volume = np.zeros((10, 10, 10), dtype=np.float32)
-    bounding_box = BoundingBox(BoundingBox.bounds_to_rect(0, 10, 0, 10, 0, 10))
-    rects = generate_bounded_rects(range(5, 15), range(5, 15), 5)
-    slices = np.random.rand(5, 10, 10).astype(np.float32)
-
-    lookup, totals, weights = backproject_slices(bounding_box, rects, slices)
-    volume[(lookup[0], lookup[1], lookup[2])] = (totals / weights)
-
-    assert volume.shape == (10, 10, 10)
-    assert volume.dtype == np.float32
-    assert np.any(volume > 0)
-
-
 def test_backproject_slices_large_volume():
-    volume = np.zeros((100, 100, 100), dtype=np.float32)
+    volume = np.zeros(np.prod((100, 100, 100)), dtype=np.float32)
     bounding_box = BoundingBox(BoundingBox.bounds_to_rect(0, 100, 0, 100, 0, 100))
     rects = generate_bounded_rects(range(0, 100), range(0, 100), 50)
     slices = np.random.rand(50, 100, 100).astype(np.float32)
 
-    lookup, totals, weights = backproject_slices(bounding_box, rects, slices)
-    volume[(lookup[0], lookup[1], lookup[2])] = (totals / weights)
+    lookup, totals, weights = backproject_box(bounding_box, rects, slices)
+    volume[lookup] = (totals / weights)
 
-    assert volume.shape == (100, 100, 100)
     assert volume.dtype == np.float32
     assert np.any(volume > 0)
 
@@ -306,6 +288,27 @@ def make_rect(point, u_vec, v_vec):
     return np.array([np.array([point[x], point[x] + u_vec[x], point[x] + u_vec[x] + v_vec[x], point[x] + v_vec[x]])
                      for x in range(point.shape[0])])
 
+
+def test_backproject_values():
+    bounds = np.random.rand(27).reshape(3, 3, 3) * 20
+    rects = make_rect(bounds[0], bounds[1], bounds[2])
+    slices = (np.random.rand(36) * 20).reshape(3, 4, 3)
+    bounding_box = BoundingBox.from_rects(rects)
+
+    zyx_shape = np.flip(bounding_box.get_shape())
+
+    box_lookup, box_totals, box_weights = backproject_box(bounding_box, rects, slices)
+
+    # Total weighted values assigned should be the same as sum of the slices.
+    assert np.allclose([np.sum(box_totals)], [np.sum(slices)])
+    
+	# Total weights should be same as the # of points (1.0 per point)
+    assert int(np.round(np.sum(box_weights))) == np.prod(slices.shape)
+
+    # Bounds should be the shape of the box.
+    # Would crash if beyond these bounds.
+    box_points = np.flip(np.unravel_index(box_lookup, (zyx_shape)))
+    
 
 def test_backproject_iter_2D():
     FPStackRange = FrontProjStack.drange((0, 0, 0), (3, 4, 3), (2, 2, 2))

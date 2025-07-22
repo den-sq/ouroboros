@@ -248,31 +248,38 @@ def get_mip_volume_sizes(source_url: str) -> dict:
 def update_writable_rects(processed: np.ndarray, slice_rects: np.ndarray, min_dim: int, writeable: np.ndarray,
                           chunk_size: int):
     """
-    Updates which boxes are writeable based on the current bounding box and ones remaining to be written.
+    Updates which z-stacks are writeable based on the slice rects that have been processed..
 
     Parameters:
     -----------
-        volume_cache (VolumeCache): VolumeCache holding all bounding boxes being processed.
-        writeable (np.ndarray): What data is currently writeable.
-        remaining (np.ndarray): Bounding boxes not yet processed.
-        index:  Index in the volume cache of the current bounding box.
+        processed (np.ndarray): Marker of which chunks are processed, 
+        						 by their (Z, Y, X) indicies.
+        slice_rects: All full-size slice rects from the straightened volume.
+        min_dim (int): Minimum (z) dimension of the full object.
+        writeable (np.ndarray): Tracker of writable Z-stacks (index 0 = z min_dim).
+								Values: 0 (not writeable), 1 (writable), 2 (dispatched to writer).
+        chunk_size (int): Size of 3D chunk in (z) dimension.
 
     Return:
     -------
         np.ndarray: Sorted values in the given dimension that ready to be written to.
 
     """
-    # Expand by chunk size (as each processed is a chunk),
-    # then cap to slice rect length (as last chunk may be shorter)
+    # Each chunk covers part of chunk_size slice_rects in z (straightened) dimension, 
+	#  except last may be shorter (so capped to length of slice_rects).
+	# A full slice_rect is ready if all (y, x) chunks for it are processed.
     processed_slices = np.repeat(np.all(processed, axis=(1, 2)), chunk_size)[:len(slice_rects)]
     if np.all(processed_slices):
+        # All slice_rects processed, remaining z (backprojected) slices are to be written.
         writeable[:] = np.maximum(writeable, 1)
     elif np.any(processed_slices):
-        current = boxes_dim_range([BoundingBox.from_rects(slice_rects[processed_slices])])
-        remaining = boxes_dim_range([BoundingBox.from_rects(slice_rects[np.invert(processed_slices)])])
+        # Get the z-indexes covered by processed bounding boxes.
+        processed_z = boxes_dim_range([BoundingBox.from_rects(slice_rects[processed_slices])])
+        remaining_z = boxes_dim_range([BoundingBox.from_rects(slice_rects[np.invert(processed_slices)])])
 
-        # Check for completed z-stacks
-        completed_index = current[np.isin(current, remaining, invert=True)] - min_dim
+        # Update writable with any z-stacks that have been processed and have no chunks remaining,
+        #  not overwriting any marker of those dispatched for writing.
+        completed_index = processed_z[np.isin(processed_z, remaining_z, invert=True)] - min_dim
         writeable[completed_index] = np.maximum(writeable[completed_index], 1)
 
 
