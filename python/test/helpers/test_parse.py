@@ -5,7 +5,7 @@ from ouroboros.helpers.parse import (
     neuroglancer_config_to_source,
     SourceModel
 )
-from test.sample_data import generate_sample_neuroglancer_json
+from test.sample_data import generate_sample_neuroglancer_json, generate_novel_neuroglancer_json
 
 
 def test_parse_neuroglancer_json(tmp_path):
@@ -108,3 +108,19 @@ def test_parse_neuroglancer_json_invalid():
 
     # Assert that the parsed data is None
     assert parsed_data is None
+
+
+def test_parse_newv_image_layers(tmp_path):
+    json_path = generate_novel_neuroglancer_json(tmp_path)
+
+    parsed_data, error = parse_neuroglancer_json(json_path)
+    print(parsed_data)
+    
+    assert error is None
+    
+    assert parsed_data.layers[-1].source == "n5://http://sourcewebsite.com/image/another/path/"
+    assert parsed_data.layers[-3].source.url == "zarr://http://sourcewebsite.com/image2/path/to/"
+    assert parsed_data.layers[0].source == "precomputed://http://sourcewebsite.com/image"
+    assert parsed_data.layers[2].source.url == "precomputed://http://sourcewebsite.com/image2"
+
+    assert parsed_data.layers[1].source == "precomputed://http://sourcewebsite.com/image"
