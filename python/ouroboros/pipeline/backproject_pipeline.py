@@ -126,8 +126,9 @@ class BackprojectPipelineStep(PipelineStep):
         write_shape = np.flip(full_bounding_box.get_shape()).tolist()
         print(f"\nFront Projection Shape: {FPShape}")
         print(f"\nBack Projection Shape (Z/Y/X):{write_shape}")
-        folder_path = Path(config.output_file_folder,
-                           config.output_file_name + f"_{'_'.join(map(str, full_bounding_box.get_min(np.uint32)))}")
+
+        pipeline_input.output_file_path = f"{config.output_file_name}_{'_'.join(map(str, full_bounding_box.get_min(np.uint32)))}"
+        folder_path = Path(config.output_file_folder, pipeline_input.output_file_path)
         folder_path.mkdir(exist_ok=True, parents=True)
 
         i_path = Path(config.output_file_folder,
@@ -223,6 +224,7 @@ class BackprojectPipelineStep(PipelineStep):
         start = time.perf_counter()
 
         if config.make_single_file:
+            pipeline_input.output_file_path += ".tif"
             writer = tif_write(tifffile.TiffWriter(folder_path.with_suffix(".tiff"), bigtiff=is_big_tiff).write)
             for fname in get_sorted_tif_files(folder_path):
                 writer(tifffile.imread(folder_path.joinpath(fname)))
