@@ -7,7 +7,7 @@ from threading import Thread
 import numpy as np
 from numpy.typing import ArrayLike
 from pathlib import Path
-from tifffile import imread, TiffWriter, memmap, TiffFile
+from tifffile import imread, TiffWriter, TiffFile
 import time
 
 from .shapes import DataShape
@@ -139,7 +139,8 @@ def np_convert(dtype: np.dtype, source: ArrayLike, normalize=True):
         return source.astype(dtype)
 
 
-def generate_tiff_write(write_func, compression, micron_resolution, backprojection_offset):
+def generate_tiff_write(write_func: callable, compression: str | None, micron_resolution: np.ndarray[float],
+               backprojection_offset: np.ndarray, **kwargs):
     # Volume cache resolution is in voxel size, but .tiff XY resolution is in voxels per unit, so we invert.
     resolution = [1.0 / voxel_size for voxel_size in micron_resolution[:2] * 0.0001]
     resolutionunit = "CENTIMETER"
@@ -158,7 +159,8 @@ def generate_tiff_write(write_func, compression, micron_resolution, backprojecti
                    metadata=metadata,
                    resolution=resolution,
                    resolutionunit=resolutionunit,
-                   software="ouroboros")
+                   software="ouroboros",
+                   **kwargs)
 
 
 def write_small_intermediate(file_path: os.PathLike, *series):

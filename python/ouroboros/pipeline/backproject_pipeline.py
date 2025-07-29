@@ -135,13 +135,14 @@ class BackprojectPipelineStep(PipelineStep):
 
         if config.make_single_file:
             is_big_tiff = calculate_gigabytes_from_dimensions(np.prod(write_shape), np.uint16) > 4     # Check Dtype
-            single_tiff = tifffile.TiffWriter(folder_path.with_suffix(".tiff"), abigtiff=is_big_tiff)
+        else:
+            is_big_tiff = calculate_gigabytes_from_dimensions(np.prod(write_shape[1:]), np.uint16) > 4     # Check Dtype
 
         bp_offset = pipeline_input.backprojection_offset if config.backproject_min_bounding_box else None
-        tif_write = generate_tiff_write(single_tiff.write if config.make_single_file else tifffile.imwrite,
-                                        config.backprojection_compression,
-                                        volume_cache.get_resolution_um(),
-                                        bp_offset)
+        tif_write = partial(generate_tiff_write,
+                            compression=config.backprojection_compression,
+                            micron_resolution=volume_cache.get_resolution_um(),
+                            backprojection_offset=bp_offset)
 
         # Process each bounding box in parallel, writing the results to the backprojected volume
         try:
@@ -198,17 +199,12 @@ class BackprojectPipelineStep(PipelineStep):
 
                     if np.any(writeable == 1):
                         write = np.flatnonzero(writeable == 1)
-                        if config.make_single_file:
-                            write = write[write == (np.indices(write.shape) + len(writeable > 1))]
-
-                        # Will need to multiprocess
+                        # Single File needs to be in order
                         for index in write:
-                            path_args = [] if config.make_single_file else [folder_path.joinpath(f"{index:05}.tiff")]
-
                             write_futures.append(write_executor.submit(
                                 write_conv_vol,
-                                tif_write, i_path.joinpath(f"i_{index:05}"),
-                                ImgSlice(*write_shape[1:]), np.uint16, *path_args
+                                tif_write(tifffile.imwrite), i_path.joinpath(f"i_{index:05}"),
+                                ImgSlice(*write_shape[1:]), np.uint16, folder_path.joinpath(f"{index:05}.tif")
                             ))
                             write_futures[-1].add_done_callback(note_written)
 
@@ -227,7 +223,9 @@ class BackprojectPipelineStep(PipelineStep):
         start = time.perf_counter()
 
         if config.make_single_file:
-            shutil.rmtree(folder_path)
+            writer = tif_write(tifffile.TiffWriter(folder_path.with_suffix(".tiff"), bigtiff=is_big_tiff).write)
+            for fname in get_sorted_tif_files(folder_path):
+                writer(tifffile.imread(folder_path.joinpath(fname)))
 
         # Rescale the backprojected volume to the output mip level
         if pipeline_input.slice_options.output_mip_level != config.output_mip_level:
@@ -265,6 +263,9 @@ class BackprojectPipelineStep(PipelineStep):
         pipeline_input.backprojected_folder_path = folder_path
 
         self.add_timing("export", time.perf_counter() - start)
+        
+        if config.make_single_file:        
+            shutil.rmtree(folder_path)
 
         return None
 
