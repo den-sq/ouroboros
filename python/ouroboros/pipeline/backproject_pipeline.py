@@ -131,8 +131,8 @@ class BackprojectPipelineStep(PipelineStep):
         # Write huge temp files (need to address)
         full_bounding_box = BoundingBox.bound_boxes(volume_cache.bounding_boxes)
         write_shape = np.flip(full_bounding_box.get_shape()).tolist()
-        file_path = Path(config.output_file_folder,
-                         config.output_file_name + f"_zyx_{'_'.join(map(str, full_bounding_box.get_min(np.uint32)))}")
+        pipeline_input.output_file_path = f"{config.output_file_name}_zyx_{'_'.join(map(str, full_bounding_box.get_min(np.uint32)))}"
+        file_path = Path(config.output_file_folder, pipeline_input.output_file_path)
         file_path.mkdir(exist_ok=True, parents=True)
 
         with ThreadPool(12) as pool:
@@ -213,6 +213,7 @@ class BackprojectPipelineStep(PipelineStep):
             )
 
         if config.make_single_file:
+            pipeline_input.output_file_path += ".tif"
             # Save the backprojected volume to a single tif file
             try:
 
