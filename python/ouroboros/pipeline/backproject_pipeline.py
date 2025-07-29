@@ -305,6 +305,11 @@ def process_chunk(
     durations["back_project"] = [time.perf_counter() - start]
     durations["total_bytes"] = [int(lookup.nbytes + values.nbytes + weights.nbytes)]
 
+    if len(values) == 0:
+        # No data to write from this chunk, so return as such.
+        durations["total_process"] = [time.perf_counter() - start_total]
+        return durations, index, []
+
     # Save the data
     try:
         start = time.perf_counter()
@@ -351,7 +356,7 @@ def process_chunk(
 
     durations["total_process"] = [time.perf_counter() - start_total]
 
-    return durations, index, z_stack + offset[2]
+    return durations, index, z_stack + offset[0]
 
 
 def rescale_mip_volume(

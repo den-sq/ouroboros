@@ -223,7 +223,6 @@ def volume_from_intermediates(path: Path, shape: DataShape, thread_count: int = 
     with ThreadPool(thread_count) as pool:
         if not path.exists():
             # We don't have any intermediate(s) for this value, so return empty.
-            print("No intermediate found.")
             return vol[0]
         elif path.is_dir():
             pool.starmap(increment_volume, [(i, vol, 0, False) for i in path.glob("**/*.tif*")])
