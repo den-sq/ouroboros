@@ -169,33 +169,6 @@ def write_small_intermediate(file_path: os.PathLike, *series):
             tif.write(entry, dtype=entry.dtype)
 
 
-def rewrite_by_dimension(writeable, tif_write, base_path, dtype=np.uint16, is_single=False, write_start=0,
-                         use_threads=True):
-    # Gets contiguous elements starting at 0 for single_file writing for accuracy
-    write = np.nonzero(writeable == 1)[0]
-    write = write[write == (np.indices(write.shape) + write_start)] if is_single else write
-
-    # image path inputs
-    img_paths = [base_path.joinpath(f"{index:05}.tiff") for index in write]
-
-    threads = []
-
-    def make_args(img):
-        return (np_convert(dtype, imread(img)), ) if is_single else (img, np_convert(dtype, imread(img), False))
-
-    if use_threads:
-        threads = [Thread(target=tif_write, args=make_args(img)) for img in img_paths]
-        for thread in threads:
-            thread.start()
-    else:
-        for img in img_paths:
-            tif_write(*make_args(img))
-
-    writeable[write] = 2
-
-    return threads
-
-
 def ravel_map_2d(index, source_rows, target_rows, offset):
     return np.add.reduce(np.add(np.divmod(index, source_rows), offset) * ((target_rows, ), (np.uint32(1), )))
 

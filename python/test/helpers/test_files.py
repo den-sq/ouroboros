@@ -20,7 +20,6 @@ from ouroboros.helpers.files import (
     parse_tiff_name,
     np_convert,
     generate_tiff_write,
-    rewrite_by_dimension,
     ravel_map_2d,
     load_z_intermediate,
     increment_volume,
@@ -251,66 +250,6 @@ def test_write_intermediate(tmp_path):
     assert len(weights) == 100
     assert np.all(weights == source_weights)
     assert weights.dtype == np.float32
-
-
-def test_rewrite_by_dimension(tmp_path):
-    writeable = np.zeros(10)
-    writeable[2:7] = 1
-
-    import tifffile as tf
-
-    # Write basic files
-    for i in range(2, 7):
-        tf.imwrite(tmp_path.joinpath(f"{i:05}.tiff"), np.full((8, 8), i, dtype=np.float32))
-
-    micron_resolution = np.array([0.7, 0.7, 0.7])
-    backprojection_offset = (55, 44, 77)
-    compression = "zlib"
-
-    tiff_write = generate_tiff_write(imwrite, compression, micron_resolution, backprojection_offset)
-
-    pool = rewrite_by_dimension(writeable, tiff_write, tmp_path)
-
-    for writer in pool:
-        writer.join()
-
-    assert np.all(writeable[2:7] == 2)
-    assert np.all(writeable[0:2] == 0)
-    assert np.all(writeable[7:] == 0)
-
-    for i in np.flatnonzero(writeable == 2):
-        x = tf.imread(tmp_path.joinpath(f"{i:05}.tiff"))
-        assert x.dtype == np.uint16
-
-
-def test_rewrite_by_dimension_unthreaded(tmp_path):
-    writeable = np.zeros(10)
-    writeable[2:7] = 1
-
-    import tifffile as tf
-
-    # Write basic files
-    for i in range(2, 7):
-        tf.imwrite(tmp_path.joinpath(f"{i:05}.tiff"), np.full((8, 8), i, dtype=np.float32))
-
-    micron_resolution = np.array([0.7, 0.7, 0.7])
-    backprojection_offset = (55, 44, 77)
-    compression = "zlib"
-
-    tiff_write = generate_tiff_write(imwrite, compression, micron_resolution, backprojection_offset)
-
-    pool = rewrite_by_dimension(writeable, tiff_write, tmp_path, use_threads=False)
-
-    for writer in pool:
-        writer.join()
-
-    assert np.all(writeable[2:7] == 2)
-    assert np.all(writeable[0:2] == 0)
-    assert np.all(writeable[7:] == 0)
-
-    for i in np.flatnonzero(writeable == 2):
-        x = tf.imread(tmp_path.joinpath(f"{i:05}.tiff"))
-        assert x.dtype == np.uint16
 
 
 def test_increment_volume(tmp_path):
