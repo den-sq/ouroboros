@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ouroboros"
-version = "1.1.2"
+version = "1.2.0"
 description = "Extract ROIs (e.g. nerves, blood vessels) from multi-terabyte cloud-hosted medical scans."
 authors = ["Weaver Goldman <we.goldm@gmail.com>, David Northover <david.northover@psu.edu>"]
 readme = "README.md"
@@ -12,10 +12,8 @@ ouroboros-docker-server = "ouroboros.docker_server:main"
 build-cli-executable = "pyinstaller:build_cli_executable"
 build-server-executable = "pyinstaller:build_server_executable"
 
-# Use python 3.10
-# https://stackoverflow.com/questions/60580113/change-python-version-to-3-x and run poetry install, poetry lock
 [tool.poetry.dependencies]
-python = ">=3.11,<3.13"
+python = ">=3.11,<3.14"
 numpy = "^1.26.4"
 scipy = "^1.13.1"
 cloud-volume = { url = "https://github.com/den-sq/cloud-volume/releases/download/12.2.0a0/cloud_volume-12.2.0a0-py3-none-any.whl" }

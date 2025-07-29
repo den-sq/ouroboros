@@ -132,7 +132,7 @@ class BackprojectPipelineStep(PipelineStep):
         folder_path.mkdir(exist_ok=True, parents=True)
 
         i_path = Path(config.output_file_folder,
-                      config.output_file_name + f"_t_{'_'.join(map(str, full_bounding_box.get_min(np.uint32)))}")
+                      f"{config.output_file_name}_t_{'_'.join(map(str, full_bounding_box.get_min(np.uint32)))}")
 
         if config.make_single_file:
             is_big_tiff = calculate_gigabytes_from_dimensions(np.prod(write_shape), np.uint16) > 4     # Check Dtype
@@ -338,7 +338,7 @@ def process_chunk(
         start = time.perf_counter()
 
         file_path = Path(config.output_file_folder,
-                         config.output_file_name + f"_t_{'_'.join(map(str, full_bounding_box.get_min(np.uint32)))}")
+                         f"{config.output_file_name}_t_{'_'.join(map(str, full_bounding_box.get_min(np.uint32)))}")
         file_path.mkdir(exist_ok=True, parents=True)
 
         def write_z(i, z_slice):
